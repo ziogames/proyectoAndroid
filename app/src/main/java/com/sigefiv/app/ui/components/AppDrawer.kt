@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
@@ -62,13 +63,16 @@ fun AppDrawer(
     currentScreen: String,
     rol: String? = null,
     permisos: List<String> = emptyList(),
+    noLeidas: Int = 0,
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit
 ) {
     // =========================================================
     // LÓGICA DE PERMISOS (@can / RBAC de Spatie)
     // =========================================================
-    val esAdmin = rol?.trim()?.equals("Administrador", ignoreCase = true) == true
+
+    val esAdmin =
+        rol?.trim()?.equals("Administrador", ignoreCase = true) == true
 
     fun puede(permiso: String): Boolean {
         if (esAdmin) return true
@@ -84,14 +88,17 @@ fun AppDrawer(
         modifier = Modifier.width(300.dp),
         drawerContainerColor = VerdeFondoSidebar
     ) {
+
         Column(
             modifier = Modifier
                 .fillMaxHeight()
                 .verticalScroll(rememberScrollState())
         ) {
+
             // =========================================================
             // CABECERA VERDE ESMERALDA
             // =========================================================
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -103,6 +110,7 @@ fun AppDrawer(
                         end = 20.dp
                     )
             ) {
+
                 Text(
                     text = "SIGEFIV",
                     style = MaterialTheme.typography.headlineMedium,
@@ -110,7 +118,9 @@ fun AppDrawer(
                     color = Blanco
                 )
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(
+                    modifier = Modifier.height(2.dp)
+                )
 
                 Text(
                     text = "Sistema de Gestión Financiera",
@@ -118,7 +128,9 @@ fun AppDrawer(
                     color = Blanco.copy(alpha = 0.85f)
                 )
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(
+                    modifier = Modifier.height(2.dp)
+                )
 
                 Text(
                     text = "Grupo Residencial 21",
@@ -128,28 +140,40 @@ fun AppDrawer(
                 )
 
                 if (!rol.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+
                     Surface(
                         color = Blanco.copy(alpha = 0.2f),
                         shape = RoundedCornerShape(6.dp)
                     ) {
+
                         Text(
                             text = rol,
                             color = Blanco,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(
+                                horizontal = 8.dp,
+                                vertical = 2.dp
+                            )
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
 
             // =========================================================
-            // INICIO (@can('dashboard'))
+            // INICIO
             // =========================================================
+
             if (puede("dashboard")) {
+
                 DrawerSectionTitle("INICIO")
 
                 DrawerItem(
@@ -164,6 +188,7 @@ fun AppDrawer(
             // =========================================================
             // COMUNIDAD
             // =========================================================
+
             DrawerSectionTitle("COMUNIDAD")
 
             DrawerItem(
@@ -174,8 +199,80 @@ fun AppDrawer(
                 onNavigate = onNavigate
             )
 
-            // @can('asambleas.index')
+            // ---------------------------------------------------------
+            // NOTIFICACIONES
+            // ---------------------------------------------------------
+
+            NavigationDrawerItem(
+                label = {
+                    Text(
+                        text = "Notificaciones",
+                        fontWeight =
+                            if (currentScreen == "notificaciones") {
+                                FontWeight.Bold
+                            } else {
+                                FontWeight.Normal
+                            }
+                    )
+                },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notificaciones"
+                    )
+                },
+                badge = {
+                    if (noLeidas > 0) {
+
+                        Surface(
+                            color = MaterialTheme.colorScheme.error,
+                            shape = RoundedCornerShape(50)
+                        ) {
+
+                            Text(
+                                text = if (noLeidas > 99) {
+                                    "99+"
+                                } else {
+                                    noLeidas.toString()
+                                },
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(
+                                    horizontal = 7.dp,
+                                    vertical = 2.dp
+                                )
+                            )
+                        }
+                    }
+                },
+                selected = currentScreen == "notificaciones",
+                onClick = {
+                    onNavigate("notificaciones")
+                },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.padding(
+                    horizontal = 12.dp,
+                    vertical = 2.dp
+                ),
+                colors = NavigationDrawerItemDefaults.colors(
+                    selectedContainerColor =
+                        VerdeSeleccionadoContainer,
+                    selectedTextColor =
+                        VerdeTextoSeleccionado,
+                    selectedIconColor =
+                        VerdeTextoSeleccionado,
+                    unselectedContainerColor =
+                        Color.Transparent,
+                    unselectedTextColor =
+                        TextoInactivo,
+                    unselectedIconColor =
+                        VerdePrincipal
+                )
+            )
+
             if (puede("asambleas.index")) {
+
                 DrawerItem(
                     title = "Asambleas",
                     icon = Icons.Default.Campaign,
@@ -188,6 +285,7 @@ fun AppDrawer(
             // =========================================================
             // ASISTENTE
             // =========================================================
+
             DrawerSectionTitle("ASISTENTE")
 
             NavigationDrawerItem(
@@ -220,24 +318,38 @@ fun AppDrawer(
                     vertical = 2.dp
                 ),
                 colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = VerdeSeleccionadoContainer,
-                    selectedTextColor = VerdeTextoSeleccionado,
-                    selectedIconColor = VerdeTextoSeleccionado,
-                    unselectedContainerColor = Color.Transparent,
-                    unselectedTextColor = TextoInactivo,
-                    unselectedIconColor = VerdePrincipal
+                    selectedContainerColor =
+                        VerdeSeleccionadoContainer,
+                    selectedTextColor =
+                        VerdeTextoSeleccionado,
+                    selectedIconColor =
+                        VerdeTextoSeleccionado,
+                    unselectedContainerColor =
+                        Color.Transparent,
+                    unselectedTextColor =
+                        TextoInactivo,
+                    unselectedIconColor =
+                        VerdePrincipal
                 )
             )
 
             // =========================================================
             // CONTABILIDAD
             // =========================================================
-            val tieneAccesoContable = puedeCualquiera("reportes.index", "movimientos.index", "caja.index")
+
+            val tieneAccesoContable =
+                puedeCualquiera(
+                    "reportes.index",
+                    "movimientos.index",
+                    "caja.index"
+                )
 
             if (tieneAccesoContable) {
+
                 DrawerSectionTitle("CONTABILIDAD")
 
                 if (puede("reportes.index")) {
+
                     DrawerItem(
                         title = "Reportes",
                         icon = Icons.Default.Assessment,
@@ -249,6 +361,7 @@ fun AppDrawer(
                 }
 
                 if (puede("movimientos.index")) {
+
                     DrawerItem(
                         title = "Movimientos",
                         icon = Icons.Default.SwapHoriz,
@@ -267,6 +380,7 @@ fun AppDrawer(
                 }
 
                 if (puede("caja.index")) {
+
                     DrawerItem(
                         title = "Caja",
                         icon = Icons.Default.AccountBalanceWallet,
@@ -281,19 +395,23 @@ fun AppDrawer(
             // =========================================================
             // ADMINISTRACIÓN
             // =========================================================
-            val tieneAccesoAdmin = puedeCualquiera(
-                "usuarios.index",
-                "roles.index",
-                "configuracion",
-                "categorias.index",
-                "bitacora.index",
-                "actividad.index"
-            )
+
+            val tieneAccesoAdmin =
+                puedeCualquiera(
+                    "usuarios.index",
+                    "roles.index",
+                    "configuracion",
+                    "categorias.index",
+                    "bitacora.index",
+                    "actividad.index"
+                )
 
             if (tieneAccesoAdmin) {
+
                 DrawerSectionTitle("ADMINISTRACIÓN")
 
                 if (puede("usuarios.index")) {
+
                     DrawerItem(
                         title = "Usuarios",
                         icon = Icons.Default.People,
@@ -305,6 +423,7 @@ fun AppDrawer(
                 }
 
                 if (puede("roles.index")) {
+
                     DrawerItem(
                         title = "Roles",
                         icon = Icons.Default.Security,
@@ -316,6 +435,7 @@ fun AppDrawer(
                 }
 
                 if (puede("configuracion")) {
+
                     DrawerItem(
                         title = "Configuración",
                         icon = Icons.Default.Settings,
@@ -327,6 +447,7 @@ fun AppDrawer(
                 }
 
                 if (puede("categorias.index")) {
+
                     DrawerItem(
                         title = "Categorías",
                         icon = Icons.Default.Folder,
@@ -338,6 +459,7 @@ fun AppDrawer(
                 }
 
                 if (puede("bitacora.index")) {
+
                     DrawerItem(
                         title = "Bitácora",
                         icon = Icons.Default.MenuBook,
@@ -349,6 +471,7 @@ fun AppDrawer(
                 }
 
                 if (puede("actividad.index")) {
+
                     DrawerItem(
                         title = "Actividad",
                         icon = Icons.Default.Timeline,
@@ -360,16 +483,21 @@ fun AppDrawer(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
 
             HorizontalDivider(
                 color = Color(0xFFCBD5E1),
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(
+                    horizontal = 16.dp
+                )
             )
 
             // =========================================================
             // SISTEMA
             // =========================================================
+
             DrawerSectionTitle("SISTEMA")
 
             DrawerItem(
@@ -381,11 +509,14 @@ fun AppDrawer(
                 disponible = true
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
 
             // =========================================================
             // CERRAR SESIÓN
             // =========================================================
+
             NavigationDrawerItem(
                 label = {
                     Text(
@@ -402,21 +533,30 @@ fun AppDrawer(
                 selected = false,
                 onClick = onLogout,
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.padding(horizontal = 12.dp),
+                modifier = Modifier.padding(
+                    horizontal = 12.dp
+                ),
                 colors = NavigationDrawerItemDefaults.colors(
-                    unselectedTextColor = MaterialTheme.colorScheme.error,
-                    unselectedIconColor = MaterialTheme.colorScheme.error,
-                    unselectedContainerColor = Color.Transparent
+                    unselectedTextColor =
+                        MaterialTheme.colorScheme.error,
+                    unselectedIconColor =
+                        MaterialTheme.colorScheme.error,
+                    unselectedContainerColor =
+                        Color.Transparent
                 )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
         }
     }
 }
 
 @Composable
-private fun DrawerSectionTitle(title: String) {
+private fun DrawerSectionTitle(
+    title: String
+) {
     Text(
         text = title,
         style = MaterialTheme.typography.labelSmall,
@@ -439,13 +579,19 @@ private fun DrawerItem(
     onNavigate: (String) -> Unit,
     disponible: Boolean = true
 ) {
-    val isSelected = currentScreen == route
+    val isSelected =
+        currentScreen == route
 
     NavigationDrawerItem(
         label = {
             Text(
                 text = title,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                fontWeight =
+                    if (isSelected) {
+                        FontWeight.Bold
+                    } else {
+                        FontWeight.Normal
+                    }
             )
         },
         icon = {
@@ -466,12 +612,26 @@ private fun DrawerItem(
             vertical = 2.dp
         ),
         colors = NavigationDrawerItemDefaults.colors(
-            selectedContainerColor = VerdeSeleccionadoContainer,
-            selectedTextColor = VerdeTextoSeleccionado,
-            selectedIconColor = VerdeTextoSeleccionado,
-            unselectedContainerColor = Color.Transparent,
-            unselectedTextColor = if (disponible) TextoInactivo else TextoDeshabilitado,
-            unselectedIconColor = if (disponible) VerdePrincipal else TextoDeshabilitado
+            selectedContainerColor =
+                VerdeSeleccionadoContainer,
+            selectedTextColor =
+                VerdeTextoSeleccionado,
+            selectedIconColor =
+                VerdeTextoSeleccionado,
+            unselectedContainerColor =
+                Color.Transparent,
+            unselectedTextColor =
+                if (disponible) {
+                    TextoInactivo
+                } else {
+                    TextoDeshabilitado
+                },
+            unselectedIconColor =
+                if (disponible) {
+                    VerdePrincipal
+                } else {
+                    TextoDeshabilitado
+                }
         )
     )
 }

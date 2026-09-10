@@ -141,6 +141,8 @@ private enum class PantallaInicial {
 class MainActivity : ComponentActivity() {
 
     private var asambleaIdNotificacion = mutableStateOf<Int?>(null)
+    private var notificacionIdNotificacion =
+        mutableStateOf<Int?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -168,6 +170,10 @@ class MainActivity : ComponentActivity() {
             intent?.getStringExtra(
                 SIGEFIVFirebaseMessagingService.EXTRA_ASAMBLEA_ID
             )?.toIntOrNull()
+        notificacionIdNotificacion.value =
+            intent?.getStringExtra(
+                SIGEFIVFirebaseMessagingService.EXTRA_NOTIFICACION_ID
+            )?.toIntOrNull()
 
         setContent {
             SIGEFIVTheme {
@@ -179,7 +185,8 @@ class MainActivity : ComponentActivity() {
                         loginViewModel = loginViewModel,
                         dashboardViewModel = dashboardViewModel,
                         movimientosViewModel = movimientosViewModel,
-                        asambleaIdNotificacion = asambleaIdNotificacion.value
+                        asambleaIdNotificacion = asambleaIdNotificacion.value,
+                        notificacionIdNotificacion = notificacionIdNotificacion.value
                     )
                 }
             }
@@ -188,619 +195,636 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+
         asambleaIdNotificacion.value =
             intent?.getStringExtra(
                 SIGEFIVFirebaseMessagingService.EXTRA_ASAMBLEA_ID
             )?.toIntOrNull()
+
+        notificacionIdNotificacion.value =
+            intent?.getStringExtra(
+                SIGEFIVFirebaseMessagingService.EXTRA_NOTIFICACION_ID
+            )?.toIntOrNull()
     }
 }
 
-/*
+    /*
 |--------------------------------------------------------------------------
 | CONTROLADOR DEL FLUJO PRINCIPAL
 |--------------------------------------------------------------------------
 */
 
-@Composable
-fun AppSIGEFIV(
-    loginViewModel: LoginViewModel,
-    dashboardViewModel: DashboardViewModel,
-    movimientosViewModel: MovimientosViewModel,
-    asambleaIdNotificacion: Int? = null
-) {
-    var pantalla by remember { mutableStateOf(PantallaInicial.SPLASH) }
+    @Composable
+    fun AppSIGEFIV(
+        loginViewModel: LoginViewModel,
+        dashboardViewModel: DashboardViewModel,
+        movimientosViewModel: MovimientosViewModel,
+        asambleaIdNotificacion: Int? = null,
+        notificacionIdNotificacion: Int? = null
+    ) {
+        var pantalla by remember { mutableStateOf(PantallaInicial.SPLASH) }
 
-    val loginCorrecto by loginViewModel.loginCorrecto.collectAsStateWithLifecycle()
-    val bienvenidaVista by loginViewModel.bienvenidaVista.collectAsStateWithLifecycle()
-    val mensaje by loginViewModel.mensaje.collectAsStateWithLifecycle()
-    val cargando by loginViewModel.cargando.collectAsStateWithLifecycle()
+        val loginCorrecto by loginViewModel.loginCorrecto.collectAsStateWithLifecycle()
+        val bienvenidaVista by loginViewModel.bienvenidaVista.collectAsStateWithLifecycle()
+        val mensaje by loginViewModel.mensaje.collectAsStateWithLifecycle()
+        val cargando by loginViewModel.cargando.collectAsStateWithLifecycle()
 
-    // Sincroniza cambios de estado de login y onboarding
-    LaunchedEffect(loginCorrecto, bienvenidaVista) {
-        if (loginCorrecto) {
-            pantalla = if (!bienvenidaVista) {
-                PantallaInicial.ONBOARDING_BIENVENIDA
-            } else {
-                PantallaInicial.APLICACION
+        // Sincroniza cambios de estado de login y onboarding
+        LaunchedEffect(loginCorrecto, bienvenidaVista) {
+            if (loginCorrecto) {
+                pantalla = if (!bienvenidaVista) {
+                    PantallaInicial.ONBOARDING_BIENVENIDA
+                } else {
+                    PantallaInicial.APLICACION
+                }
+            } else if (pantalla == PantallaInicial.APLICACION || pantalla == PantallaInicial.ONBOARDING_BIENVENIDA) {
+                pantalla = PantallaInicial.LOGIN
             }
-        } else if (pantalla == PantallaInicial.APLICACION || pantalla == PantallaInicial.ONBOARDING_BIENVENIDA) {
-            pantalla = PantallaInicial.LOGIN
         }
-    }
 
-    // Retardo inicial del Splash
-    LaunchedEffect(Unit) {
-        delay(2000)
-        if (loginCorrecto) {
-            pantalla = if (!bienvenidaVista) {
-                PantallaInicial.ONBOARDING_BIENVENIDA
+        // Retardo inicial del Splash
+        LaunchedEffect(Unit) {
+            delay(2000)
+            if (loginCorrecto) {
+                pantalla = if (!bienvenidaVista) {
+                    PantallaInicial.ONBOARDING_BIENVENIDA
+                } else {
+                    PantallaInicial.APLICACION
+                }
             } else {
-                PantallaInicial.APLICACION
+                pantalla = PantallaInicial.LOGIN
             }
-        } else {
-            pantalla = PantallaInicial.LOGIN
-        }
-    }
-
-    when (pantalla) {
-        PantallaInicial.SPLASH -> {
-            PantallaSplash()
         }
 
-        PantallaInicial.LOGIN -> {
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(animationSpec = tween(450)) +
-                        slideInVertically(
-                            initialOffsetY = { 40 },
-                            animationSpec = tween(450)
-                        )
-            ) {
-                PantallaLogin(
-                    cargando = cargando,
-                    mensaje = mensaje,
-                    onIniciarSesion = { email, password ->
-                        loginViewModel.iniciarSesion(
-                            email = email,
-                            password = password
-                        )
-                    },
-                    onIniciarSesionGoogle = { idToken ->
-                        loginViewModel.iniciarSesionConGoogle(idToken)
-                    },
-                    onIniciarSesionFacebook = {
-                        // Reservado para futura implementación
-                    },
-                    onLimpiarMensaje = {
-                        loginViewModel.limpiarMensaje()
+        when (pantalla) {
+            PantallaInicial.SPLASH -> {
+                PantallaSplash()
+            }
+
+            PantallaInicial.LOGIN -> {
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn(animationSpec = tween(450)) +
+                            slideInVertically(
+                                initialOffsetY = { 40 },
+                                animationSpec = tween(450)
+                            )
+                ) {
+                    PantallaLogin(
+                        cargando = cargando,
+                        mensaje = mensaje,
+                        onIniciarSesion = { email, password ->
+                            loginViewModel.iniciarSesion(
+                                email = email,
+                                password = password
+                            )
+                        },
+                        onIniciarSesionGoogle = { idToken ->
+                            loginViewModel.iniciarSesionConGoogle(idToken)
+                        },
+                        onIniciarSesionFacebook = {
+                            // Reservado para futura implementación
+                        },
+                        onLimpiarMensaje = {
+                            loginViewModel.limpiarMensaje()
+                        }
+                    )
+                }
+            }
+
+            PantallaInicial.ONBOARDING_BIENVENIDA -> {
+                BienvenidaScreen(
+                    onComenzarClick = {
+                        loginViewModel.marcarBienvenidaVista {
+                            pantalla = PantallaInicial.APLICACION
+                        }
                     }
                 )
             }
-        }
 
-        PantallaInicial.ONBOARDING_BIENVENIDA -> {
-            BienvenidaScreen(
-                onComenzarClick = {
-                    loginViewModel.marcarBienvenidaVista {
-                        pantalla = PantallaInicial.APLICACION
-                    }
-                }
-            )
-        }
-
-        PantallaInicial.APLICACION -> {
-            AppNavigation(
-                context = LocalContext.current,
-                dashboardViewModel = dashboardViewModel,
-                movimientosViewModel = movimientosViewModel,
-                loginViewModel = loginViewModel,
-                asambleaIdNotificacion = asambleaIdNotificacion
-            )
+            PantallaInicial.APLICACION -> {
+                AppNavigation(
+                    context = LocalContext.current,
+                    dashboardViewModel = dashboardViewModel,
+                    movimientosViewModel = movimientosViewModel,
+                    loginViewModel = loginViewModel,
+                    asambleaIdNotificacion =
+                        asambleaIdNotificacion,
+                    notificacionIdNotificacion =
+                        notificacionIdNotificacion
+                )
+            }
         }
     }
-}
 
-/*
+    /*
 |--------------------------------------------------------------------------
 | PANTALLA SPLASH DE BIENVENIDA
 |--------------------------------------------------------------------------
 */
 
-@Composable
-fun PantallaSplash() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(FondoSIGEFIV)
-    ) {
-        Column(
+    @Composable
+    fun PantallaSplash() {
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(FondoSIGEFIV)
         ) {
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Image(
-                painter = painterResource(id = R.drawable.logo_grupo_residencial),
-                contentDescription = "Logo Grupo Residencial 21",
-                modifier = Modifier.size(160.dp),
-                contentScale = ContentScale.Fit
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp, vertical = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Image(
+                    painter = painterResource(id = R.drawable.logo_grupo_residencial),
+                    contentDescription = "Logo Grupo Residencial 21",
+                    modifier = Modifier.size(160.dp),
+                    contentScale = ContentScale.Fit
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Tu comunidad,",
+                        color = TextoPrincipal,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Text(
+                        text = "siempre conectada",
+                        color = VerdePrincipal,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Caracteristica(icono = Icons.Outlined.Info, titulo = "Información clara")
+                    Caracteristica(
+                        icono = Icons.Outlined.VerifiedUser,
+                        titulo = "Gestión transparente"
+                    )
+                    Caracteristica(
+                        icono = Icons.Outlined.AccountBalance,
+                        titulo = "Comunicación directa"
+                    )
+                    Caracteristica(icono = Icons.Outlined.Groups, titulo = "Comunidad unida")
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
                 Text(
-                    text = "Tu comunidad,",
-                    color = TextoPrincipal,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Medium,
+                    text = "Sistema de Gestión Financiera Vecinal",
+                    color = GrisClaro,
+                    fontSize = 13.sp,
                     textAlign = TextAlign.Center
                 )
 
+                Spacer(modifier = Modifier.height(4.dp))
+
                 Text(
-                    text = "siempre conectada",
+                    text = "SIGEFIV • Grupo Residencial 21",
                     color = VerdePrincipal,
-                    fontSize = 26.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Caracteristica(icono = Icons.Outlined.Info, titulo = "Información clara")
-                Caracteristica(icono = Icons.Outlined.VerifiedUser, titulo = "Gestión transparente")
-                Caracteristica(icono = Icons.Outlined.AccountBalance, titulo = "Comunicación directa")
-                Caracteristica(icono = Icons.Outlined.Groups, titulo = "Comunidad unida")
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Text(
-                text = "Sistema de Gestión Financiera Vecinal",
-                color = GrisClaro,
-                fontSize = 13.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "SIGEFIV • Grupo Residencial 21",
-                color = VerdePrincipal,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
         }
     }
-}
 
-/*
+    /*
 |--------------------------------------------------------------------------
 | CARACTERÍSTICA (SPLASH)
 |--------------------------------------------------------------------------
 */
 
-@Composable
-fun Caracteristica(
-    icono: ImageVector,
-    titulo: String
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    @Composable
+    fun Caracteristica(
+        icono: ImageVector,
+        titulo: String
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(42.dp)
-                    .background(VerdeSuave, shape = RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = icono,
-                    contentDescription = titulo,
-                    tint = VerdePrincipal,
-                    modifier = Modifier.size(24.dp)
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .background(VerdeSuave, shape = RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icono,
+                        contentDescription = titulo,
+                        tint = VerdePrincipal,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Text(
+                    text = titulo,
+                    color = TextoPrincipal,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
-
-            Spacer(modifier = Modifier.width(14.dp))
-
-            Text(
-                text = titulo,
-                color = TextoPrincipal,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold
-            )
         }
     }
-}
 
-/*
+    /*
 |--------------------------------------------------------------------------
 | PANTALLA LOGIN
 |--------------------------------------------------------------------------
 */
 
-@Composable
-fun PantallaLogin(
-    cargando: Boolean,
-    mensaje: String?,
-    onIniciarSesion: (String, String) -> Unit,
-    onIniciarSesionGoogle: (String) -> Unit,
-    onIniciarSesionFacebook: () -> Unit,
-    onLimpiarMensaje: () -> Unit
-) {
-    var usuario by remember { mutableStateOf("admin@sigefiv.com") }
-    var password by remember { mutableStateOf("12345678") }
-    var mostrarPassword by remember { mutableStateOf(false) }
-
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    val credentialManager = remember(context) { CredentialManager.create(context) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(FondoSIGEFIV)
+    @Composable
+    fun PantallaLogin(
+        cargando: Boolean,
+        mensaje: String?,
+        onIniciarSesion: (String, String) -> Unit,
+        onIniciarSesionGoogle: (String) -> Unit,
+        onIniciarSesionFacebook: () -> Unit,
+        onLimpiarMensaje: () -> Unit
     ) {
-        Column(
+        var usuario by remember { mutableStateOf("admin@sigefiv.com") }
+        var password by remember { mutableStateOf("12345678") }
+        var mostrarPassword by remember { mutableStateOf(false) }
+
+        val context = LocalContext.current
+        val coroutineScope = rememberCoroutineScope()
+        val credentialManager = remember(context) { CredentialManager.create(context) }
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .background(FondoSIGEFIV)
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.logo_grupo_residencial),
-                contentDescription = "Logo Grupo Residencial 21",
-                modifier = Modifier.size(130.dp),
-                contentScale = ContentScale.Fit
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "¡Bienvenido!",
-                color = TextoPrincipal,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "Ingresa tus credenciales para continuar",
-                color = GrisClaro,
-                fontSize = 14.sp
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
+                Image(
+                    painter = painterResource(id = R.drawable.logo_grupo_residencial),
+                    contentDescription = "Logo Grupo Residencial 21",
+                    modifier = Modifier.size(130.dp),
+                    contentScale = ContentScale.Fit
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "¡Bienvenido!",
+                    color = TextoPrincipal,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Ingresa tus credenciales para continuar",
+                    color = GrisClaro,
+                    fontSize = 14.sp
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    /*
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        /*
                     --------------------------------------------------------
                     | USUARIO
                     --------------------------------------------------------
                     */
-                    OutlinedTextField(
-                        value = usuario,
-                        onValueChange = {
-                            usuario = it
-                            if (mensaje != null) onLimpiarMensaje()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        enabled = !cargando,
-                        label = { Text("Usuario o correo") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Outlined.MailOutline,
-                                contentDescription = "Usuario o correo",
-                                tint = VerdePrincipal
-                            )
-                        },
-                        colors = coloresCampoLogin()
-                    )
+                        OutlinedTextField(
+                            value = usuario,
+                            onValueChange = {
+                                usuario = it
+                                if (mensaje != null) onLimpiarMensaje()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            enabled = !cargando,
+                            label = { Text("Usuario o correo") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.MailOutline,
+                                    contentDescription = "Usuario o correo",
+                                    tint = VerdePrincipal
+                                )
+                            },
+                            colors = coloresCampoLogin()
+                        )
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                    /*
+                        /*
                     --------------------------------------------------------
                     | CONTRASEÑA
                     --------------------------------------------------------
                     */
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = {
-                            password = it
-                            if (mensaje != null) onLimpiarMensaje()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        enabled = !cargando,
-                        label = { Text("Contraseña") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Outlined.Lock,
-                                contentDescription = "Contraseña",
-                                tint = VerdePrincipal
-                            )
-                        },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = { mostrarPassword = !mostrarPassword },
-                                enabled = !cargando
-                            ) {
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = {
+                                password = it
+                                if (mensaje != null) onLimpiarMensaje()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            enabled = !cargando,
+                            label = { Text("Contraseña") },
+                            leadingIcon = {
                                 Icon(
-                                    imageVector = if (mostrarPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                    contentDescription = if (mostrarPassword) "Ocultar contraseña" else "Mostrar contraseña",
-                                    tint = GrisClaro
+                                    imageVector = Icons.Outlined.Lock,
+                                    contentDescription = "Contraseña",
+                                    tint = VerdePrincipal
                                 )
-                            }
-                        },
-                        visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        colors = coloresCampoLogin()
-                    )
+                            },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { mostrarPassword = !mostrarPassword },
+                                    enabled = !cargando
+                                ) {
+                                    Icon(
+                                        imageVector = if (mostrarPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                        contentDescription = if (mostrarPassword) "Ocultar contraseña" else "Mostrar contraseña",
+                                        tint = GrisClaro
+                                    )
+                                }
+                            },
+                            visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            colors = coloresCampoLogin()
+                        )
 
-                    /*
+                        /*
                     --------------------------------------------------------
                     | MENSAJE DE ERROR
                     --------------------------------------------------------
                     */
-                    if (!mensaje.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = mensaje,
-                            color = Rojo,
-                            fontSize = 13.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                        if (!mensaje.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = mensaje,
+                                color = Rojo,
+                                fontSize = 13.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
 
-                    /*
+                        /*
                     --------------------------------------------------------
                     | OLVIDASTE TU CONTRASEÑA
                     --------------------------------------------------------
                     */
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(
-                            onClick = { },
-                            enabled = !cargando
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
                         ) {
-                            Text(
-                                text = "¿Olvidaste tu contraseña?",
-                                color = VerdePrincipal,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            TextButton(
+                                onClick = { },
+                                enabled = !cargando
+                            ) {
+                                Text(
+                                    text = "¿Olvidaste tu contraseña?",
+                                    color = VerdePrincipal,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    /*
+                        /*
                     --------------------------------------------------------
                     | BOTÓN INICIAR SESIÓN
                     --------------------------------------------------------
                     */
-                    Button(
-                        onClick = {
-                            onIniciarSesion(usuario.trim(), password)
-                        },
-                        enabled = !cargando,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = VerdePrincipal,
-                            contentColor = Blanco
-                        )
-                    ) {
-                        if (cargando) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                color = Blanco,
-                                strokeWidth = 2.5.dp
+                        Button(
+                            onClick = {
+                                onIniciarSesion(usuario.trim(), password)
+                            },
+                            enabled = !cargando,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = VerdePrincipal,
+                                contentColor = Blanco
                             )
-                        } else {
+                        ) {
+                            if (cargando) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(22.dp),
+                                    color = Blanco,
+                                    strokeWidth = 2.5.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "Iniciar sesión",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        // Separador
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Spacer(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(1.dp)
+                                    .background(GrisBorde)
+                            )
                             Text(
-                                text = "Iniciar sesión",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
+                                text = "  o  ",
+                                color = GrisClaro,
+                                fontSize = 13.sp
+                            )
+                            Spacer(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(1.dp)
+                                    .background(GrisBorde)
                             )
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
 
-                    // Separador
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(1.dp)
-                                .background(GrisBorde)
-                        )
-                        Text(
-                            text = "  o  ",
-                            color = GrisClaro,
-                            fontSize = 13.sp
-                        )
-                        Spacer(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(1.dp)
-                                .background(GrisBorde)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    /*
+                        /*
                     --------------------------------------------------------
                     | GOOGLE (CORREGIDO CON GetGoogleIdOption)
                     --------------------------------------------------------
                     */
-                    OutlinedButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                try {
-                                    // Se desactiva filterByAuthorizedAccounts para que no falle al primer clic
-                                    val googleIdOption = GetGoogleIdOption.Builder()
-                                        .setFilterByAuthorizedAccounts(false)
-                                        .setServerClientId(GOOGLE_WEB_CLIENT_ID)
-                                        .setAutoSelectEnabled(false)
-                                        .build()
+                        OutlinedButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    try {
+                                        // Se desactiva filterByAuthorizedAccounts para que no falle al primer clic
+                                        val googleIdOption = GetGoogleIdOption.Builder()
+                                            .setFilterByAuthorizedAccounts(false)
+                                            .setServerClientId(GOOGLE_WEB_CLIENT_ID)
+                                            .setAutoSelectEnabled(false)
+                                            .build()
 
-                                    val request = GetCredentialRequest.Builder()
-                                        .addCredentialOption(googleIdOption)
-                                        .build()
+                                        val request = GetCredentialRequest.Builder()
+                                            .addCredentialOption(googleIdOption)
+                                            .build()
 
-                                    val result = credentialManager.getCredential(
-                                        context = context,
-                                        request = request
-                                    )
+                                        val result = credentialManager.getCredential(
+                                            context = context,
+                                            request = request
+                                        )
 
-                                    val credential = result.credential
+                                        val credential = result.credential
 
-                                    if (
-                                        credential is CustomCredential &&
-                                        credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                                    ) {
-                                        try {
-                                            val googleCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                                            onIniciarSesionGoogle(googleCredential.idToken)
-                                        } catch (e: GoogleIdTokenParsingException) {
-                                            e.printStackTrace()
+                                        if (
+                                            credential is CustomCredential &&
+                                            credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                                        ) {
+                                            try {
+                                                val googleCredential =
+                                                    GoogleIdTokenCredential.createFrom(credential.data)
+                                                onIniciarSesionGoogle(googleCredential.idToken)
+                                            } catch (e: GoogleIdTokenParsingException) {
+                                                e.printStackTrace()
+                                                onLimpiarMensaje()
+                                            }
+                                        } else {
                                             onLimpiarMensaje()
                                         }
-                                    } else {
+                                    } catch (e: GetCredentialException) {
+                                        e.printStackTrace()
+                                        onLimpiarMensaje()
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
                                         onLimpiarMensaje()
                                     }
-                                } catch (e: GetCredentialException) {
-                                    e.printStackTrace()
-                                    onLimpiarMensaje()
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                    onLimpiarMensaje()
                                 }
-                            }
-                        },
-                        enabled = !cargando,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Blanco,
-                            contentColor = TextoPrincipal
-                        )
-                    ) {
-                        Text(
-                            text = "G   Continuar con Google",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                            },
+                            enabled = !cargando,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Blanco,
+                                contentColor = TextoPrincipal
+                            )
+                        ) {
+                            Text(
+                                text = "G   Continuar con Google",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                    /*
+                        /*
                     --------------------------------------------------------
                     | FACEBOOK
                     --------------------------------------------------------
                     */
-                    OutlinedButton(
-                        onClick = { onIniciarSesionFacebook() },
-                        enabled = !cargando,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Blanco,
-                            contentColor = TextoPrincipal
-                        )
-                    ) {
-                        Text(
-                            text = "f   Continuar con Facebook",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        OutlinedButton(
+                            onClick = { onIniciarSesionFacebook() },
+                            enabled = !cargando,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Blanco,
+                                contentColor = TextoPrincipal
+                            )
+                        ) {
+                            Text(
+                                text = "f   Continuar con Facebook",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = "Sistema de Gestión Financiera Vecinal",
+                    color = GrisClaro,
+                    fontSize = 13.sp
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "SIGEFIV • Grupo Residencial 21",
+                    color = VerdePrincipal,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Sistema de Gestión Financiera Vecinal",
-                color = GrisClaro,
-                fontSize = 13.sp
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "SIGEFIV • Grupo Residencial 21",
-                color = VerdePrincipal,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
         }
     }
-}
 
-/*
+    /*
 |--------------------------------------------------------------------------
 | COLORES DE CAMPOS DE LOGIN
 |--------------------------------------------------------------------------
 */
 
-@Composable
-private fun coloresCampoLogin() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = VerdePrincipal,
-    unfocusedBorderColor = GrisBorde,
-    focusedLabelColor = VerdePrincipal,
-    unfocusedLabelColor = GrisClaro,
-    focusedTextColor = TextoPrincipal,
-    unfocusedTextColor = TextoPrincipal,
-    cursorColor = VerdePrincipal
-)
+    @Composable
+    private fun coloresCampoLogin() = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = VerdePrincipal,
+        unfocusedBorderColor = GrisBorde,
+        focusedLabelColor = VerdePrincipal,
+        unfocusedLabelColor = GrisClaro,
+        focusedTextColor = TextoPrincipal,
+        unfocusedTextColor = TextoPrincipal,
+        cursorColor = VerdePrincipal
+    )

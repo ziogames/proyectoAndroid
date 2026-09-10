@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.sigefiv.app.notifications.NotificacionEventBus
 
 class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
 
@@ -38,6 +39,8 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
 
         const val EXTRA_ASAMBLEA_ID =
             "asamblea_id"
+        const val EXTRA_NOTIFICACION_ID =
+            "notificacion_id"
     }
 
     /**
@@ -126,13 +129,17 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
         val asambleaId =
             remoteMessage.data["asamblea_id"]
 
+        val notificacionId =
+            remoteMessage.data["notificacion_id"]
+        NotificacionEventBus.notificacionRecibida()
         crearCanalNotificaciones()
 
         mostrarNotificacion(
             titulo = titulo,
             mensaje = mensaje,
             tipo = tipo,
-            asambleaId = asambleaId
+            asambleaId = asambleaId,
+            notificacionId = notificacionId
         )
     }
 
@@ -182,8 +189,9 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
         titulo: String,
         mensaje: String,
         tipo: String?,
-        asambleaId: String?
-    ) {
+        asambleaId: String?,
+        notificacionId: String?
+    ){
 
         val intent =
             Intent(
@@ -212,6 +220,13 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                     putExtra(
                         EXTRA_ASAMBLEA_ID,
                         asambleaId
+                    )
+                }
+                if (!notificacionId.isNullOrBlank()) {
+
+                    putExtra(
+                        EXTRA_NOTIFICACION_ID,
+                        notificacionId
                     )
                 }
             }

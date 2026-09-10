@@ -59,6 +59,8 @@ import com.sigefiv.app.screens.movimientos.MovimientosScreen
 import com.sigefiv.app.screens.movimientos.NuevoEgresoScreen
 import com.sigefiv.app.screens.movimientos.NuevoIngresoScreen
 import com.sigefiv.app.screens.movimientos.NuevoMovimientoScreen
+
+import com.sigefiv.app.screens.notificaciones.NotificacionesScreen
 import com.sigefiv.app.screens.perfil.PerfilScreen
 import com.sigefiv.app.screens.periodos.PeriodoDetalleScreen
 import com.sigefiv.app.screens.periodos.PeriodosAnioScreen
@@ -73,6 +75,8 @@ import com.sigefiv.app.viewmodel.CajaViewModel
 import com.sigefiv.app.viewmodel.CategoriasViewModel
 import com.sigefiv.app.viewmodel.ChatViewModel
 import com.sigefiv.app.viewmodel.DashboardViewModel
+import com.sigefiv.app.viewmodel.FcmPreferenciaViewModel
+import com.sigefiv.app.viewmodel.NotificacionViewModel
 import com.sigefiv.app.viewmodel.LoginViewModel
 import com.sigefiv.app.viewmodel.MovimientosViewModel
 import com.sigefiv.app.viewmodel.PeriodoViewModel
@@ -81,6 +85,7 @@ import com.sigefiv.app.viewmodel.PerfilViewModel
 import com.sigefiv.app.viewmodel.RolViewModel
 import com.sigefiv.app.viewmodel.UsuarioViewModel
 import kotlinx.coroutines.launch
+
 
 enum class AppScreen(val drawerRoute: String) {
     DASHBOARD("dashboard"),
@@ -103,7 +108,9 @@ enum class AppScreen(val drawerRoute: String) {
     USUARIOS("usuarios"),
     ROLES("roles"),
     EDITAR_ROL("roles"),
-    CAJA("caja")
+    CAJA("caja"),
+
+    NOTIFICACIONES("notificaciones")
 }
 
 @Composable
@@ -112,8 +119,9 @@ fun AppNavigation(
     dashboardViewModel: DashboardViewModel,
     movimientosViewModel: MovimientosViewModel,
     loginViewModel: LoginViewModel,
-    asambleaIdNotificacion: Int? = null
-) {
+    asambleaIdNotificacion: Int? = null,
+    notificacionIdNotificacion: Int? = null
+){
     val sessionManager = remember { SessionManager(context) }
     val categoriasViewModel = remember { CategoriasViewModel(context) }
     val periodoViewModel = remember { PeriodoViewModel(context) }
@@ -124,13 +132,19 @@ fun AppNavigation(
     val cajaViewModel = remember { CajaViewModel(CajaRepository(ApiClient.cajaApi(context))) }
     val rolViewModel = remember { RolViewModel(RolRepository(ApiClient.rolApi(context))) }
     val chatViewModel = remember { ChatViewModel(ChatRepository(ApiClient.chatApi(context))) }
-
+    val notificacionViewModel =
+        remember { NotificacionViewModel(context) }
+    val fcmPreferenciaViewModel =
+        remember { FcmPreferenciaViewModel(context) }
+    val notificacionesNoLeidas by
+    notificacionViewModel.noLeidas.collectAsState()
     val usuarioActualId by sessionManager.userId.collectAsState(initial = null)
     val usuarioPerfil by perfilViewModel.usuario.collectAsState()
 
     LaunchedEffect(Unit) {
         dashboardViewModel.cargarDashboard()
         perfilViewModel.cargarPerfil()
+        notificacionViewModel.cargarNoLeidas()
     }
 
     val backStack = remember { mutableStateListOf(AppScreen.DASHBOARD) }
@@ -174,6 +188,11 @@ fun AppNavigation(
             }
         }
     }
+    LaunchedEffect(notificacionIdNotificacion) {
+        notificacionIdNotificacion?.let { id ->
+            notificacionViewModel.marcarComoLeida(id)
+        }
+    }
 
     val categorias by categoriasViewModel.categorias.collectAsState()
     val cargandoCategorias by categoriasViewModel.cargando.collectAsState()
@@ -194,11 +213,13 @@ fun AppNavigation(
                 currentScreen = pantallaActual.drawerRoute,
                 rol = usuarioPerfil?.rol,
                 permisos = usuarioPerfil?.permisos ?: emptyList(),
+                noLeidas = notificacionesNoLeidas,
                 onNavigate = { route ->
                     when (route) {
                         "dashboard" -> navegarA(AppScreen.DASHBOARD, limpiarPila = true)
                         "movimientos" -> navegarA(AppScreen.MOVIMIENTOS)
                         "chat" -> navegarA(AppScreen.CHAT)
+
                         "asambleas" -> {
                             asambleaSeleccionada = null
                             navegarA(AppScreen.ASAMBLEAS)
@@ -215,6 +236,7 @@ fun AppNavigation(
                             navegarA(AppScreen.ROLES)
                         }
                         "caja" -> navegarA(AppScreen.CAJA)
+                        "notificaciones" -> navegarA(AppScreen.NOTIFICACIONES)
                     }
                     scope.launch { drawerState.close() }
                 },
@@ -618,6 +640,13 @@ fun AppNavigation(
                             viewModel = cajaViewModel,
                             onBackClick = { retroceder() },
                             onOpenDrawer = { scope.launch { drawerState.open() } }
+                        )
+                    }
+                    AppScreen.NOTIFICACIONES -> {
+                        NotificacionesScreen(
+                            viewModel = notificacionViewModel,
+                            fcmPreferenciaViewModel = fcmPreferenciaViewModel,
+                            onBackClick = { retroceder() }
                         )
                     }
                 }
