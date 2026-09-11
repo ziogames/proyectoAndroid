@@ -80,6 +80,8 @@ import com.sigefiv.app.viewmodel.ChatViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 private val VerdePrincipal = Color(0xFF0F766E)
 private val FondoChat = Color(0xFFE5DDD5)
@@ -103,6 +105,9 @@ fun ChatVecinalScreen(
     usuarioActualId: Int,
     onBackClick: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     var texto by remember { mutableStateOf("") }
@@ -162,7 +167,9 @@ fun ChatVecinalScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdePrincipal
+                    containerColor = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
+                    )
                 )
             )
         },

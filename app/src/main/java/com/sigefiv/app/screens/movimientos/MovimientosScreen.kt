@@ -96,6 +96,10 @@ import com.sigefiv.app.data.model.Periodo
 import com.sigefiv.app.viewmodel.CategoriasViewModel
 import com.sigefiv.app.viewmodel.MovimientosViewModel
 import com.sigefiv.app.viewmodel.PeriodoViewModel
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -105,7 +109,7 @@ import com.sigefiv.app.viewmodel.PeriodoViewModel
 
 private val FondoSIGEFIV = Color(0xFFF8FAFC)
 private val FondoTarjeta = Color(0xFFFFFFFF)
-private val VerdePrincipal = Color(0xFF15803D)
+
 private val AzulEditar = Color(0xFF2563EB)
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val Blanco = Color(0xFFFFFFFF)
@@ -244,14 +248,18 @@ fun MovimientosScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdePrincipal
+                    containerColor = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
+                    )
                 )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNuevoMovimientoClick,
-                containerColor = VerdePrincipal,
+                containerColor = SeasonalColors.primary(
+                    SeasonalTheme.getSeason()
+                ),
                 contentColor = Blanco
             ) {
                 Icon(
@@ -339,7 +347,9 @@ fun MovimientosScreen(
                     Icon(
                         imageVector = Icons.Outlined.FilterList,
                         contentDescription = "Filtros",
-                        tint = VerdePrincipal
+                        tint = SeasonalColors.primary(
+                            SeasonalTheme.getSeason()
+                        )
                     )
                 }
             }
@@ -370,7 +380,9 @@ fun MovimientosScreen(
 
                 Text(
                     text = "${movimientosFiltrados.size}",
-                    color = VerdePrincipal,
+                    color = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
+                    ),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -716,7 +728,9 @@ private fun Filtro(
     ) {
         Text(
             text = texto,
-            color = if (seleccionado) VerdePrincipal else GrisClaro,
+            color = if (seleccionado) SeasonalColors.primary(
+                SeasonalTheme.getSeason()
+            ) else GrisClaro,
             fontSize = 13.sp,
             fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Normal
         )
@@ -901,7 +915,9 @@ private fun MovimientoCard(
 
                     Text(
                         text = movimiento.categoria ?: "Sin categoría",
-                        color = VerdePrincipal,
+                        color = SeasonalColors.primary(
+                            SeasonalTheme.getSeason()
+                        ),
                         fontSize = 11.sp
                     )
                 }
@@ -1151,7 +1167,9 @@ private fun NuevoMovimientoDialog(
                             else -> {
                                 Text(
                                     text = "Selecciona una fecha de ${periodo.nombre} ${periodo.anio}",
-                                    color = VerdePrincipal,
+                                    color = SeasonalColors.primary(
+                                        SeasonalTheme.getSeason()
+                                    ),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -1181,7 +1199,9 @@ private fun NuevoMovimientoDialog(
                                     Icon(
                                         imageVector = Icons.Outlined.DateRange,
                                         contentDescription = "Seleccionar fecha",
-                                        tint = VerdePrincipal
+                                        tint = SeasonalColors.primary(
+                                            SeasonalTheme.getSeason()
+                                        )
                                     )
                                 }
                             },
@@ -1202,7 +1222,9 @@ private fun NuevoMovimientoDialog(
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
-                                trailingIcon = { Text(text = "▼", color = VerdePrincipal) },
+                                trailingIcon = { Text(text = "▼", color = SeasonalColors.primary(
+                                    SeasonalTheme.getSeason()
+                                )) },
                                 colors = coloresCampo()
                             )
 
@@ -1293,7 +1315,9 @@ private fun NuevoMovimientoDialog(
                                 label = { Text("Forma de pago") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
-                                trailingIcon = { Text(text = "▼", color = VerdePrincipal) },
+                                trailingIcon = { Text(text = "▼", color = SeasonalColors.primary(
+                                    SeasonalTheme.getSeason()
+                                )) },
                                 colors = coloresCampo()
                             )
 
@@ -1407,7 +1431,7 @@ private fun NuevoMovimientoDialog(
                             enabled = formularioValido && !guardando,
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = VerdePrincipal,
+                                containerColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
                                 contentColor = Blanco
                             )
                         ) {
@@ -1445,7 +1469,7 @@ private fun NuevoMovimientoDialog(
                     },
                     enabled = datePickerState.selectedDateMillis != null
                 ) {
-                    Text(text = "Aceptar", color = VerdePrincipal)
+                    Text(text = "Aceptar", color = SeasonalColors.primary(SeasonalTheme.getSeason()))
                 }
             },
             dismissButton = {
@@ -1518,11 +1542,11 @@ private fun coloresCampo() = androidx.compose.material3.OutlinedTextFieldDefault
     focusedTextColor = TextoPrincipal,
     unfocusedTextColor = TextoPrincipal,
     disabledTextColor = GrisClaro,
-    focusedBorderColor = VerdePrincipal,
+    focusedBorderColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
     unfocusedBorderColor = GrisClaro.copy(alpha = 0.35f),
-    focusedLabelColor = VerdePrincipal,
+    focusedLabelColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
     unfocusedLabelColor = GrisClaro,
-    cursorColor = VerdePrincipal
+    cursorColor = SeasonalColors.primary(SeasonalTheme.getSeason())
 )
 
 /*
@@ -1539,7 +1563,7 @@ private fun BarraInferiorMovimientos(
     onMiCuentaClick: () -> Unit
 ) {
     NavigationBar(
-        containerColor = VerdePrincipal,
+        containerColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
         tonalElevation = 0.dp
     ) {
         NavigationBarItem(

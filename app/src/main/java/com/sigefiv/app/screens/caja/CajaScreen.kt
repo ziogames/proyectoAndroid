@@ -49,9 +49,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.CajaMes
 import com.sigefiv.app.viewmodel.CajaViewModel
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 private val FondoSIGEFIV = Color(0xFFF1F5F9)
-private val VerdePrincipal = Color(0xFF0F766E)
+
 private val VerdeSuave = Color(0xFFCCFBF1)
 private val Verde = Color(0xFF15803D)
 private val VerdeClaro = Color(0xFFDCFCE7)
@@ -72,6 +74,9 @@ fun CajaScreen(
     onBackClick: () -> Unit,
     onOpenDrawer: () -> Unit = {}
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
     val caja by viewModel.caja.collectAsState()
     val cargando by viewModel.cargando.collectAsState()
     val error by viewModel.error.collectAsState()
@@ -112,7 +117,7 @@ fun CajaScreen(
 
 
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdePrincipal
+                    containerColor = colorPrincipal
                 )
             )
         }
@@ -131,7 +136,7 @@ fun CajaScreen(
                         modifier = Modifier.align(
                             Alignment.Center
                         ),
-                        color = VerdePrincipal
+                        color = colorPrincipal
                     )
                 }
 
@@ -219,7 +224,7 @@ fun CajaScreen(
                                             contentDescription =
                                                 null,
                                             tint =
-                                                VerdePrincipal,
+                                                colorPrincipal,
                                             modifier =
                                                 Modifier.size(26.dp)
                                         )
@@ -257,7 +262,7 @@ fun CajaScreen(
                                         Text(
                                             text = "▼",
                                             color =
-                                                VerdePrincipal,
+                                                colorPrincipal,
                                             fontSize =
                                                 14.sp
                                         )
@@ -368,7 +373,7 @@ fun CajaScreen(
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(
                                     containerColor =
-                                        VerdePrincipal
+                                        colorPrincipal
                                 )
                             ) {
 

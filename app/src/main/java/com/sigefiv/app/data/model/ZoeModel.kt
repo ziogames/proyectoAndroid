@@ -4,11 +4,11 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 
 data class ZoeConsultaRequest(
-    val consulta: String
+    val mensaje: String
 )
-
 data class ZoeConsultaResponse(
     val success: Boolean = false,
+    val respuesta: String? = null,
     val consulta: String? = null,
     val interpretacion: JsonObject? = null,
     val resultado: JsonElement? = null,

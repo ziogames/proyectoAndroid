@@ -50,10 +50,12 @@ import com.sigefiv.app.viewmodel.FcmPreferenciaViewModel
 import com.sigefiv.app.viewmodel.NotificacionViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 private val Fondo = Color(0xFFF8FAFC)
 private val Blanco = Color.White
-private val VerdePrincipal = Color(0xFF15803D)
+private val colorPrincipal = Color(0xFF15803D)
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val VerdePendiente = Color(0xFFF0FDF4)
 private val TextoPrincipal = Color(0xFF0F172A)
@@ -67,13 +69,18 @@ private val Rojo = Color(0xFFDC2626)
 fun NotificacionesScreen(
     viewModel: NotificacionViewModel,
     fcmPreferenciaViewModel: FcmPreferenciaViewModel,
-    onBackClick: () -> Unit
+    onNuevaNotificacionClick: () -> Unit,
+    onBackClick: () -> Unit,
+    rol: String? = null
 ) {
 
     val notificaciones by viewModel.notificaciones.collectAsState()
     val noLeidas by viewModel.noLeidas.collectAsState()
     val cargando by viewModel.cargando.collectAsState()
     val mensaje by viewModel.mensaje.collectAsState()
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
 
     val notificacionesActivadas by
     fcmPreferenciaViewModel.notificacionesActivadas.collectAsState()
@@ -83,6 +90,13 @@ fun NotificacionesScreen(
 
     val mensajePreferencia by
     fcmPreferenciaViewModel.mensaje.collectAsState()
+
+    // ============================================================
+    // PERMISO PARA CREAR NOTIFICACIONES
+    // ============================================================
+
+    val puedeCrearNotificacion =
+        !rol.equals("Consulta", ignoreCase = true)
 
     LaunchedEffect(Unit) {
         viewModel.cargarNotificaciones()
@@ -166,7 +180,7 @@ fun NotificacionesScreen(
                 Icon(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = null,
-                    tint = VerdePrincipal,
+                    tint = colorPrincipal,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -231,7 +245,7 @@ fun NotificacionesScreen(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = null,
                         tint = if (notificacionesActivadas) {
-                            VerdePrincipal
+                            colorPrincipal
                         } else {
                             Gris
                         },
@@ -300,6 +314,56 @@ fun NotificacionesScreen(
         }
 
         // ============================================================
+        // NUEVA NOTIFICACIÓN
+        // SOLO ROLES DIFERENTES DE CONSULTA
+        // ============================================================
+
+        if (puedeCrearNotificacion) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 14.dp,
+                        end = 14.dp,
+                        top = 8.dp,
+                        bottom = 4.dp
+                    ),
+                horizontalArrangement = Arrangement.End
+            ) {
+
+                Button(
+                    onClick = onNuevaNotificacionClick,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorPrincipal
+                    ),
+                    contentPadding = PaddingValues(
+                        horizontal = 14.dp,
+                        vertical = 8.dp
+                    )
+                ) {
+
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+
+                    Spacer(
+                        modifier = Modifier.width(7.dp)
+                    )
+
+                    Text(
+                        text = "Nueva notificación",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        // ============================================================
         // MARCAR TODAS COMO LEÍDAS
         // ============================================================
 
@@ -325,7 +389,7 @@ fun NotificacionesScreen(
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = VerdeSuave,
-                        contentColor = VerdePrincipal
+                        contentColor = colorPrincipal
                     ),
                     contentPadding = PaddingValues(
                         horizontal = 14.dp,
@@ -370,7 +434,7 @@ fun NotificacionesScreen(
                     ) {
 
                         CircularProgressIndicator(
-                            color = VerdePrincipal,
+                            color = colorPrincipal,
                             strokeWidth = 3.dp
                         )
 
@@ -417,7 +481,7 @@ fun NotificacionesScreen(
                                 viewModel.cargarNotificaciones()
                             },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = VerdePrincipal
+                                containerColor = colorPrincipal
                             ),
                             shape = RoundedCornerShape(10.dp)
                         ) {
@@ -462,7 +526,7 @@ fun NotificacionesScreen(
                             Icon(
                                 imageVector = Icons.Default.Notifications,
                                 contentDescription = null,
-                                tint = VerdePrincipal,
+                                tint = colorPrincipal,
                                 modifier = Modifier.size(36.dp)
                             )
                         }
@@ -644,7 +708,7 @@ private fun NotificacionItem(
                             modifier = Modifier
                                 .size(8.dp)
                                 .background(
-                                    VerdePrincipal,
+                                    colorPrincipal,
                                     CircleShape
                                 )
                         )

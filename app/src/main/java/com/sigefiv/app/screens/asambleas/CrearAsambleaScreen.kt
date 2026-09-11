@@ -73,10 +73,12 @@ import com.sigefiv.app.data.model.CrearAsambleaRequest
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 private val FondoSIGEFIV = Color(0xFFF1F5F9)
 private val FondoTarjeta = Color(0xFFFFFFFF)
-private val VerdePrincipal = Color(0xFF0F766E)
+
 private val VerdeSuave = Color(0xFFCCFBF1)
 private val VerdeTexto = Color(0xFF0D9488)
 private val Blanco = Color.White
@@ -95,6 +97,9 @@ fun CrearAsambleaScreen(
     onGuardar: (CrearAsambleaRequest) -> Unit,
     asamblea: Asamblea? = null
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
     val calendario = remember { Calendar.getInstance() }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -338,7 +343,7 @@ fun CrearAsambleaScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdePrincipal
+                    containerColor = colorPrincipal
                 )
             )
         }
@@ -487,7 +492,7 @@ fun CrearAsambleaScreen(
                             Icon(
                                 imageVector = Icons.Outlined.LocationOn,
                                 contentDescription = null,
-                                tint = VerdePrincipal
+                                tint = colorPrincipal
                             )
                         }
                     )
@@ -645,7 +650,7 @@ fun CrearAsambleaScreen(
                                 .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = VerdePrincipal
+                                contentColor = colorPrincipal
                             )
                         ) {
                             Icon(
@@ -838,7 +843,7 @@ fun CrearAsambleaScreen(
                             .height(52.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = VerdePrincipal,
+                            containerColor = colorPrincipal,
                             contentColor = Blanco
                         )
                     ) {
@@ -961,6 +966,9 @@ private fun CampoTexto(
     minLines: Int = 1,
     leadingIcon: (@Composable (() -> Unit))? = null
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
     OutlinedTextField(
         value = valor,
         onValueChange = onValorChange,
@@ -979,8 +987,8 @@ private fun CampoTexto(
         leadingIcon = leadingIcon,
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = VerdePrincipal,
-            focusedLabelColor = VerdePrincipal,
+            focusedBorderColor = colorPrincipal,
+            focusedLabelColor = colorPrincipal,
             unfocusedBorderColor = GrisBorde
         )
     )
@@ -999,6 +1007,9 @@ private fun CampoDesplegable(
         expanded = expandido,
         onExpandedChange = onExpandChange
     ) {
+        val colorPrincipal = SeasonalColors.primary(
+            SeasonalTheme.getSeason()
+        )
         OutlinedTextField(
             value = valor,
             onValueChange = {},
@@ -1016,8 +1027,8 @@ private fun CampoDesplegable(
             },
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = VerdePrincipal,
-                focusedLabelColor = VerdePrincipal,
+                focusedBorderColor = colorPrincipal,
+                focusedLabelColor = colorPrincipal,
                 unfocusedBorderColor = GrisBorde
             )
         )
@@ -1053,6 +1064,7 @@ private fun CampoFecha(
     }
 
     OutlinedButton(
+
         onClick = {
             DatePickerDialog(
                 context,
@@ -1092,10 +1104,13 @@ private fun CampoFecha(
             GrisBorde
         )
     ) {
+        val colorPrincipal = SeasonalColors.primary(
+            SeasonalTheme.getSeason()
+        )
         Icon(
             imageVector = Icons.Outlined.CalendarMonth,
             contentDescription = null,
-            tint = VerdePrincipal
+            tint = colorPrincipal
         )
 
         Spacer(
@@ -1130,6 +1145,9 @@ private fun CampoHora(
     obligatorio: Boolean = false,
     opcional: Boolean = false
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
     val context = LocalContext.current
     val calendario = remember {
         Calendar.getInstance()
@@ -1166,7 +1184,7 @@ private fun CampoHora(
         Icon(
             imageVector = Icons.Outlined.Schedule,
             contentDescription = null,
-            tint = VerdePrincipal
+            tint = colorPrincipal
         )
 
         Spacer(
@@ -1211,6 +1229,9 @@ private fun AgendaCampo(
     onValorChange: (String) -> Unit,
     onEliminar: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -1246,7 +1267,7 @@ private fun AgendaCampo(
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = VerdePrincipal,
+                focusedBorderColor = colorPrincipal,
                 unfocusedBorderColor = GrisBorde
             )
         )
@@ -1272,6 +1293,9 @@ private fun CampoPlantilla(
     onExpandChange: (Boolean) -> Unit,
     onSeleccionar: (Int) -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
     ExposedDropdownMenuBox(
         expanded = expandido,
         onExpandedChange = onExpandChange
@@ -1295,12 +1319,12 @@ private fun CampoPlantilla(
                 Icon(
                     imageVector = Icons.Outlined.Event,
                     contentDescription = null,
-                    tint = VerdePrincipal
+                    tint = colorPrincipal
                 )
             },
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = VerdePrincipal,
+                focusedBorderColor = colorPrincipal,
                 unfocusedBorderColor = GrisBorde
             )
         )

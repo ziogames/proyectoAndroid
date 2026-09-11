@@ -75,6 +75,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sigefiv.app.data.model.Asamblea
 import com.sigefiv.app.viewmodel.AsambleasViewModel
 import kotlinx.coroutines.launch
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
+
 
 /*
 |--------------------------------------------------------------------------
@@ -84,7 +87,6 @@ import kotlinx.coroutines.launch
 
 private val FondoSIGEFIV = Color(0xFFF1F5F9)
 private val FondoTarjeta = Color(0xFFFFFFFF)
-private val VerdePrincipal = Color(0xFF0F766E)
 private val VerdeSuave = Color(0xFFCCFBF1)
 private val VerdeTexto = Color(0xFF0D9488)
 private val Blanco = Color(0xFFFFFFFF)
@@ -200,13 +202,19 @@ fun AsambleasScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = VerdePrincipal)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
+                    )
+                )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onCrearClick,
-                containerColor = VerdePrincipal,
+                containerColor =  SeasonalColors.primary(
+                    SeasonalTheme.getSeason()
+                ),
                 contentColor = Blanco
             ) {
                 Icon(
@@ -217,7 +225,9 @@ fun AsambleasScreen(
         },
         bottomBar = {
             NavigationBar(
-                containerColor = VerdePrincipal,
+                containerColor = SeasonalColors.primary(
+                    SeasonalTheme.getSeason()
+                ),
                 tonalElevation = 0.dp
             ) {
                 NavigationBarItem(
@@ -236,7 +246,9 @@ fun AsambleasScreen(
                     icon = { Icon(Icons.Outlined.Groups, contentDescription = "Asamblea") },
                     label = { Text("Asamblea") },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = VerdePrincipal,
+                        selectedIconColor = SeasonalColors.primary(
+                            SeasonalTheme.getSeason()
+                        ),
                         selectedTextColor = Blanco,
                         indicatorColor = Blanco,
                         unselectedIconColor = Blanco.copy(0.75f),
@@ -283,7 +295,13 @@ fun AsambleasScreen(
                             .clip(RoundedCornerShape(12.dp))
                             .clickable { filtroActual = filtro },
                         shape = RoundedCornerShape(12.dp),
-                        color = if (seleccionado) VerdePrincipal else Blanco,
+                        color = if (seleccionado) {
+                            SeasonalColors.primary(
+                                SeasonalTheme.getSeason()
+                            )
+                        } else {
+                            Blanco
+                        },
                         border = if (seleccionado) null else BorderStroke(1.dp, GrisBorde)
                     ) {
                         Text(
@@ -313,7 +331,9 @@ fun AsambleasScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator(color = VerdePrincipal)
+                                CircularProgressIndicator(color = SeasonalColors.primary(
+                                    SeasonalTheme.getSeason()
+                                ))
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text("Obteniendo asambleas...", color = GrisSecundario, fontSize = 13.sp)
                             }
@@ -566,7 +586,9 @@ private fun AsambleaCard(
                             Text(
                                 text = "+ ${asamblea.agendas.size - 3} puntos más",
                                 fontSize = 11.sp,
-                                color = VerdePrincipal,
+                                color = SeasonalColors.primary(
+                                    SeasonalTheme.getSeason()
+                                ),
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(top = 2.dp)
                             )
@@ -585,9 +607,13 @@ private fun AsambleaCard(
                         onClick = onPublicarClick,
                         modifier = Modifier
                             .size(38.dp)
-                            .background(VerdePrincipal, CircleShape),
+                            .background(SeasonalColors.primary(
+                                SeasonalTheme.getSeason()
+                            ), CircleShape),
                         colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = VerdePrincipal,
+                            containerColor = SeasonalColors.primary(
+                                SeasonalTheme.getSeason()
+                            ),
                             contentColor = Blanco
                         )
                     ) {
@@ -623,7 +649,9 @@ private fun InfoItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = VerdePrincipal,
+            tint = SeasonalColors.primary(
+                SeasonalTheme.getSeason()
+            ),
             modifier = Modifier.size(16.dp)
         )
         Spacer(modifier = Modifier.width(6.dp))

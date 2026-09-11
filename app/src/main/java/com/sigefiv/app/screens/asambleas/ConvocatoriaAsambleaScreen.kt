@@ -53,6 +53,8 @@ import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Asamblea
 import java.text.SimpleDateFormat
 import java.util.Locale
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 /*
 |--------------------------------------------------------------------------
@@ -62,7 +64,7 @@ import java.util.Locale
 
 private val FondoSIGEFIV = Color(0xFFF1F5F9)
 private val FondoTarjeta = Color(0xFFFFFFFF)
-private val VerdePrincipal = Color(0xFF0F766E)
+
 private val VerdeSuave = Color(0xFFCCFBF1)
 private val VerdeTexto = Color(0xFF0D9488)
 private val Blanco = Color.White
@@ -78,6 +80,9 @@ fun ConvocatoriaAsambleaScreen(
     asamblea: Asamblea,
     onBackClick: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
     Scaffold(
         containerColor = FondoSIGEFIV,
         topBar = {
@@ -107,7 +112,7 @@ fun ConvocatoriaAsambleaScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdePrincipal
+                    containerColor = colorPrincipal
                 )
             )
         }

@@ -104,6 +104,15 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
             TAG,
             "Data: ${remoteMessage.data}"
         )
+        Log.d(
+            TAG,
+            "Notification title: ${remoteMessage.notification?.title}"
+        )
+
+        Log.d(
+            TAG,
+            "Notification body: ${remoteMessage.notification?.body}"
+        )
 
         Log.d(
             TAG,
@@ -132,6 +141,12 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
         val notificacionId =
             remoteMessage.data["notificacion_id"]
         NotificacionEventBus.notificacionRecibida()
+        kotlinx.coroutines.runBlocking {
+            NotificacionEventBus.publicar(
+                titulo = titulo,
+                mensaje = mensaje
+            )
+        }
         crearCanalNotificaciones()
 
         mostrarNotificacion(
@@ -154,6 +169,21 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
             Build.VERSION_CODES.O
         ) {
 
+            val sonido =
+                android.media.RingtoneManager.getDefaultUri(
+                    android.media.RingtoneManager.TYPE_NOTIFICATION
+                )
+
+            val atributos =
+                android.media.AudioAttributes.Builder()
+                    .setUsage(
+                        android.media.AudioAttributes.USAGE_NOTIFICATION
+                    )
+                    .setContentType(
+                        android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION
+                    )
+                    .build()
+
             val canal =
                 NotificationChannel(
                     CHANNEL_ID,
@@ -163,6 +193,13 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
 
                     description =
                         CHANNEL_DESCRIPTION
+
+                    setSound(
+                        sonido,
+                        atributos
+                    )
+
+                    enableVibration(true)
                 }
 
             val notificationManager =

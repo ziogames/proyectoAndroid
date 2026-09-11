@@ -1,7 +1,9 @@
 package com.sigefiv.app.data.repository
 
 import com.sigefiv.app.data.api.AuthApi
+import com.sigefiv.app.data.model.FcmEnviarNotificacionRequest
 import com.sigefiv.app.data.model.Notificacion
+import com.sigefiv.app.data.model.NotificacionEnviarResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -92,6 +94,51 @@ class NotificacionRepository(
                         Exception(
                             "Error al marcar las notificaciones como leídas: " +
                                     response.code()
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    // ============================================================
+    // ENVIAR NOTIFICACIÓN
+    // ============================================================
+
+    /**
+     * Envía una notificación a todos los vecinos
+     * o a un usuario específico.
+     */
+    suspend fun enviarNotificacion(
+        titulo: String,
+        mensaje: String,
+        tipo: String,
+        destinatario: String,
+        usuarioIds: List<Int>? = null
+    ): Result<NotificacionEnviarResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val request =
+                    FcmEnviarNotificacionRequest(
+                        titulo = titulo,
+                        mensaje = mensaje,
+                        tipo = tipo,
+                        destinatario = destinatario,
+                        usuario_ids = usuarioIds
+                    )
+
+                val response =
+                    authApi.enviarNotificacion(request)
+
+                if (response.success) {
+                    Result.success(response)
+                } else {
+                    Result.failure(
+                        Exception(
+                            response.message
+                                ?: "No se pudo enviar la notificación"
                         )
                     )
                 }

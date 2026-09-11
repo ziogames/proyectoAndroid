@@ -73,9 +73,10 @@ class NotificacionViewModel(
         viewModelScope.launch {
 
             NotificacionEventBus
-                .nuevaNotificacion
+                .evento
                 .collect {
 
+                    cargarNotificaciones()
                     cargarNoLeidas()
                 }
         }

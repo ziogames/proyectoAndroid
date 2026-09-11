@@ -57,6 +57,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Asamblea
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 /*
 |--------------------------------------------------------------------------
@@ -66,7 +68,7 @@ import com.sigefiv.app.data.model.Asamblea
 
 private val FondoSIGEFIV = Color(0xFFF1F5F9)
 private val FondoTarjeta = Color(0xFFFFFFFF)
-private val VerdePrincipal = Color(0xFF0F766E)
+private val colorPrincipal = Color(0xFF0F766E)
 private val VerdeSuave = Color(0xFFCCFBF1)
 private val VerdeTexto = Color(0xFF0D9488)
 private val Blanco = Color.White
@@ -91,6 +93,9 @@ fun DetalleAsambleaScreen(
     onOpenDrawer: () -> Unit,
     onEditarClick: () -> Unit = {}
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
     val estado = asamblea.estado?.lowercase()
 
     val estadoTexto = when (estado) {
@@ -140,13 +145,13 @@ fun DetalleAsambleaScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdePrincipal
+                    containerColor = colorPrincipal
                 )
             )
         },
         bottomBar = {
             NavigationBar(
-                containerColor = VerdePrincipal,
+                containerColor = colorPrincipal,
                 tonalElevation = 0.dp
             ) {
                 NavigationBarItem(
@@ -175,7 +180,7 @@ fun DetalleAsambleaScreen(
                     icon = { Icon(Icons.Outlined.Groups, contentDescription = "Asambleas") },
                     label = { Text("Asambleas") },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = VerdePrincipal,
+                        selectedIconColor = colorPrincipal,
                         selectedTextColor = Blanco,
                         indicatorColor = Blanco,
                         unselectedIconColor = Blanco.copy(0.75f),
@@ -458,7 +463,7 @@ fun DetalleAsambleaScreen(
                             .height(52.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = VerdePrincipal,
+                            containerColor = colorPrincipal,
                             contentColor = Blanco
                         )
                     ) {
@@ -549,7 +554,7 @@ private fun InfoBox(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = VerdePrincipal,
+                tint = colorPrincipal,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))

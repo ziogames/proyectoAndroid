@@ -19,6 +19,10 @@ import com.sigefiv.app.data.model.PeriodosResponse
 import com.sigefiv.app.data.model.ZoeConsultaRequest
 import com.sigefiv.app.data.model.ZoeConsultaResponse
 import com.sigefiv.app.data.model.FcmPreferenciaRequest
+import com.sigefiv.app.data.model.FcmEnviarNotificacionRequest
+import com.sigefiv.app.data.model.NotificacionEnviarResponse
+
+
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -94,6 +98,10 @@ interface AuthApi {
         @Body request: ZoeConsultaRequest
     ): ZoeConsultaResponse
 
+    @POST("zoe")
+    suspend fun consultarZoeN8n(
+        @Body request: ZoeConsultaRequest
+    ): ZoeConsultaResponse
     // =========================================================
     // FCM
     // =========================================================
@@ -138,8 +146,19 @@ interface AuthApi {
     @POST("notificaciones/leer-todas")
     suspend fun marcarTodasNotificacionesLeidas(): Response<Unit>
 
+    /**
+     * Envía una notificación a todos los vecinos
+     * o a un usuario específico.
+     */
+    @POST("notificaciones/enviar")
+    suspend fun enviarNotificacion(
+        @Body request: FcmEnviarNotificacionRequest
+    ): NotificacionEnviarResponse
+
     @POST("fcm/preferencia")
     suspend fun actualizarPreferenciaFcm(
         @Body datos: FcmPreferenciaRequest
     ): Response<Unit>
+
+
 }

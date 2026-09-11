@@ -3,17 +3,34 @@ package com.sigefiv.app.notifications
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
+data class NotificacionEvento(
+    val titulo: String,
+    val mensaje: String
+)
+
 object NotificacionEventBus {
 
-    private val _nuevaNotificacion =
-        MutableSharedFlow<Unit>(
+    private val _evento =
+        MutableSharedFlow<NotificacionEvento>(
             extraBufferCapacity = 1
         )
 
-    val nuevaNotificacion =
-        _nuevaNotificacion.asSharedFlow()
+    val evento =
+        _evento.asSharedFlow()
 
     fun notificacionRecibida() {
-        _nuevaNotificacion.tryEmit(Unit)
+        // Mantiene compatibilidad con el código existente.
+    }
+
+    suspend fun publicar(
+        titulo: String,
+        mensaje: String
+    ) {
+        _evento.emit(
+            NotificacionEvento(
+                titulo = titulo,
+                mensaje = mensaje
+            )
+        )
     }
 }

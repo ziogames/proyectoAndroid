@@ -99,6 +99,16 @@ import com.sigefiv.app.viewmodel.MovimientosViewModelFactory
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.Card
+import com.sigefiv.app.notifications.NotificacionEventBus
+
+import com.sigefiv.app.ui.theme.AppSeason
+import com.sigefiv.app.ui.theme.SeasonalTheme
+import com.sigefiv.app.ui.theme.SeasonalColors
+
 
 /*
 |--------------------------------------------------------------------------
@@ -220,9 +230,36 @@ class MainActivity : ComponentActivity() {
         dashboardViewModel: DashboardViewModel,
         movimientosViewModel: MovimientosViewModel,
         asambleaIdNotificacion: Int? = null,
-        notificacionIdNotificacion: Int? = null
+        notificacionIdNotificacion: Int? = null,
+
     ) {
         var pantalla by remember { mutableStateOf(PantallaInicial.SPLASH) }
+        var mostrarBanner by remember {
+            mutableStateOf(false)
+        }
+
+        var tituloBanner by remember {
+            mutableStateOf("")
+        }
+
+        var mensajeBanner by remember {
+            mutableStateOf("")
+        }
+
+        LaunchedEffect(Unit) {
+
+            NotificacionEventBus.evento.collect { evento ->
+
+                tituloBanner = evento.titulo
+                mensajeBanner = evento.mensaje
+
+                mostrarBanner = true
+
+                delay(4000)
+
+                mostrarBanner = false
+            }
+        }
 
         val loginCorrecto by loginViewModel.loginCorrecto.collectAsStateWithLifecycle()
         val bienvenidaVista by loginViewModel.bienvenidaVista.collectAsStateWithLifecycle()
@@ -303,20 +340,139 @@ class MainActivity : ComponentActivity() {
             }
 
             PantallaInicial.APLICACION -> {
-                AppNavigation(
-                    context = LocalContext.current,
-                    dashboardViewModel = dashboardViewModel,
-                    movimientosViewModel = movimientosViewModel,
-                    loginViewModel = loginViewModel,
-                    asambleaIdNotificacion =
-                        asambleaIdNotificacion,
-                    notificacionIdNotificacion =
-                        notificacionIdNotificacion
-                )
+
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+
+                    AppNavigation(
+                        context = LocalContext.current,
+                        dashboardViewModel = dashboardViewModel,
+                        movimientosViewModel = movimientosViewModel,
+                        loginViewModel = loginViewModel,
+                        asambleaIdNotificacion =
+                            asambleaIdNotificacion,
+                        notificacionIdNotificacion =
+                            notificacionIdNotificacion,
+
+                    )
+
+                    AnimatedVisibility(
+                        visible = mostrarBanner,
+                        enter = slideInVertically(
+                            initialOffsetY = { -it }
+                        ) + fadeIn(
+                            animationSpec = tween(300)
+                        ),
+                        exit = fadeOut(
+                            animationSpec = tween(300)
+                        ),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(
+                                top = 12.dp,
+                                start = 12.dp,
+                                end = 12.dp
+                            )
+                    ) {
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = SeasonalColors.primary(
+                                    SeasonalTheme.getSeason()
+                                )
+                            ),
+                            elevation = CardDefaults.cardElevation(
+                                defaultElevation = 6.dp
+                            )
+                        ) {
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                verticalAlignment =
+                                    Alignment.CenterVertically
+                            ) {
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(42.dp)
+                                        .background(
+                                            VerdeSuave,
+                                            CircleShape
+                                        ),
+                                    contentAlignment =
+                                        Alignment.Center
+                                ) {
+
+                                    Icon(
+                                        imageVector =
+                                            Icons.Filled.Notifications,
+                                        contentDescription =
+                                            "Nueva notificación",
+                                        tint =
+                                            VerdePrincipal,
+                                        modifier =
+                                            Modifier.size(23.dp)
+                                    )
+                                }
+
+                                Spacer(
+                                    modifier =
+                                        Modifier.width(12.dp)
+                                )
+
+                                Column(
+                                    modifier =
+                                        Modifier.weight(1f)
+                                ) {
+
+                                    Text(
+                                        text = tituloBanner,
+                                        color = Blanco,
+                                        fontSize = 15.sp,
+                                        fontWeight =
+                                            FontWeight.Bold
+                                    )
+
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(2.dp)
+                                    )
+
+                                    Text(
+                                        text = mensajeBanner,
+                                        color = Blanco,
+                                        fontSize = 12.sp,
+                                        maxLines = 2
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
+@Composable
+fun logoGrupo21PorTemporada(): Int {
+
+    return when (SeasonalTheme.getSeason()) {
+
+        AppSeason.NORMAL ->
+            R.drawable.logo_grupo_residencial
+
+        AppSeason.FIESTAS_PATRIAS ->
+            R.drawable.logo_grupo_21_fiestas_patrias
+
+        AppSeason.NAVIDAD ->
+            R.drawable.logo_grupo_21_navidad
+    }
+}
     /*
 |--------------------------------------------------------------------------
 | PANTALLA SPLASH DE BIENVENIDA
@@ -339,7 +495,7 @@ class MainActivity : ComponentActivity() {
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Image(
-                    painter = painterResource(id = R.drawable.logo_grupo_residencial),
+                    painter = painterResource(id = logoGrupo21PorTemporada()),
                     contentDescription = "Logo Grupo Residencial 21",
                     modifier = Modifier.size(160.dp),
                     contentScale = ContentScale.Fit
@@ -361,7 +517,9 @@ class MainActivity : ComponentActivity() {
 
                     Text(
                         text = "siempre conectada",
-                        color = VerdePrincipal,
+                        color = SeasonalColors.primary(
+                            SeasonalTheme.getSeason()
+                        ),
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
@@ -399,7 +557,9 @@ class MainActivity : ComponentActivity() {
 
                 Text(
                     text = "SIGEFIV • Grupo Residencial 21",
-                    color = VerdePrincipal,
+                    color = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
+                    ),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -440,7 +600,9 @@ class MainActivity : ComponentActivity() {
                     Icon(
                         imageVector = icono,
                         contentDescription = titulo,
-                        tint = VerdePrincipal,
+                        tint = SeasonalColors.primary(
+                            SeasonalTheme.getSeason()
+                        ),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -493,7 +655,7 @@ class MainActivity : ComponentActivity() {
                 verticalArrangement = Arrangement.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.logo_grupo_residencial),
+                    painter = painterResource(id = logoGrupo21PorTemporada()),
                     contentDescription = "Logo Grupo Residencial 21",
                     modifier = Modifier.size(130.dp),
                     contentScale = ContentScale.Fit
@@ -548,7 +710,9 @@ class MainActivity : ComponentActivity() {
                                 Icon(
                                     imageVector = Icons.Outlined.MailOutline,
                                     contentDescription = "Usuario o correo",
-                                    tint = VerdePrincipal
+                                    tint = SeasonalColors.primary(
+                                        SeasonalTheme.getSeason()
+                                    )
                                 )
                             },
                             colors = coloresCampoLogin()
@@ -625,7 +789,9 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 Text(
                                     text = "¿Olvidaste tu contraseña?",
-                                    color = VerdePrincipal,
+                                    color = SeasonalColors.primary(
+                                        SeasonalTheme.getSeason()
+                                    ),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -649,7 +815,9 @@ class MainActivity : ComponentActivity() {
                                 .height(52.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = VerdePrincipal,
+                                containerColor = SeasonalColors.primary(
+                                    SeasonalTheme.getSeason()
+                                ),
                                 contentColor = Blanco
                             )
                         ) {
@@ -804,7 +972,9 @@ class MainActivity : ComponentActivity() {
 
                 Text(
                     text = "SIGEFIV • Grupo Residencial 21",
-                    color = VerdePrincipal,
+                    color = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
+                    ),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -820,11 +990,17 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun coloresCampoLogin() = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = VerdePrincipal,
+        focusedBorderColor = SeasonalColors.primary(
+            SeasonalTheme.getSeason()
+        ),
         unfocusedBorderColor = GrisBorde,
-        focusedLabelColor = VerdePrincipal,
+        focusedLabelColor = SeasonalColors.primary(
+            SeasonalTheme.getSeason()
+        ),
         unfocusedLabelColor = GrisClaro,
         focusedTextColor = TextoPrincipal,
         unfocusedTextColor = TextoPrincipal,
-        cursorColor = VerdePrincipal
+        cursorColor = SeasonalColors.primary(
+            SeasonalTheme.getSeason()
+        )
     )

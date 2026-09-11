@@ -60,7 +60,17 @@ import com.sigefiv.app.data.model.Movimiento
 import com.sigefiv.app.data.model.PeriodoDashboard
 import com.sigefiv.app.viewmodel.DashboardViewModel
 import com.sigefiv.app.viewmodel.MovimientosViewModel
-
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.fillMaxSize
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 /*
 |--------------------------------------------------------------------------
 | COLORES SIGEFIV
@@ -69,7 +79,7 @@ import com.sigefiv.app.viewmodel.MovimientosViewModel
 
 private val FondoSIGEFIV = Color(0xFFF8FAFC)
 private val FondoTarjeta = Color(0xFFFFFFFF)
-private val VerdePrincipal = Color(0xFF15803D)
+//private val VerdePrincipal = Color(0xFF15803D)
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val Turquesa = Color(0xFF15803D)
 private val Blanco = Color(0xFFFFFFFF)
@@ -89,13 +99,15 @@ fun DashboardScreen(
     context: Context,
     dashboardViewModel: DashboardViewModel,
     movimientosViewModel: MovimientosViewModel,
+    notificacionesNoLeidas: Int = 0,
+    onNotificacionesClick: () -> Unit = {},
     onMovimientosClick: () -> Unit = {},
     onAsambleasClick: () -> Unit = {},
     onPeriodosClick: () -> Unit = {},
     onMiCuentaClick: () -> Unit = {},
     onSigiClick: () -> Unit = {},
     onOpenDrawer: () -> Unit = {}
-) {
+){
     val sessionManager = remember { SessionManager(context) }
 
     val nombreUsuario by sessionManager.nombre.collectAsState(initial = "Usuario")
@@ -137,16 +149,53 @@ fun DashboardScreen(
                             tint = Blanco
                         )
                     }
-                    IconButton(onClick = { }) {
-                        Icon(
-                            imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "Notificaciones",
-                            tint = Blanco
-                        )
+                    Box(
+                        modifier = Modifier.size(48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+
+                        IconButton(
+                            onClick = onNotificacionesClick
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Notifications,
+                                contentDescription = "Notificaciones",
+                                tint = Blanco
+                            )
+                        }
+
+                        if (notificacionesNoLeidas > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .size(19.dp)
+                                    .offset(
+                                        x = 7.dp,
+                                        y = (-7).dp
+                                    )
+                                    .clip(CircleShape)
+                                    .background(Rojo),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (notificacionesNoLeidas > 99) {
+                                        "99+"
+                                    } else {
+                                        notificacionesNoLeidas.toString()
+                                    },
+                                    color = Blanco,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                    // Se eliminó .fillMaxSize() para que el Box lo centre perfecto
+                                )
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdePrincipal
+                    containerColor = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
+                    )
                 )
             )
         },
@@ -247,7 +296,9 @@ private fun DashboardContenido(
 
             Text(
                 text = "Ver todos",
-                color = VerdePrincipal,
+                color = SeasonalColors.primary(
+                    SeasonalTheme.getSeason()
+                ),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable { onMovimientosClick() }
@@ -309,7 +360,9 @@ private fun SaldoCard(periodo: PeriodoDashboard?) {
 
                 Text(
                     text = "S/ %.2f".format(periodo?.saldo_final ?: 0.0),
-                    color = VerdePrincipal,
+                    color = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
+                    ),
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -318,7 +371,9 @@ private fun SaldoCard(periodo: PeriodoDashboard?) {
 
                 Text(
                     text = periodo?.nombre ?: "Sin período",
-                    color = VerdePrincipal,
+                    color = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
+                    ),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -336,7 +391,9 @@ private fun SaldoCard(periodo: PeriodoDashboard?) {
                 Icon(
                     imageVector = Icons.Outlined.AccountBalanceWallet,
                     contentDescription = "Saldo disponible",
-                    tint = VerdePrincipal,
+                    tint = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
+                    ),
                     modifier = Modifier.size(26.dp)
                 )
             }
@@ -443,7 +500,9 @@ private fun CardPeriodo(periodo: PeriodoDashboard?) {
 
                 Text(
                     text = periodo?.nombre ?: "Sin período",
-                    color = VerdePrincipal,
+                    color = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
+                    ),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -549,7 +608,9 @@ private fun SigefivBottomBar(
     onMiCuentaClick: () -> Unit = {}
 ) {
     NavigationBar(
-        containerColor = VerdePrincipal,
+        containerColor =SeasonalColors.primary(
+            SeasonalTheme.getSeason()
+        ),
         tonalElevation = 0.dp
     ) {
         NavigationBarItem(
@@ -565,7 +626,9 @@ private fun SigefivBottomBar(
                 Text(text = "Inicio")
             },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdePrincipal,
+                selectedIconColor = SeasonalColors.primary(
+                    SeasonalTheme.getSeason()
+                ),
                 selectedTextColor = Blanco,
                 indicatorColor = Blanco,
                 unselectedIconColor = Blanco.copy(alpha = 0.75f),

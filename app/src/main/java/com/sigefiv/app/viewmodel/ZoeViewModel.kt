@@ -38,6 +38,7 @@ class ZoeViewModel(
     val error: StateFlow<String?> = _error.asStateFlow()
 
     fun enviarConsulta(texto: String) {
+
         val consulta = texto.trim()
 
         if (consulta.isEmpty() || _cargando.value) return
@@ -51,16 +52,25 @@ class ZoeViewModel(
                 )
 
         viewModelScope.launch {
+
             _cargando.value = true
 
             try {
-                val respuesta = api.consultarZoe(
-                    ZoeConsultaRequest(consulta)
+
+                // Nuevo endpoint:
+                // POST /api/zoe
+                val respuesta = api.consultarZoeN8n(
+                    ZoeConsultaRequest(
+                        mensaje = consulta
+                    )
                 )
 
                 if (respuesta.success) {
-                    val mensaje = respuesta.mensaje
+
+                    val mensaje = respuesta.respuesta
                         ?.trim()
+                        ?.replace("**", "")
+                        ?.replace("__", "")
                         ?.takeIf { it.isNotEmpty() }
                         ?: "ZOE recibió la consulta, pero no devolvió un mensaje."
 
@@ -69,7 +79,9 @@ class ZoeViewModel(
                                 texto = mensaje,
                                 esUsuario = false
                             )
+
                 } else {
+
                     val mensaje = respuesta.message
                         ?.trim()
                         ?.takeIf { it.isNotEmpty() }
@@ -86,12 +98,18 @@ class ZoeViewModel(
                                 esUsuario = false
                             )
                 }
+
             } catch (e: Exception) {
+
                 val mensaje = when {
+
                     e.message?.contains("401") == true ->
                         "La sesión no es válida. Inicia sesión nuevamente."
 
-                    e.message?.contains("timeout", ignoreCase = true) == true ->
+                    e.message?.contains(
+                        "timeout",
+                        ignoreCase = true
+                    ) == true ->
                         "ZOE tardó demasiado en responder. Inténtalo nuevamente."
 
                     else ->
@@ -106,6 +124,7 @@ class ZoeViewModel(
                             esUsuario = false
                         )
             } finally {
+
                 _cargando.value = false
             }
         }

@@ -20,7 +20,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
@@ -60,6 +59,8 @@ import com.sigefiv.app.screens.movimientos.NuevoEgresoScreen
 import com.sigefiv.app.screens.movimientos.NuevoIngresoScreen
 import com.sigefiv.app.screens.movimientos.NuevoMovimientoScreen
 
+
+import com.sigefiv.app.screens.notificaciones.EnviarNotificacionScreen
 import com.sigefiv.app.screens.notificaciones.NotificacionesScreen
 import com.sigefiv.app.screens.perfil.PerfilScreen
 import com.sigefiv.app.screens.periodos.PeriodoDetalleScreen
@@ -77,6 +78,7 @@ import com.sigefiv.app.viewmodel.ChatViewModel
 import com.sigefiv.app.viewmodel.DashboardViewModel
 import com.sigefiv.app.viewmodel.FcmPreferenciaViewModel
 import com.sigefiv.app.viewmodel.NotificacionViewModel
+import com.sigefiv.app.viewmodel.EnviarNotificacionViewModel
 import com.sigefiv.app.viewmodel.LoginViewModel
 import com.sigefiv.app.viewmodel.MovimientosViewModel
 import com.sigefiv.app.viewmodel.PeriodoViewModel
@@ -85,7 +87,9 @@ import com.sigefiv.app.viewmodel.PerfilViewModel
 import com.sigefiv.app.viewmodel.RolViewModel
 import com.sigefiv.app.viewmodel.UsuarioViewModel
 import kotlinx.coroutines.launch
-
+import com.sigefiv.app.screens.notificaciones.EnviarNotificacionScreen
+import com.sigefiv.app.screens.notificaciones.NotificacionesScreen
+import com.sigefiv.app.screens.notificaciones.ConfirmarNotificacionScreen
 
 enum class AppScreen(val drawerRoute: String) {
     DASHBOARD("dashboard"),
@@ -110,7 +114,9 @@ enum class AppScreen(val drawerRoute: String) {
     EDITAR_ROL("roles"),
     CAJA("caja"),
 
-    NOTIFICACIONES("notificaciones")
+    NOTIFICACIONES("notificaciones"),
+    ENVIAR_NOTIFICACION("notificaciones"),
+    CONFIRMAR_NOTIFICACION("notificaciones")
 }
 
 @Composable
@@ -121,7 +127,7 @@ fun AppNavigation(
     loginViewModel: LoginViewModel,
     asambleaIdNotificacion: Int? = null,
     notificacionIdNotificacion: Int? = null
-){
+) {
     val sessionManager = remember { SessionManager(context) }
     val categoriasViewModel = remember { CategoriasViewModel(context) }
     val periodoViewModel = remember { PeriodoViewModel(context) }
@@ -136,10 +142,32 @@ fun AppNavigation(
         remember { NotificacionViewModel(context) }
     val fcmPreferenciaViewModel =
         remember { FcmPreferenciaViewModel(context) }
+    val enviarNotificacionViewModel =
+        remember { EnviarNotificacionViewModel(context) }
     val notificacionesNoLeidas by
     notificacionViewModel.noLeidas.collectAsState()
     val usuarioActualId by sessionManager.userId.collectAsState(initial = null)
     val usuarioPerfil by perfilViewModel.usuario.collectAsState()
+    var notificacionTitulo by remember {
+        mutableStateOf("")
+    }
+
+    var notificacionMensaje by remember {
+        mutableStateOf("")
+    }
+
+    var notificacionTipo by remember {
+        mutableStateOf("Aviso")
+    }
+
+    var notificacionDestinatario by remember {
+        mutableStateOf("Todos los vecinos")
+    }
+
+    var notificacionCantidad by remember {
+        mutableStateOf(0)
+    }
+
 
     LaunchedEffect(Unit) {
         dashboardViewModel.cargarDashboard()
@@ -158,6 +186,7 @@ fun AppNavigation(
             backStack.add(pantalla)
         }
     }
+
 
     fun retroceder(): Boolean {
         return if (backStack.size > 1) {
@@ -260,6 +289,13 @@ fun AppNavigation(
                             context = context,
                             dashboardViewModel = dashboardViewModel,
                             movimientosViewModel = movimientosViewModel,
+
+                            notificacionesNoLeidas = notificacionesNoLeidas,
+
+                            onNotificacionesClick = {
+                                navegarA(AppScreen.NOTIFICACIONES)
+                            },
+
                             onMovimientosClick = { navegarA(AppScreen.MOVIMIENTOS) },
                             onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
                             onPeriodosClick = { navegarA(AppScreen.PERIODOS) },
@@ -646,9 +682,64 @@ fun AppNavigation(
                         NotificacionesScreen(
                             viewModel = notificacionViewModel,
                             fcmPreferenciaViewModel = fcmPreferenciaViewModel,
+                            rol = usuarioPerfil?.rol,
+                            onNuevaNotificacionClick = {
+                                navegarA(AppScreen.ENVIAR_NOTIFICACION)
+                            },
                             onBackClick = { retroceder() }
                         )
                     }
+                    AppScreen.ENVIAR_NOTIFICACION -> {
+                        EnviarNotificacionScreen(
+                            viewModel = enviarNotificacionViewModel,
+                            usuarioViewModel = usuarioViewModel,
+                            onBackClick = {
+                                retroceder()
+                            },
+                            onEnvioExitoso = {
+                                    titulo,
+                                    mensaje,
+                                    tipo,
+                                    destinatario,
+                                    cantidad ->
+
+                                notificacionTitulo = titulo
+                                notificacionMensaje = mensaje
+                                notificacionTipo = tipo
+                                notificacionDestinatario = destinatario
+                                notificacionCantidad = cantidad
+
+                                navegarA(
+                                    AppScreen.CONFIRMAR_NOTIFICACION
+                                )
+                            }
+                        )
+                    }
+                    AppScreen.CONFIRMAR_NOTIFICACION -> {
+                        ConfirmarNotificacionScreen(
+                            titulo = notificacionTitulo,
+                            mensaje = notificacionMensaje,
+                            tipo = notificacionTipo,
+                            destinatario = notificacionDestinatario,
+                            cantidadDestinatarios = notificacionCantidad,
+                            onBackClick = {
+                                retroceder()
+                            },
+                            onConfirmarEnvio = {
+                                enviarNotificacionViewModel.limpiarResultado()
+
+                                while (
+                                    backStack.size > 1 &&
+                                    backStack.last() != AppScreen.NOTIFICACIONES
+                                ) {
+                                    backStack.removeAt(backStack.lastIndex)
+                                }
+                            }
+                        )
+                    }
+
+
+
                 }
             }
         }

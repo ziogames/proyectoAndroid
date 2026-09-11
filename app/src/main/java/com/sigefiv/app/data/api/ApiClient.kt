@@ -9,10 +9,10 @@ import retrofit2.converter.gson.GsonConverterFactory
 object ApiClient {
 
     private const val BASE_URL =
-      "http://10.0.2.2:8080/api/"
+     "http://10.0.2.2:8080/api/"
 
    // private const val BASE_URL =
-     //   "https://api.sigefiv.win/api/"
+     //  "http://192.168.1.34:8080/api/"
 
     private fun createRetrofit(
         context: Context
@@ -106,4 +106,5 @@ object ApiClient {
         return createRetrofit(context)
             .create(RolApi::class.java)
     }
+
 }
