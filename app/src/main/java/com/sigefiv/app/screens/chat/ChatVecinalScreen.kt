@@ -6,6 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,7 @@ import androidx.compose.material3.Card
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +61,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -82,6 +85,8 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.runtime.snapshotFlow
 
 @Composable
 private fun colorPrincipal(): Color {
@@ -115,24 +120,128 @@ fun ChatVecinalScreen(
     )
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
+    var posicionInicialAplicada by remember {
+        mutableStateOf(false)
+    }
+    // 🔽 Mostrar botón de nuevos mensajes
+    val mostrarBotonNuevos by remember {
+        derivedStateOf {
+            val ultimoVisible =
+                listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+
+            val totalItems =
+                listState.layoutInfo.totalItemsCount
+
+            val estaAlFinal =
+                ultimoVisible != null &&
+                        totalItems > 0 &&
+                        ultimoVisible >= totalItems - 1
+
+            uiState.mensajesNoLeidos > 0 &&
+                    !estaAlFinal
+        }
+    }
+    LaunchedEffect(uiState.mensajes) {
+        if (
+            !posicionInicialAplicada &&
+            uiState.mensajes.isNotEmpty()
+        ) {
+            val indiceNoLeido =
+                uiState.primerNoLeidoId?.let { id ->
+                    uiState.mensajes.indexOfFirst {
+                        it.id == id
+                    }
+                } ?: -1
+
+            if (indiceNoLeido >= 0) {
+                listState.scrollToItem(indiceNoLeido)
+            } else {
+                listState.scrollToItem(
+                    uiState.mensajes.lastIndex
+                )
+            }
+
+            posicionInicialAplicada = true
+        }
+    }
     var texto by remember { mutableStateOf("") }
 
     // 💬 Estados para el resaltado temporal del mensaje original citado
     var mensajeResaltadoId by remember { mutableStateOf<Int?>(null) }
     var mensajeReaccionSeleccionadoId by remember { mutableStateOf<Int?>(null) }
     val coroutineScope = rememberCoroutineScope()
-
     LaunchedEffect(Unit) {
         viewModel.cargarChat()
         viewModel.actualizarPresencia()
         viewModel.iniciarActualizacionAutomatica()
     }
+// 📖 Marcar mensajes como leídos al llegar al final
+    // 📖 Marcar como leído solamente cuando el usuario
+// llegue manualmente al final del chat.
+    // 📖 Marcar como leído solamente después de que
+// el usuario haya realizado un desplazamiento real.
+    LaunchedEffect(listState) {
 
-    LaunchedEffect(uiState.mensajes.size) {
-        if (uiState.mensajes.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.mensajes.lastIndex)
+        var usuarioDesplazo = false
+        var inicializado = false
+
+        snapshotFlow {
+            val layoutInfo = listState.layoutInfo
+
+            val ultimoVisible =
+                layoutInfo.visibleItemsInfo.lastOrNull()?.index
+
+            val totalItems =
+                layoutInfo.totalItemsCount
+
+            val estaAlFinal =
+                ultimoVisible != null &&
+                        totalItems > 0 &&
+                        ultimoVisible >= totalItems - 1
+
+            Triple(
+                estaAlFinal,
+                listState.isScrollInProgress,
+                totalItems
+            )
+        }.collect { (estaAlFinal, desplazandose, totalItems) ->
+
+            // Ignorar completamente la primera emisión
+            // producida al abrir el Chat.
+            if (!inicializado) {
+                inicializado = true
+                return@collect
+            }
+
+            // El usuario realmente comenzó a desplazarse.
+            if (desplazandose) {
+                usuarioDesplazo = true
+            }
+
+            // Solo marcar leído después de un desplazamiento real.
+            if (
+                usuarioDesplazo &&
+                estaAlFinal &&
+                !desplazandose &&
+                totalItems > 0 &&
+                uiState.primerNoLeidoId != null
+            ) {
+                uiState.mensajes.lastOrNull()?.let { ultimoMensaje ->
+
+                    println(
+                        "📖 USUARIO LLEGÓ AL FINAL: ${ultimoMensaje.id}"
+                    )
+
+                    viewModel.marcarLeido(
+                        ultimoMensaje.id
+                    )
+                }
+
+                usuarioDesplazo = false
+            }
         }
     }
+
 
     Scaffold(
         containerColor = FondoChat,
@@ -233,10 +342,23 @@ fun ChatVecinalScreen(
                             bottom = 10.dp
                         )
                     ) {
-                        items(
+                        itemsIndexed(
                             items = uiState.mensajes,
-                            key = { it.id }
-                        ) { mensaje ->
+                            key = { _, mensaje -> mensaje.id }
+                        ) { indice, mensaje ->
+
+                            // 🔔 Separador de nuevos mensajes
+                            if (mensaje.id == uiState.primerNoLeidoId) {
+                                Text(
+                                    text = "Nuevos mensajes",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp),
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+
                             ChatMessageItem(
                                 mensaje = mensaje,
                                 esPropio = mensaje.usuario?.id == usuarioActualId,
@@ -252,11 +374,20 @@ fun ChatVecinalScreen(
                                 },
                                 onIrAlMensajeOriginal = { mensajeIdBuscado ->
                                     coroutineScope.launch {
-                                        val indice = uiState.mensajes.indexOfFirst { it.id == mensajeIdBuscado }
-                                        if (indice != -1) {
+                                        val indiceBuscado =
+                                            uiState.mensajes.indexOfFirst {
+                                                it.id == mensajeIdBuscado
+                                            }
+
+                                        if (indiceBuscado != -1) {
                                             mensajeResaltadoId = mensajeIdBuscado
-                                            listState.animateScrollToItem(indice)
-                                            delay(2000) // Mantiene el resaltado por 2 segundos
+
+                                            listState.animateScrollToItem(
+                                                indiceBuscado
+                                            )
+
+                                            delay(2000)
+
                                             if (mensajeResaltadoId == mensajeIdBuscado) {
                                                 mensajeResaltadoId = null
                                             }
@@ -264,6 +395,60 @@ fun ChatVecinalScreen(
                                     }
                                 }
                             )
+                        }
+                    }
+
+                    // 🔽 Botón flotante para ir a los nuevos mensajes
+                    if (mostrarBotonNuevos) {
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 16.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .clickable {
+                                    coroutineScope.launch {
+                                        val indiceNoLeido =
+                                            uiState.mensajes.indexOfFirst {
+                                                it.id == uiState.primerNoLeidoId
+                                            }
+
+                                        if (indiceNoLeido >= 0) {
+                                            listState.animateScrollToItem(
+                                                indiceNoLeido
+                                            )
+                                        }
+                                    }
+                                },
+                            color = colorPrincipal,
+                            shadowElevation = 6.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(
+                                    horizontal = 14.dp,
+                                    vertical = 8.dp
+                                ),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.ArrowDownward,
+                                    contentDescription = "Ir a nuevos mensajes",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+
+                                Spacer(modifier = Modifier.width(6.dp))
+
+                                Text(
+                                    text = if (uiState.mensajesNoLeidos == 1) {
+                                        "1 nuevo mensaje"
+                                    } else {
+                                        "${uiState.mensajesNoLeidos} nuevos mensajes"
+                                    },
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }

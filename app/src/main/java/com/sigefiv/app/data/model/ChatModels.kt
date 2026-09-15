@@ -9,7 +9,12 @@ data class ChatResponse(
     val personas: Int = 0,
     val personas_en_linea: Int = 0,
     val mensajes: List<ChatMessage> = emptyList(),
-    val usuarios_escribiendo: List<ChatTypingUser> = emptyList()
+    val usuarios_escribiendo: List<ChatTypingUser> = emptyList(),
+
+    // 📖 Estado de lectura del usuario
+    val ultimo_leido_message_id: Int? = null,
+    val primer_no_leido_id: Int? = null,
+    val mensajes_no_leidos: Int = 0
 )
 
 data class ChatInfo(

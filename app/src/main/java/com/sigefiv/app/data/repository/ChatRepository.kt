@@ -9,6 +9,7 @@ import com.sigefiv.app.data.model.ChatPresenciaResponse
 import com.sigefiv.app.data.model.ChatReaccionResponse
 import com.sigefiv.app.data.model.ChatResponse
 import retrofit2.Response
+import com.sigefiv.app.data.model.ChatSimpleResponse
 
 // 🚨 Excepción personalizada para transportar los datos de baneo de ZOE al ViewModel
 class ZoeException(
@@ -206,6 +207,15 @@ class ChatRepository(
                 Exception(
                     e.message
                         ?: "No se pudo conectar con el servidor."
+                )
+            )
+        }
+    }
+    suspend fun marcarLeido(mensajeId: Int): Result<ChatSimpleResponse> {
+        return ejecutar {
+            api.marcarLeido(
+                request = mapOf(
+                    "mensaje_id" to mensajeId
                 )
             )
         }

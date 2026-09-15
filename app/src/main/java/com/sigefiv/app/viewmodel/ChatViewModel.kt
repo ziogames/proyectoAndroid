@@ -27,10 +27,14 @@ data class ChatUiState(
     val esBloqueoPermanente: Boolean = false,
     val mensajeRespondido: ChatMessage? = null,
 
+    // 📖 Estado de lectura
+    val ultimoLeidoMessageId: Int? = null,
+    val primerNoLeidoId: Int? = null,
+    val mensajesNoLeidos: Int = 0,
+
     // ❤️ ID de los mensajes que están procesando una reacción
     val reaccionandoMensajes: Set<Int> = emptySet()
 )
-
 class ChatViewModel(
     private val repository: ChatRepository
 ) : ViewModel() {
@@ -64,7 +68,10 @@ class ChatViewModel(
                         mensajes
                             .maxOfOrNull { it.id }
                             ?: 0
-
+                    println("📖 AL ABRIR CHAT")
+                    println("📖 ÚLTIMO LEÍDO: ${respuesta.ultimo_leido_message_id}")
+                    println("📖 PRIMER NO LEÍDO: ${respuesta.primer_no_leido_id}")
+                    println("📖 NO LEÍDOS: ${respuesta.mensajes_no_leidos}")
                     _uiState.value =
                         _uiState.value.copy(
                             cargando = false,
@@ -74,6 +81,17 @@ class ChatViewModel(
                                 respuesta.personas_en_linea,
                             usuariosEscribiendo =
                                 respuesta.usuarios_escribiendo,
+
+                            // 📖 Estado de lectura
+                            ultimoLeidoMessageId =
+                                respuesta.ultimo_leido_message_id,
+
+                            primerNoLeidoId =
+                                respuesta.primer_no_leido_id,
+
+                            mensajesNoLeidos =
+                                respuesta.mensajes_no_leidos,
+
                             error = null
                         )
                 }
@@ -86,6 +104,35 @@ class ChatViewModel(
                                 error.message
                                     ?: "No se pudo cargar el Chat Vecinal."
                         )
+                }
+        }
+    }
+
+    fun marcarLeido(mensajeId: Int) {
+        println("📖 MARCAR LEÍDO LLAMADO: $mensajeId")
+        // No permitir retroceder la posición de lectura
+        val ultimoLeido = _uiState.value.ultimoLeidoMessageId
+
+        if (ultimoLeido != null && mensajeId <= ultimoLeido) {
+            return
+        }
+
+        viewModelScope.launch {
+            repository.marcarLeido(mensajeId)
+                .onSuccess {
+                    val mensajesNoLeidos =
+                        _uiState.value.mensajes.count {
+                            it.id > mensajeId
+                        }
+
+                    _uiState.value = _uiState.value.copy(
+                        ultimoLeidoMessageId = mensajeId,
+                        primerNoLeidoId = null,
+                        mensajesNoLeidos = mensajesNoLeidos
+                    )
+                }
+                .onFailure {
+                    // No cambiamos el estado local si el servidor falla
                 }
         }
     }
@@ -150,11 +197,40 @@ class ChatViewModel(
                                 }
                                 ?: ultimoMensajeId
 
+                        // 📖 Recalcular mensajes no leídos
+                        val ultimoLeido =
+                            _uiState.value.ultimoLeidoMessageId
+
+                        val primerNoLeido =
+                            if (ultimoLeido != null) {
+                                mensajesActualizados
+                                    .firstOrNull { it.id > ultimoLeido }
+                                    ?.id
+                            } else {
+                                null
+                            }
+
+                        val cantidadNoLeidos =
+                            if (ultimoLeido != null) {
+                                mensajesActualizados.count {
+                                    it.id > ultimoLeido
+                                }
+                            } else {
+                                0
+                            }
+
                         _uiState.value =
                             _uiState.value.copy(
-                                mensajes =
-                                    mensajesActualizados
+                                mensajes = mensajesActualizados,
+
+                                // 📖 Estado de lectura
+                                primerNoLeidoId = primerNoLeido,
+                                mensajesNoLeidos = cantidadNoLeidos
                             )
+
+                        println("📖 LEÍDO: $ultimoLeido")
+                        println("📖 PRIMER NO LEÍDO: $primerNoLeido")
+                        println("📖 CANTIDAD NO LEÍDOS: $cantidadNoLeidos")
                     }
                 }
 

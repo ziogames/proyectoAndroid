@@ -16,7 +16,7 @@ import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
-
+import com.sigefiv.app.data.model.ChatSimpleResponse
 interface ChatApi {
 
     @GET("chat")
@@ -47,6 +47,10 @@ interface ChatApi {
         @Query("after_id") afterId: Int
     ): Response<ChatNuevosResponse>
 
+    @POST("chat/leido")
+    suspend fun marcarLeido(
+        @Body request: Map<String, Int>
+    ): Response<ChatSimpleResponse>
     /**
      * ❤️ Agregar o quitar una reacción.
      *
