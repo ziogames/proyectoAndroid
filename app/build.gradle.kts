@@ -21,8 +21,23 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("sigefiv") {
+            storeFile = file("../sigefiv-nueva.jks")
+            storePassword = project.findProperty("SIGEFIV_STORE_PASSWORD") as String?
+            keyAlias = "sigefiv"
+            keyPassword = project.findProperty("SIGEFIV_KEY_PASSWORD") as String?
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("sigefiv")
+        }
+
         release {
+            signingConfig = signingConfigs.getByName("sigefiv")
+
             optimization {
                 enable = false
             }
@@ -72,9 +87,11 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
-    // Firebase
+// Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
+    implementation("com.google.firebase:firebase-auth")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
 
     // Google Credential Manager
     implementation(libs.androidx.credentials)

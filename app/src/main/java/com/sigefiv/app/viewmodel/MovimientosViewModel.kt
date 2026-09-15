@@ -110,7 +110,45 @@ class MovimientosViewModel(
     // ------------------------------------------------------------
     // CREAR MOVIMIENTO
     // ------------------------------------------------------------
+// ------------------------------------------------------------
+// OBTENER MOVIMIENTO POR ID
+// ------------------------------------------------------------
 
+    fun obtenerMovimientoPorId(
+        id: Int,
+        onResultado: (Movimiento?) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+
+
+
+                val respuesta =
+                    repository.obtenerMovimientoPorId(id)
+
+
+
+                if (respuesta.success) {
+
+                    onResultado(
+                        respuesta.movimiento
+                    )
+
+                } else {
+
+
+                    onResultado(null)
+                }
+
+            } catch (e: Exception) {
+
+
+                e.printStackTrace()
+
+                onResultado(null)
+            }
+        }
+    }
     fun crearMovimiento(
         fecha: String,
         categoriaId: Int,

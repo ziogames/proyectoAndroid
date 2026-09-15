@@ -89,4 +89,52 @@ class PeriodoViewModel(
 
         _mensaje.value = null
     }
+
+    fun cerrarPeriodo(
+        id: Int,
+        onResultado: (Boolean, String) -> Unit
+    ) {
+        viewModelScope.launch {
+
+            _cargando.value = true
+            _mensaje.value = null
+
+            try {
+
+                val respuesta =
+                    repository.cerrarPeriodo(id)
+
+                if (respuesta.success) {
+
+                    onResultado(
+                        true,
+                        respuesta.message
+                            ?: "Período cerrado correctamente."
+                    )
+
+                } else {
+
+                    onResultado(
+                        false,
+                        respuesta.message
+                            ?: "No se pudo cerrar el período."
+                    )
+                }
+
+            } catch (e: Exception) {
+
+                e.printStackTrace()
+
+                onResultado(
+                    false,
+                    e.message
+                        ?: "No se pudo cerrar el período."
+                )
+
+            } finally {
+
+                _cargando.value = false
+            }
+        }
+    }
 }

@@ -61,14 +61,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.RolDetalle
 import androidx.compose.foundation.layout.navigationBarsPadding
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 /*
 |--------------------------------------------------------------------------
 | DESIGN SYSTEM: SIGEFIV ROLES
 |--------------------------------------------------------------------------
 */
-private val VerdePrincipal = Color(0xFF15803D)
-private val VerdeOscuro = Color(0xFF166534)
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val VerdeBorde = Color(0xFFBBF7D0)
 
@@ -87,6 +87,11 @@ fun EditarRolScreen(
     onBackClick: () -> Unit,
     onGuardar: (String, List<String>) -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+    val colorPrincipalOscuro = colorPrincipal.copy(alpha = 0.88f)
+
     var nombreRol by remember { mutableStateOf(rol.name) }
     val esAdmin = rol.name.trim().lowercase() == "administrador"
 
@@ -130,7 +135,7 @@ fun EditarRolScreen(
                             },
                             enabled = !guardando && nombreRol.isNotBlank(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = VerdePrincipal,
+                                containerColor = colorPrincipal,
                                 contentColor = Color.White
                             ),
                             shape = RoundedCornerShape(12.dp),
@@ -176,7 +181,7 @@ fun EditarRolScreen(
                             .fillMaxWidth()
                             .background(
                                 brush = Brush.verticalGradient(
-                                    colors = listOf(VerdeOscuro, VerdePrincipal)
+                                    colors = listOf(colorPrincipalOscuro, colorPrincipal)
                                 )
                             )
                             .statusBarsPadding()
@@ -274,7 +279,7 @@ fun EditarRolScreen(
                                         Icon(
                                             imageVector = Icons.Default.Security,
                                             contentDescription = null,
-                                            tint = VerdePrincipal,
+                                            tint = colorPrincipal,
                                             modifier = Modifier.size(22.dp)
                                         )
                                     }
@@ -303,7 +308,7 @@ fun EditarRolScreen(
                                 ) {
                                     Text(
                                         text = "${if (totalPermisos > 0) (seleccionadosCount * 100 / totalPermisos) else 0}%",
-                                        color = VerdeOscuro,
+                                        color = colorPrincipalOscuro,
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 13.sp,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
@@ -339,7 +344,7 @@ fun EditarRolScreen(
                                         Icon(
                                             imageVector = Icons.Default.Badge,
                                             contentDescription = null,
-                                            tint = VerdePrincipal,
+                                            tint = colorPrincipal,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     },
@@ -347,8 +352,8 @@ fun EditarRolScreen(
                                     singleLine = true,
                                     shape = RoundedCornerShape(12.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = VerdePrincipal,
-                                        cursorColor = VerdePrincipal,
+                                        focusedBorderColor = colorPrincipal,
+                                        cursorColor = colorPrincipal,
                                         focusedContainerColor = FondoTarjeta,
                                         unfocusedContainerColor = FondoTarjeta
                                     )
@@ -404,7 +409,7 @@ fun EditarRolScreen(
                                             Icon(
                                                 imageVector = Icons.Default.Folder,
                                                 contentDescription = null,
-                                                tint = VerdePrincipal,
+                                                tint = colorPrincipal,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -435,7 +440,7 @@ fun EditarRolScreen(
                                     ) {
                                         Text(
                                             text = if (todosMarcados) "Desmarcar" else "Todos",
-                                            color = VerdePrincipal,
+                                            color = colorPrincipal,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -497,7 +502,7 @@ fun EditarRolScreen(
                                                     onCheckedChange = { permisosSeleccionados[permiso.name] = it },
                                                     colors = SwitchDefaults.colors(
                                                         checkedThumbColor = Color.White,
-                                                        checkedTrackColor = VerdePrincipal,
+                                                        checkedTrackColor = colorPrincipal,
                                                         uncheckedThumbColor = TextoSecundario,
                                                         uncheckedTrackColor = GrisBorde
                                                     )

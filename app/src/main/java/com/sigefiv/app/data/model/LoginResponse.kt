@@ -13,6 +13,8 @@ data class LoginResponse(
 data class Usuario(
     val id: Int,
     val name: String,
+    @SerializedName("seudonimo")
+    val seudonimo: String? = null,
     val email: String,
     val telefono: String?,
     val dni: String?,

@@ -83,7 +83,12 @@ import java.util.Locale
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 
-private val VerdePrincipal = Color(0xFF0F766E)
+@Composable
+private fun colorPrincipal(): Color {
+    return SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+}
 private val FondoChat = Color(0xFFE5DDD5)
 private val BurbujaPropia = Color(0xFFDCF8C6)
 private val BurbujaAjena = Color.White
@@ -208,7 +213,7 @@ fun ChatVecinalScreen(
                 uiState.cargando -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
-                        color = VerdePrincipal
+                        color = colorPrincipal()
                     )
                 }
 
@@ -349,7 +354,7 @@ private fun ChatInput(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(VerdePrincipal)
+            .background(colorPrincipal())
             .navigationBarsPadding()
             .imePadding()
             .padding(horizontal = 8.dp, vertical = 6.dp)
@@ -464,7 +469,7 @@ private fun ChatInput(
                             focusedTextColor = TextoPrincipal,
                             unfocusedTextColor = TextoPrincipal,
                             disabledTextColor = TextoSecundario,
-                            cursorColor = VerdePrincipal
+                            cursorColor = colorPrincipal()
                         )
                     )
                 }
@@ -473,7 +478,7 @@ private fun ChatInput(
             Surface(
                 modifier = Modifier.size(48.dp),
                 shape = CircleShape,
-                color = if (!esBloqueoPermanente && texto.isNotBlank()) VerdePrincipal else VerdePrincipal.copy(alpha = 0.4f)
+                color = if (!esBloqueoPermanente && texto.isNotBlank()) colorPrincipal() else colorPrincipal().copy(alpha = 0.4f)
             ) {
                 IconButton(
                     onClick = onEnviar,
@@ -511,13 +516,13 @@ private fun ChatEmptyState() {
         Surface(
             modifier = Modifier.size(80.dp),
             shape = CircleShape,
-            color = VerdePrincipal.copy(alpha = 0.12f)
+            color = colorPrincipal().copy(alpha = 0.12f)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = Icons.Outlined.Group,
                     contentDescription = null,
-                    tint = VerdePrincipal,
+                    tint = colorPrincipal(),
                     modifier = Modifier.size(42.dp)
                 )
             }
@@ -730,7 +735,7 @@ private fun ChatMessageItem(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = lineaLimpia,
-                                    color = VerdePrincipal,
+                                    color = colorPrincipal(),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -795,14 +800,14 @@ private fun ChatMessageItem(
                     Surface(
                         shape = RoundedCornerShape(16.dp),
                         color = if (reaccion.yo) {
-                            VerdePrincipal.copy(alpha = 0.14f)
+                            colorPrincipal().copy(alpha = 0.14f)
                         } else {
                             Color.White.copy(alpha = 0.98f)
                         },
                         border = if (reaccion.yo) {
                             BorderStroke(
                                 1.dp,
-                                VerdePrincipal.copy(alpha = 0.55f)
+                                colorPrincipal().copy(alpha = 0.55f)
                             )
                         } else {
                             BorderStroke(
@@ -904,13 +909,13 @@ private fun TarjetaArchivoMensaje(archivo: ChatArchivoPayload) {
                 Icon(
                     imageVector = Icons.Outlined.AttachFile,
                     contentDescription = null,
-                    tint = VerdePrincipal,
+                    tint = colorPrincipal(),
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = archivo.nombre ?: "Archivo adjunto",
-                    color = VerdePrincipal,
+                    color = colorPrincipal(),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1

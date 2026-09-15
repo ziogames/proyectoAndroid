@@ -10,4 +10,10 @@ class PeriodoRepository(
     suspend fun obtenerPeriodoAbierto(): PeriodoResponse {
         return authApi.periodoAbierto()
     }
+
+    suspend fun cerrarPeriodo(
+        id: Int
+    ): PeriodoResponse {
+        return authApi.cerrarPeriodo(id)
+    }
 }

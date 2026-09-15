@@ -1,7 +1,11 @@
 package com.sigefiv.app.data.api
 
+import com.sigefiv.app.data.model.ActualizarPerfilRequest
 import com.sigefiv.app.data.model.CategoriasResponse
 import com.sigefiv.app.data.model.DashboardResponse
+import com.sigefiv.app.data.model.FcmEnviarNotificacionRequest
+import com.sigefiv.app.data.model.FcmPreferenciaRequest
+import com.sigefiv.app.data.model.FcmPreferenciaResponse
 import com.sigefiv.app.data.model.FcmTokenRequest
 import com.sigefiv.app.data.model.FcmTokenResponse
 import com.sigefiv.app.data.model.GoogleLoginRequest
@@ -10,6 +14,7 @@ import com.sigefiv.app.data.model.LoginResponse
 import com.sigefiv.app.data.model.MovimientoRequest
 import com.sigefiv.app.data.model.MovimientoResponse
 import com.sigefiv.app.data.model.MovimientosResponse
+import com.sigefiv.app.data.model.NotificacionEnviarResponse
 import com.sigefiv.app.data.model.NotificacionResponse
 import com.sigefiv.app.data.model.NotificacionesResponse
 import com.sigefiv.app.data.model.PeriodoDetalleResponse
@@ -18,21 +23,23 @@ import com.sigefiv.app.data.model.PeriodoResponse
 import com.sigefiv.app.data.model.PeriodosResponse
 import com.sigefiv.app.data.model.ZoeConsultaRequest
 import com.sigefiv.app.data.model.ZoeConsultaResponse
-import com.sigefiv.app.data.model.FcmPreferenciaRequest
-import com.sigefiv.app.data.model.FcmEnviarNotificacionRequest
-import com.sigefiv.app.data.model.NotificacionEnviarResponse
-
-
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface AuthApi {
+
+    // =========================================================
+    // AUTENTICACIÓN
+    // =========================================================
 
     @POST("login")
     suspend fun login(
@@ -50,13 +57,54 @@ interface AuthApi {
     @POST("logout")
     suspend fun logout()
 
+
+    // =========================================================
+    // PERFIL DEL USUARIO AUTENTICADO
+    // =========================================================
+
+    /**
+     * Actualiza la información personal del usuario autenticado.
+     *
+     * Incluye el seudónimo.
+     */
+    @PUT("mi-cuenta")
+    suspend fun actualizarPerfil(
+        @Body request: ActualizarPerfilRequest
+    ): LoginResponse
+
+    /**
+     * Actualiza la fotografía del usuario autenticado.
+     *
+     * La fotografía se envía como multipart/form-data.
+     */
+    @Multipart
+    @POST("mi-cuenta/foto")
+    suspend fun actualizarFoto(
+        @Part foto: MultipartBody.Part
+    ): Response<Unit>
+
+
+    // =========================================================
+    // DASHBOARD
+    // =========================================================
+
     @GET("dashboard")
     suspend fun dashboard(): DashboardResponse
+
+
+    // =========================================================
+    // MOVIMIENTOS
+    // =========================================================
 
     @GET("movimientos")
     suspend fun movimientos(
         @Query("limite") limite: Int? = null
     ): MovimientosResponse
+
+    @GET("movimientos/{id}")
+    suspend fun obtenerMovimientoPorId(
+        @Path("id") id: Int
+    ): MovimientoResponse
 
     @POST("movimientos")
     suspend fun crearMovimiento(
@@ -74,8 +122,18 @@ interface AuthApi {
         @Path("movimiento") id: Int
     ): Response<Unit>
 
+
+    // =========================================================
+    // CATEGORÍAS
+    // =========================================================
+
     @GET("categorias")
     suspend fun categorias(): CategoriasResponse
+
+
+    // =========================================================
+    // PERIODOS
+    // =========================================================
 
     @GET("periodo/abierto")
     suspend fun periodoAbierto(): PeriodoResponse
@@ -93,6 +151,15 @@ interface AuthApi {
         @Path("id") id: Int
     ): PeriodoMovimientosResponse
 
+    @POST("periodos/{id}/cerrar")
+    suspend fun cerrarPeriodo(
+        @Path("id") id: Int
+    ): PeriodoResponse
+
+    // =========================================================
+    // ZOE
+    // =========================================================
+
     @POST("consulta-inteligente")
     suspend fun consultarZoe(
         @Body request: ZoeConsultaRequest
@@ -102,6 +169,8 @@ interface AuthApi {
     suspend fun consultarZoeN8n(
         @Body request: ZoeConsultaRequest
     ): ZoeConsultaResponse
+
+
     // =========================================================
     // FCM
     // =========================================================
@@ -115,6 +184,12 @@ interface AuthApi {
     suspend fun desactivarTokenFcm(
         @Body request: FcmTokenRequest
     ): FcmTokenResponse
+
+    @GET("fcm/preferencia")
+    suspend fun obtenerPreferenciaFcm(
+        @Query("token") token: String
+    ): Response<FcmPreferenciaResponse>
+
 
     // =========================================================
     // NOTIFICACIONES

@@ -19,9 +19,9 @@ class FcmPreferenciaViewModel(
             ApiClient.create(context)
         )
 
-    // ------------------------------------------------------------
-    // ESTADO DEL SWITCH
-    // ------------------------------------------------------------
+    // =========================================================
+    // PREFERENCIA GENERAL
+    // =========================================================
 
     private val _notificacionesActivadas =
         MutableStateFlow(true)
@@ -29,9 +29,49 @@ class FcmPreferenciaViewModel(
     val notificacionesActivadas: StateFlow<Boolean> =
         _notificacionesActivadas
 
-    // ------------------------------------------------------------
+    // =========================================================
+    // NUEVOS INGRESOS
+    // =========================================================
+
+    private val _ingresos =
+        MutableStateFlow(true)
+
+    val ingresos: StateFlow<Boolean> =
+        _ingresos
+
+    // =========================================================
+    // NUEVOS EGRESOS
+    // =========================================================
+
+    private val _egresos =
+        MutableStateFlow(true)
+
+    val egresos: StateFlow<Boolean> =
+        _egresos
+
+    // =========================================================
+    // ZOE
+    // =========================================================
+
+    private val _zoe =
+        MutableStateFlow(true)
+
+    val zoe: StateFlow<Boolean> =
+        _zoe
+
+    // =========================================================
+    // AVISOS VECINALES
+    // =========================================================
+
+    private val _avisos =
+        MutableStateFlow(true)
+
+    val avisos: StateFlow<Boolean> =
+        _avisos
+
+    // =========================================================
     // ESTADO DE CARGA
-    // ------------------------------------------------------------
+    // =========================================================
 
     private val _guardando =
         MutableStateFlow(false)
@@ -39,9 +79,9 @@ class FcmPreferenciaViewModel(
     val guardando: StateFlow<Boolean> =
         _guardando
 
-    // ------------------------------------------------------------
+    // =========================================================
     // MENSAJE
-    // ------------------------------------------------------------
+    // =========================================================
 
     private val _mensaje =
         MutableStateFlow<String?>(null)
@@ -49,12 +89,151 @@ class FcmPreferenciaViewModel(
     val mensaje: StateFlow<String?> =
         _mensaje
 
-    // ------------------------------------------------------------
-    // CAMBIAR PREFERENCIA
-    // ------------------------------------------------------------
+    // =========================================================
+    // CARGAR PREFERENCIAS DESDE EL SERVIDOR
+    // =========================================================
+
+    fun cargarPreferencias() {
+
+        viewModelScope.launch {
+
+            try {
+
+                val token =
+                    FcmTokenProvider.obtenerToken()
+
+                repository
+                    .obtener(token)
+                    .onSuccess { preferencias ->
+
+                        _notificacionesActivadas.value =
+                            preferencias.activo
+
+                        _ingresos.value =
+                            preferencias.ingresos
+
+                        _egresos.value =
+                            preferencias.egresos
+
+                        _zoe.value =
+                            preferencias.zoe
+
+                        _avisos.value =
+                            preferencias.avisos
+                    }
+                    .onFailure { error ->
+
+                        _mensaje.value =
+                            error.message
+                                ?: "No se pudieron cargar las preferencias."
+                    }
+
+            } catch (e: Exception) {
+
+                e.printStackTrace()
+
+                _mensaje.value =
+                    e.message
+                        ?: "No se pudieron cargar las preferencias."
+            }
+        }
+    }
+
+    // =========================================================
+    // CAMBIAR NOTIFICACIONES GENERALES
+    // =========================================================
 
     fun cambiarEstado(
         activo: Boolean
+    ) {
+
+        actualizarPreferencias(
+            activo = activo,
+            ingresos = _ingresos.value,
+            egresos = _egresos.value,
+            zoe = _zoe.value,
+            avisos = _avisos.value
+        )
+    }
+
+    // =========================================================
+    // CAMBIAR INGRESOS
+    // =========================================================
+
+    fun cambiarIngresos(
+        activo: Boolean
+    ) {
+
+        actualizarPreferencias(
+            activo = _notificacionesActivadas.value,
+            ingresos = activo,
+            egresos = _egresos.value,
+            zoe = _zoe.value,
+            avisos = _avisos.value
+        )
+    }
+
+    // =========================================================
+    // CAMBIAR EGRESOS
+    // =========================================================
+
+    fun cambiarEgresos(
+        activo: Boolean
+    ) {
+
+        actualizarPreferencias(
+            activo = _notificacionesActivadas.value,
+            ingresos = _ingresos.value,
+            egresos = activo,
+            zoe = _zoe.value,
+            avisos = _avisos.value
+        )
+    }
+
+    // =========================================================
+    // CAMBIAR ZOE
+    // =========================================================
+
+    fun cambiarZoe(
+        activo: Boolean
+    ) {
+
+        actualizarPreferencias(
+            activo = _notificacionesActivadas.value,
+            ingresos = _ingresos.value,
+            egresos = _egresos.value,
+            zoe = activo,
+            avisos = _avisos.value
+        )
+    }
+
+    // =========================================================
+    // CAMBIAR AVISOS
+    // =========================================================
+
+    fun cambiarAvisos(
+        activo: Boolean
+    ) {
+
+        actualizarPreferencias(
+            activo = _notificacionesActivadas.value,
+            ingresos = _ingresos.value,
+            egresos = _egresos.value,
+            zoe = _zoe.value,
+            avisos = activo
+        )
+    }
+
+    // =========================================================
+    // ACTUALIZAR TODAS LAS PREFERENCIAS
+    // =========================================================
+
+    private fun actualizarPreferencias(
+        activo: Boolean,
+        ingresos: Boolean,
+        egresos: Boolean,
+        zoe: Boolean,
+        avisos: Boolean
     ) {
 
         viewModelScope.launch {
@@ -64,14 +243,17 @@ class FcmPreferenciaViewModel(
 
             try {
 
-                // Obtener el token FCM del dispositivo.
                 val token =
                     FcmTokenProvider.obtenerToken()
 
                 val resultado =
                     repository.actualizar(
                         token = token,
-                        activo = activo
+                        activo = activo,
+                        ingresos = ingresos,
+                        egresos = egresos,
+                        zoe = zoe,
+                        avisos = avisos
                     )
 
                 resultado
@@ -80,18 +262,26 @@ class FcmPreferenciaViewModel(
                         _notificacionesActivadas.value =
                             activo
 
+                        _ingresos.value =
+                            ingresos
+
+                        _egresos.value =
+                            egresos
+
+                        _zoe.value =
+                            zoe
+
+                        _avisos.value =
+                            avisos
+
                         _mensaje.value =
-                            if (activo) {
-                                "Notificaciones activadas."
-                            } else {
-                                "Notificaciones desactivadas."
-                            }
+                            "Preferencias actualizadas."
                     }
                     .onFailure { error ->
 
                         _mensaje.value =
                             error.message
-                                ?: "No se pudo actualizar la preferencia."
+                                ?: "No se pudieron actualizar las preferencias."
                     }
 
             } catch (e: Exception) {
@@ -100,7 +290,7 @@ class FcmPreferenciaViewModel(
 
                 _mensaje.value =
                     e.message
-                        ?: "No se pudo actualizar la preferencia."
+                        ?: "No se pudieron actualizar las preferencias."
 
             } finally {
 
@@ -109,9 +299,9 @@ class FcmPreferenciaViewModel(
         }
     }
 
-    // ------------------------------------------------------------
+    // =========================================================
     // LIMPIAR MENSAJE
-    // ------------------------------------------------------------
+    // =========================================================
 
     fun limpiarMensaje() {
 

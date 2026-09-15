@@ -1,3 +1,4 @@
+
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.sigefiv.app.screens.periodos
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -54,6 +56,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Periodo
 import com.sigefiv.app.viewmodel.PeriodosViewModel
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 /*
 |--------------------------------------------------------------------------
@@ -64,7 +68,6 @@ import com.sigefiv.app.viewmodel.PeriodosViewModel
 private val FondoSIGEFIV = Color(0xFFF8FAFC)
 private val FondoTarjeta = Color(0xFFFFFFFF)
 private val FondoActivo = Color(0xFFDCFCE7)
-private val VerdePrincipal = Color(0xFF15803D)
 private val Blanco = Color(0xFFFFFFFF)
 private val TextoPrincipal = Color(0xFF0F172A)
 private val GrisClaro = Color(0xFF64748B)
@@ -82,6 +85,10 @@ fun PeriodosAnioScreen(
     onMasClick: () -> Unit,
     onOpenDrawer: (() -> Unit)? = null
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     val periodos by periodosViewModel.periodos.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -157,16 +164,18 @@ fun PeriodosAnioScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdePrincipal
+                    containerColor = colorPrincipal
                 )
             )
         },
         bottomBar = {
             BarraInferiorPeriodosAnio(
                 onInicioClick = onInicioClick,
-                onMovimientosClick = onMovimientosClick,
                 onAsambleasClick = onAsambleasClick,
-                onMasClick = onMasClick
+                onPeriodosClick = {
+                    // Ya estamos dentro de Períodos
+                },
+                onMiCuentaClick = onMasClick
             )
         }
     ) { innerPadding ->
@@ -204,7 +213,7 @@ fun PeriodosAnioScreen(
                             Icon(
                                 imageVector = Icons.Outlined.CalendarMonth,
                                 contentDescription = null,
-                                tint = VerdePrincipal,
+                                tint = colorPrincipal,
                                 modifier = Modifier.size(26.dp)
                             )
                         }
@@ -240,7 +249,7 @@ fun PeriodosAnioScreen(
 
                                 Text(
                                     text = periodoAbierto.nombre,
-                                    color = VerdePrincipal,
+                                    color = colorPrincipal,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -255,7 +264,7 @@ fun PeriodosAnioScreen(
 
                 Text(
                     text = "MESES DEL AÑO $anio",
-                    color = VerdePrincipal,
+                    color = colorPrincipal,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -292,6 +301,10 @@ private fun PeriodoMesCard(
     periodo: Periodo?,
     onClick: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     val estado = when {
         periodo == null -> EstadoMes.NO_INICIADO
         periodo.estado.equals("Abierto", ignoreCase = true) -> EstadoMes.ABIERTO
@@ -312,7 +325,7 @@ private fun PeriodoMesCard(
     }
 
     val colorEstado = when (estado) {
-        EstadoMes.ABIERTO -> VerdePrincipal
+        EstadoMes.ABIERTO -> colorPrincipal
         EstadoMes.CERRADO -> GrisClaro
         EstadoMes.NO_INICIADO -> GrisClaro.copy(alpha = 0.6f)
         EstadoMes.OTRO -> GrisClaro
@@ -351,7 +364,7 @@ private fun PeriodoMesCard(
 
             Text(
                 text = nombre,
-                color = if (estado == EstadoMes.ABIERTO) VerdePrincipal else TextoPrincipal,
+                color = if (estado == EstadoMes.ABIERTO) colorPrincipal else TextoPrincipal,
                 fontSize = 15.sp,
                 fontWeight = if (estado == EstadoMes.ABIERTO) FontWeight.Bold else FontWeight.Medium,
                 modifier = Modifier.weight(1f)
@@ -394,14 +407,20 @@ private enum class EstadoMes {
 @Composable
 private fun BarraInferiorPeriodosAnio(
     onInicioClick: () -> Unit,
-    onMovimientosClick: () -> Unit,
     onAsambleasClick: () -> Unit,
-    onMasClick: () -> Unit
+    onPeriodosClick: () -> Unit,
+    onMiCuentaClick: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     NavigationBar(
-        containerColor = VerdePrincipal,
+        containerColor = colorPrincipal,
         tonalElevation = 0.dp
     ) {
+
+        // INICIO
         NavigationBarItem(
             selected = false,
             onClick = onInicioClick,
@@ -411,29 +430,16 @@ private fun BarraInferiorPeriodosAnio(
                     contentDescription = "Inicio"
                 )
             },
-            label = { Text(text = "Inicio") },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
-            )
-        )
-
-        NavigationBarItem(
-            selected = false,
-            onClick = onMovimientosClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.AccountBalanceWallet,
-                    contentDescription = "Movimientos"
-                )
+            label = {
+                Text(text = "Inicio")
             },
-            label = { Text(text = "Movimientos") },
             colors = NavigationBarItemDefaults.colors(
                 unselectedIconColor = Blanco.copy(alpha = 0.75f),
                 unselectedTextColor = Blanco.copy(alpha = 0.75f)
             )
         )
 
+        // ASAMBLEAS
         NavigationBarItem(
             selected = false,
             onClick = onAsambleasClick,
@@ -443,27 +449,51 @@ private fun BarraInferiorPeriodosAnio(
                     contentDescription = "Asambleas"
                 )
             },
-            label = { Text(text = "Asambleas") },
+            label = {
+                Text(text = "Asambleas")
+            },
             colors = NavigationBarItemDefaults.colors(
                 unselectedIconColor = Blanco.copy(alpha = 0.75f),
                 unselectedTextColor = Blanco.copy(alpha = 0.75f)
             )
         )
 
+        // PERÍODOS
         NavigationBarItem(
             selected = true,
-            onClick = onMasClick,
+            onClick = onPeriodosClick,
             icon = {
                 Icon(
-                    imageVector = Icons.Outlined.Menu,
-                    contentDescription = "Más"
+                    imageVector = Icons.Outlined.CalendarMonth,
+                    contentDescription = "Períodos"
                 )
             },
-            label = { Text(text = "Más") },
+            label = {
+                Text(text = "Períodos")
+            },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdePrincipal,
+                selectedIconColor = colorPrincipal,
                 selectedTextColor = Blanco,
                 indicatorColor = Blanco,
+                unselectedIconColor = Blanco.copy(alpha = 0.75f),
+                unselectedTextColor = Blanco.copy(alpha = 0.75f)
+            )
+        )
+
+        // MI CUENTA
+        NavigationBarItem(
+            selected = false,
+            onClick = onMiCuentaClick,
+            icon = {
+                Icon(
+                    imageVector = Icons.Outlined.Person,
+                    contentDescription = "Mi cuenta"
+                )
+            },
+            label = {
+                Text(text = "Mi cuenta")
+            },
+            colors = NavigationBarItemDefaults.colors(
                 unselectedIconColor = Blanco.copy(alpha = 0.75f),
                 unselectedTextColor = Blanco.copy(alpha = 0.75f)
             )

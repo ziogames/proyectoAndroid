@@ -62,6 +62,8 @@ import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Categoria
 import com.sigefiv.app.viewmodel.CategoriasViewModel
 import com.sigefiv.app.viewmodel.PeriodoViewModel
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -74,7 +76,6 @@ import java.time.ZoneOffset
 
 private val FondoSIGEFIV = Color(0xFFF8FAFC)
 private val FondoTarjeta = Color(0xFFFFFFFF)
-private val VerdePrincipal = Color(0xFF15803D)
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val Blanco = Color(0xFFFFFFFF)
 private val TextoPrincipal = Color(0xFF0F172A)
@@ -105,6 +106,9 @@ fun NuevoIngresoScreen(
     ) -> Unit
 ) {
     val context = LocalContext.current
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
     val categoriasVM = remember { CategoriasViewModel(context) }
     val periodoVM = remember { PeriodoViewModel(context) }
 
@@ -247,7 +251,7 @@ fun NuevoIngresoScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdePrincipal
+                    containerColor = colorPrincipal
                 )
             )
         }
@@ -286,7 +290,7 @@ fun NuevoIngresoScreen(
                         Icon(
                             imageVector = Icons.Outlined.DateRange,
                             contentDescription = "Período",
-                            tint = VerdePrincipal
+                            tint = colorPrincipal
                         )
                     }
 
@@ -300,7 +304,7 @@ fun NuevoIngresoScreen(
                         )
                         Text(
                             text = if (cargandoPeriodo || cargandoPeriodoVM) "Cargando..." else "$nombrePeriodoEfectivo $anioPeriodoEfectivo",
-                            color = VerdePrincipal,
+                            color = colorPrincipal,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -333,7 +337,7 @@ fun NuevoIngresoScreen(
                         Icon(
                             imageVector = Icons.Outlined.DateRange,
                             contentDescription = "Seleccionar fecha",
-                            tint = VerdePrincipal
+                            tint = colorPrincipal
                         )
                     }
                 },
@@ -357,7 +361,7 @@ fun NuevoIngresoScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    trailingIcon = { Text(text = "▼", color = VerdePrincipal) },
+                    trailingIcon = { Text(text = "▼", color = colorPrincipal) },
                     colors = coloresCampoIngreso()
                 )
 
@@ -393,7 +397,7 @@ fun NuevoIngresoScreen(
                     } else {
                         Text(
                             text = "CATEGORÍAS DE INGRESO",
-                            color = VerdePrincipal,
+                            color = colorPrincipal,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -419,13 +423,13 @@ fun NuevoIngresoScreen(
                                             Icon(
                                                 imageVector = Icons.Outlined.Folder,
                                                 contentDescription = null,
-                                                tint = if (esSeleccionada) VerdePrincipal else GrisClaro,
+                                                tint = if (esSeleccionada) colorPrincipal else GrisClaro,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                             Spacer(modifier = Modifier.width(10.dp))
                                             Text(
                                                 text = categoria.nombre,
-                                                color = if (esSeleccionada) VerdePrincipal else TextoPrincipal,
+                                                color = if (esSeleccionada) colorPrincipal else TextoPrincipal,
                                                 fontWeight = if (esSeleccionada) FontWeight.Bold else FontWeight.Medium,
                                                 fontSize = 14.sp
                                             )
@@ -435,7 +439,7 @@ fun NuevoIngresoScreen(
                                             Icon(
                                                 imageVector = Icons.Outlined.Check,
                                                 contentDescription = null,
-                                                tint = VerdePrincipal,
+                                                tint = colorPrincipal,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -484,7 +488,7 @@ fun NuevoIngresoScreen(
                     label = { Text("Forma de pago") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    trailingIcon = { Text(text = "▼", color = VerdePrincipal) },
+                    trailingIcon = { Text(text = "▼", color = colorPrincipal) },
                     colors = coloresCampoIngreso()
                 )
 
@@ -523,7 +527,7 @@ fun NuevoIngresoScreen(
                 enabled = !guardando,
                 label = { Text("Monto") },
                 placeholder = { Text("0.00") },
-                prefix = { Text("S/ ", color = VerdePrincipal, fontWeight = FontWeight.Bold) },
+                prefix = { Text("S/ ", color = colorPrincipal, fontWeight = FontWeight.Bold) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -602,7 +606,7 @@ fun NuevoIngresoScreen(
                             (monto.replace(",", ".").toDoubleOrNull() ?: 0.0) > 0.0,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = VerdePrincipal,
+                        containerColor = colorPrincipal,
                         contentColor = Blanco
                     ),
                     shape = RoundedCornerShape(12.dp)
@@ -636,7 +640,7 @@ fun NuevoIngresoScreen(
                         mostrarCalendario = false
                     }
                 ) {
-                    Text(text = "Aceptar", color = VerdePrincipal, fontWeight = FontWeight.Bold)
+                    Text(text = "Aceptar", color = colorPrincipal, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -653,7 +657,7 @@ fun NuevoIngresoScreen(
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VerdePrincipal
+                        color = colorPrincipal
                     )
                 },
                 showModeToggle = false
@@ -670,15 +674,15 @@ fun NuevoIngresoScreen(
 
 @Composable
 private fun coloresCampoIngreso() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = VerdePrincipal,
+    focusedBorderColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
     unfocusedBorderColor = GrisClaro.copy(alpha = 0.35f),
-    focusedLabelColor = VerdePrincipal,
+    focusedLabelColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
     unfocusedLabelColor = GrisClaro,
     focusedTextColor = TextoPrincipal,
     unfocusedTextColor = TextoPrincipal,
     focusedPlaceholderColor = GrisClaro.copy(alpha = 0.65f),
     unfocusedPlaceholderColor = GrisClaro.copy(alpha = 0.65f),
-    cursorColor = VerdePrincipal,
+    cursorColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
     disabledTextColor = GrisClaro,
     disabledBorderColor = GrisClaro.copy(alpha = 0.2f),
     disabledLabelColor = GrisClaro.copy(alpha = 0.6f)

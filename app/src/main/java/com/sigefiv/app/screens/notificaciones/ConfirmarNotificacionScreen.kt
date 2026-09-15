@@ -37,6 +37,8 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
@@ -55,7 +57,6 @@ import java.util.Locale
 */
 private val FondoPantalla = Color(0xFFF8FAFC)
 private val Blanco = Color.White
-private val VerdePrincipal = Color(0xFF15803D)      // Color principal de tu sistema
 private val VerdeSuave = Color(0xFFDCFCE7)        // Fondo del icono de éxito
 private val TextoPrincipal = Color(0xFF0F172A)
 private val GrisTexto = Color(0xFF64748B)
@@ -79,7 +80,12 @@ fun ConfirmarNotificacionScreen(
     SideEffect {
         val window = (context as? Activity)?.window
         window?.let {
-            it.statusBarColor = android.graphics.Color.parseColor("#15803D")
+            it.statusBarColor = android.graphics.Color.argb(
+                255,
+                SeasonalColors.primary(SeasonalTheme.getSeason()).red.let { (it * 255).toInt() },
+                SeasonalColors.primary(SeasonalTheme.getSeason()).green.let { (it * 255).toInt() },
+                SeasonalColors.primary(SeasonalTheme.getSeason()).blue.let { (it * 255).toInt() }
+            )
             WindowInsetsControllerCompat(it, view).isAppearanceLightStatusBars = false
         }
     }
@@ -107,7 +113,7 @@ fun ConfirmarNotificacionScreen(
         // ============================================================
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = VerdePrincipal,
+            color = SeasonalColors.primary(SeasonalTheme.getSeason()),
             shadowElevation = 4.dp
         ) {
             Row(
@@ -168,7 +174,7 @@ fun ConfirmarNotificacionScreen(
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = null,
-                    tint = VerdePrincipal,
+                    tint = SeasonalColors.primary(SeasonalTheme.getSeason()),
                     modifier = Modifier.size(46.dp)
                 )
             }
@@ -214,7 +220,7 @@ fun ConfirmarNotificacionScreen(
                         Icon(
                             imageVector = Icons.Default.Description,
                             contentDescription = null,
-                            tint = VerdePrincipal,
+                            tint = SeasonalColors.primary(SeasonalTheme.getSeason()),
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -289,7 +295,7 @@ fun ConfirmarNotificacionScreen(
                         .height(50.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = VerdePrincipal,
+                        containerColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
                         contentColor = Blanco
                     )
                 ) {
@@ -355,7 +361,7 @@ private fun DatoConIcono(
         Icon(
             imageVector = icono,
             contentDescription = null,
-            tint = VerdePrincipal,
+            tint = SeasonalColors.primary(SeasonalTheme.getSeason()),
             modifier = Modifier.size(18.dp)
         )
 

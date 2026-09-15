@@ -59,6 +59,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.viewmodel.PeriodosViewModel
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 /*
 |--------------------------------------------------------------------------
@@ -68,7 +70,6 @@ import com.sigefiv.app.viewmodel.PeriodosViewModel
 
 private val FondoSIGEFIV = Color(0xFFF8FAFC)
 private val FondoTarjeta = Color(0xFFFFFFFF)
-private val VerdePrincipal = Color(0xFF15803D)
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val Blanco = Color(0xFFFFFFFF)
 private val TextoPrincipal = Color(0xFF0F172A)
@@ -89,9 +90,13 @@ fun PeriodoDetalleScreen(
     onInicioClick: () -> Unit,
     onMovimientosPrincipalClick: () -> Unit,
     onAsambleasClick: () -> Unit,
-    onMasClick: () -> Unit,
+    onMiCuentaClick: () -> Unit,
     onOpenDrawer: (() -> Unit)? = null
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     val periodo by periodosViewModel.periodoDetalle.collectAsState()
     val cargando by periodosViewModel.cargando.collectAsState()
     val mensaje by periodosViewModel.mensaje.collectAsState()
@@ -140,16 +145,16 @@ fun PeriodoDetalleScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdePrincipal
+                    containerColor = colorPrincipal
                 )
             )
         },
         bottomBar = {
             BarraInferiorPeriodoDetalle(
                 onInicioClick = onInicioClick,
-                onMovimientosClick = onMovimientosPrincipalClick,
                 onAsambleasClick = onAsambleasClick,
-                onMasClick = onMasClick
+                onPeriodosClick = onBackClick,
+                onMiCuentaClick = onMiCuentaClick
             )
         }
     ) { innerPadding ->
@@ -211,7 +216,7 @@ fun PeriodoDetalleScreen(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Outlined.TrendingUp,
                                     contentDescription = null,
-                                    tint = VerdePrincipal,
+                                    tint = colorPrincipal,
                                     modifier = Modifier.size(26.dp)
                                 )
                             }
@@ -230,7 +235,7 @@ fun PeriodoDetalleScreen(
 
                                     val isAbierto = datos.estado.equals("Abierto", true)
                                     val badgeBg = if (isAbierto) VerdeSuave else NaranjaBg
-                                    val badgeColor = if (isAbierto) VerdePrincipal else NaranjaText
+                                    val badgeColor = if (isAbierto) colorPrincipal else NaranjaText
                                     val badgeIcon = if (isAbierto) Icons.Outlined.LockOpen else Icons.Outlined.Lock
 
                                     Box(
@@ -273,7 +278,7 @@ fun PeriodoDetalleScreen(
 
                     Text(
                         text = "RESUMEN FINANCIERO",
-                        color = VerdePrincipal,
+                        color = colorPrincipal,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 4.dp)
@@ -301,10 +306,10 @@ fun PeriodoDetalleScreen(
                             )
                             SummaryRow(
                                 icon = Icons.Outlined.ArrowUpward,
-                                iconColor = VerdePrincipal,
+                                iconColor = colorPrincipal,
                                 label = "Total de ingresos",
                                 value = datos.total_ingresos,
-                                valueColor = VerdePrincipal
+                                valueColor = colorPrincipal
                             )
                             HorizontalDivider(
                                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -313,11 +318,11 @@ fun PeriodoDetalleScreen(
                             )
                             SummaryRow(
                                 icon = Icons.Outlined.AccountBalance,
-                                iconColor = VerdePrincipal,
+                                iconColor = colorPrincipal,
                                 label = "Saldo disponible",
                                 subLabel = "(Saldo anterior + Total ingresos)",
                                 value = datos.saldo_disponible,
-                                valueColor = VerdePrincipal
+                                valueColor = colorPrincipal
                             )
                             HorizontalDivider(
                                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -362,7 +367,7 @@ fun PeriodoDetalleScreen(
                         SmallSummaryCard(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.CalendarToday,
-                            iconColor = VerdePrincipal,
+                            iconColor = colorPrincipal,
                             label = "Fecha de cierre",
                             value = formatFechaCierre(datos.fecha_cierre),
                             valueColor = TextoPrincipal
@@ -393,7 +398,7 @@ fun PeriodoDetalleScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.ReceiptLong,
                                     contentDescription = null,
-                                    tint = VerdePrincipal,
+                                    tint = colorPrincipal,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -544,12 +549,16 @@ fun SmallSummaryCard(
 @Composable
 private fun BarraInferiorPeriodoDetalle(
     onInicioClick: () -> Unit,
-    onMovimientosClick: () -> Unit,
     onAsambleasClick: () -> Unit,
-    onMasClick: () -> Unit
+    onPeriodosClick: () -> Unit,
+    onMiCuentaClick: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     NavigationBar(
-        containerColor = VerdePrincipal,
+        containerColor = colorPrincipal,
         tonalElevation = 0.dp
     ) {
         NavigationBarItem(
@@ -562,16 +571,7 @@ private fun BarraInferiorPeriodoDetalle(
                 unselectedTextColor = Blanco.copy(0.75f)
             )
         )
-        NavigationBarItem(
-            selected = false,
-            onClick = onMovimientosClick,
-            icon = { Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = "Movimientos") },
-            label = { Text("Movimientos") },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(0.75f),
-                unselectedTextColor = Blanco.copy(0.75f)
-            )
-        )
+
         NavigationBarItem(
             selected = false,
             onClick = onAsambleasClick,
@@ -584,13 +584,38 @@ private fun BarraInferiorPeriodoDetalle(
         )
         NavigationBarItem(
             selected = true,
-            onClick = onMasClick,
-            icon = { Icon(Icons.Outlined.Menu, contentDescription = "Más") },
-            label = { Text("Más") },
+            onClick = onPeriodosClick,
+            icon = {
+                Icon(
+                    Icons.Outlined.CalendarToday,
+                    contentDescription = "Períodos"
+                )
+            },
+            label = {
+                Text("Períodos")
+            },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdePrincipal,
+                selectedIconColor = colorPrincipal,
                 selectedTextColor = Blanco,
                 indicatorColor = Blanco,
+                unselectedIconColor = Blanco.copy(0.75f),
+                unselectedTextColor = Blanco.copy(0.75f)
+            )
+        )
+
+        NavigationBarItem(
+            selected = false,
+            onClick = onMiCuentaClick,
+            icon = {
+                Icon(
+                    Icons.Outlined.AccountBalanceWallet,
+                    contentDescription = "Mi cuenta"
+                )
+            },
+            label = {
+                Text("Mi cuenta")
+            },
+            colors = NavigationBarItemDefaults.colors(
                 unselectedIconColor = Blanco.copy(0.75f),
                 unselectedTextColor = Blanco.copy(0.75f)
             )

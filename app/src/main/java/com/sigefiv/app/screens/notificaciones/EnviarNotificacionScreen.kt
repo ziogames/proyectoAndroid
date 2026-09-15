@@ -58,6 +58,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
@@ -72,7 +75,6 @@ import com.sigefiv.app.viewmodel.UsuarioViewModel
 // ====================================================================
 private val FondoPantalla = Color(0xFFF8FAFC)
 private val Blanco = Color.White
-private val VerdePrincipal = Color(0xFF15803D)
 private val VerdeOscuro = Color(0xFF166534)
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val TextoPrincipal = Color(0xFF0F172A)
@@ -104,7 +106,7 @@ fun EnviarNotificacionScreen(
     SideEffect {
         val window = (context as? Activity)?.window
         window?.let {
-            it.statusBarColor = android.graphics.Color.parseColor("#15803D")
+            it.statusBarColor = SeasonalColors.primary(SeasonalTheme.getSeason()).toArgb()
             WindowInsetsControllerCompat(it, view).isAppearanceLightStatusBars = false
         }
     }
@@ -175,7 +177,7 @@ fun EnviarNotificacionScreen(
         // ========================================================
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = VerdePrincipal,
+            color = SeasonalColors.primary(SeasonalTheme.getSeason()),
             shadowElevation = 4.dp
         ) {
             Row(
@@ -250,7 +252,7 @@ fun EnviarNotificacionScreen(
                             Icon(
                                 imageVector = Icons.Default.NotificationsActive,
                                 contentDescription = null,
-                                tint = VerdePrincipal,
+                                tint = SeasonalColors.primary(SeasonalTheme.getSeason()),
                                 modifier = Modifier.size(26.dp)
                             )
                         }
@@ -355,7 +357,7 @@ fun EnviarNotificacionScreen(
                                 Icon(
                                     imageVector = Icons.Default.Campaign,
                                     contentDescription = null,
-                                    tint = VerdePrincipal
+                                    tint = SeasonalColors.primary(SeasonalTheme.getSeason())
                                 )
                             },
                             modifier = Modifier
@@ -406,7 +408,7 @@ fun EnviarNotificacionScreen(
                                 Icon(
                                     imageVector = Icons.Default.Groups,
                                     contentDescription = null,
-                                    tint = VerdePrincipal
+                                    tint = SeasonalColors.primary(SeasonalTheme.getSeason())
                                 )
                             },
                             modifier = Modifier
@@ -471,7 +473,7 @@ fun EnviarNotificacionScreen(
 
                         Text(
                             text = "${usuariosSeleccionados.size} usuario(s) seleccionado(s)",
-                            color = VerdePrincipal,
+                            color = SeasonalColors.primary(SeasonalTheme.getSeason()),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -489,7 +491,7 @@ fun EnviarNotificacionScreen(
                             when {
                                 usuarioUiState.cargando -> {
                                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        CircularProgressIndicator(color = VerdePrincipal)
+                                        CircularProgressIndicator(color = SeasonalColors.primary(SeasonalTheme.getSeason()))
                                     }
                                 }
                                 usuarioUiState.error != null -> {
@@ -525,7 +527,7 @@ fun EnviarNotificacionScreen(
                                                             usuariosSeleccionados - usuario.id
                                                         }
                                                     },
-                                                    colors = CheckboxDefaults.colors(checkedColor = VerdePrincipal)
+                                                    colors = CheckboxDefaults.colors(checkedColor = SeasonalColors.primary(SeasonalTheme.getSeason()))
                                                 )
 
                                                 Column(modifier = Modifier.weight(1f)) {
@@ -542,7 +544,7 @@ fun EnviarNotificacionScreen(
                                                     )
                                                     Text(
                                                         text = usuario.rolPrincipal,
-                                                        color = VerdePrincipal,
+                                                        color = SeasonalColors.primary(SeasonalTheme.getSeason()),
                                                         fontSize = 10.sp,
                                                         fontWeight = FontWeight.Bold
                                                     )
@@ -594,7 +596,7 @@ fun EnviarNotificacionScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = mensajeEstado ?: "",
-                            color = if (enviado) VerdePrincipal else RojoError,
+                            color = if (enviado) SeasonalColors.primary(SeasonalTheme.getSeason()) else RojoError,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -663,8 +665,8 @@ fun EnviarNotificacionScreen(
                     enabled = puedeEnviar,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = VerdePrincipal,
-                        disabledContainerColor = VerdePrincipal.copy(alpha = 0.4f),
+                        containerColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
+                        disabledContainerColor = SeasonalColors.primary(SeasonalTheme.getSeason()).copy(alpha = 0.4f),
                         contentColor = Blanco
                     )
                 ) {
@@ -700,8 +702,8 @@ fun EnviarNotificacionScreen(
 // ====================================================================
 @Composable
 private fun textFieldColorsCustom() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = VerdePrincipal,
+    focusedBorderColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
     unfocusedBorderColor = GrisBorde,
-    focusedLabelColor = VerdePrincipal,
-    cursorColor = VerdePrincipal
+    focusedLabelColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
+    cursorColor = SeasonalColors.primary(SeasonalTheme.getSeason())
 )

@@ -286,7 +286,11 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                 PendingIntent.FLAG_UPDATE_CURRENT or
                         PendingIntent.FLAG_IMMUTABLE
             )
-
+        val esAsamblea =
+            tipo?.equals(
+                "asamblea",
+                ignoreCase = true
+            ) == true
         val notification =
             NotificationCompat.Builder(
                 this,
@@ -309,7 +313,10 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                     NotificationCompat.PRIORITY_HIGH
                 )
                 .setAutoCancel(
-                    true
+                    !esAsamblea
+                )
+                .setOngoing(
+                    esAsamblea
                 )
                 .setContentIntent(
                     pendingIntent

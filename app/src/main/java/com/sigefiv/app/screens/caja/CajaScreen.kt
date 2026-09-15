@@ -54,7 +54,6 @@ import com.sigefiv.app.ui.theme.SeasonalTheme
 
 private val FondoSIGEFIV = Color(0xFFF1F5F9)
 
-private val VerdeSuave = Color(0xFFCCFBF1)
 private val Verde = Color(0xFF15803D)
 private val VerdeClaro = Color(0xFFDCFCE7)
 private val Rojo = Color(0xFFDC2626)

@@ -66,14 +66,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.RolDetalle
 import com.sigefiv.app.viewmodel.RolViewModel
+import com.sigefiv.app.ui.theme.AppSeason
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 /*
 |--------------------------------------------------------------------------
 | DESIGN SYSTEM: SIGEFIV ROLES
 |--------------------------------------------------------------------------
 */
-private val VerdePrincipal = Color(0xFF15803D)
-private val VerdeOscuro = Color(0xFF166534)
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val VerdeBorde = Color(0xFFBBF7D0)
 
@@ -100,6 +101,11 @@ fun RolesListScreen(
     onEditarRol: (RolDetalle) -> Unit,
     onEliminarRol: (RolDetalle) -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+    val colorPrincipalOscuro = colorPrincipal.copy(alpha = 0.88f)
+
     val uiState by viewModel.uiState.collectAsState()
     var textoBusqueda by remember { mutableStateOf("") }
 
@@ -125,7 +131,7 @@ fun RolesListScreen(
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = onNuevoRol,
-                    containerColor = VerdePrincipal,
+                    containerColor = colorPrincipal,
                     contentColor = Color.White,
                     shape = RoundedCornerShape(16.dp),
                     elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(6.dp),
@@ -150,7 +156,7 @@ fun RolesListScreen(
                             .fillMaxWidth()
                             .background(
                                 brush = Brush.verticalGradient(
-                                    colors = listOf(VerdeOscuro, VerdePrincipal)
+                                    colors = listOf(colorPrincipalOscuro, colorPrincipal)
                                 )
                             )
                             .statusBarsPadding()
@@ -222,7 +228,7 @@ fun RolesListScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 CircularProgressIndicator(
-                                    color = VerdePrincipal,
+                                    color = colorPrincipal,
                                     strokeWidth = 3.dp,
                                     modifier = Modifier.size(42.dp)
                                 )
@@ -282,7 +288,7 @@ fun RolesListScreen(
                                     Spacer(modifier = Modifier.height(20.dp))
                                     Button(
                                         onClick = { viewModel.cargarRoles() },
-                                        colors = ButtonDefaults.buttonColors(containerColor = VerdePrincipal),
+                                        colors = ButtonDefaults.buttonColors(containerColor = colorPrincipal),
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
                                         Text("Reintentar conexión", fontWeight = FontWeight.SemiBold)
@@ -316,7 +322,7 @@ fun RolesListScreen(
                                         Icon(
                                             imageVector = Icons.Default.Search,
                                             contentDescription = null,
-                                            tint = VerdePrincipal,
+                                            tint = colorPrincipal,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     },
@@ -343,9 +349,9 @@ fun RolesListScreen(
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedContainerColor = FondoTarjeta,
                                         unfocusedContainerColor = FondoTarjeta,
-                                        focusedBorderColor = VerdePrincipal,
+                                        focusedBorderColor = colorPrincipal,
                                         unfocusedBorderColor = GrisBorde,
-                                        cursorColor = VerdePrincipal
+                                        cursorColor = colorPrincipal
                                     ),
                                     singleLine = true
                                 )
@@ -476,6 +482,9 @@ private fun RolItemCardProfesional(
     onEliminar: () -> Unit
 ) {
     val esAdmin = rol.name.trim().lowercase() == "administrador"
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -508,7 +517,7 @@ private fun RolItemCardProfesional(
                         Icon(
                             imageVector = if (esAdmin) Icons.Default.AdminPanelSettings else Icons.Default.Security,
                             contentDescription = null,
-                            tint = if (esAdmin) VerdePrincipal else TextoSecundario,
+                            tint = if (esAdmin) colorPrincipal else TextoSecundario,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -537,7 +546,7 @@ private fun RolItemCardProfesional(
                 ) {
                     Text(
                         text = "ID #${rol.id}",
-                        color = VerdeOscuro,
+                        color = colorPrincipal.copy(alpha = 0.88f),
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -579,7 +588,7 @@ private fun RolItemCardProfesional(
                 Button(
                     onClick = onEditar,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = VerdePrincipal,
+                        containerColor = colorPrincipal,
                         contentColor = Color.White
                     ),
                     shape = RoundedCornerShape(10.dp),

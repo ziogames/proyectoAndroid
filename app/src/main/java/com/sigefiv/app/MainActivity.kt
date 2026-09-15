@@ -126,8 +126,7 @@ private val GrisClaro = Color(0xFF64748B)
 private val GrisBorde = Color(0xFFCBD5E1)
 private val Rojo = Color(0xFFDC2626)
 
-private const val GOOGLE_WEB_CLIENT_ID =
-    "129407987989-9fb6ecp2f8n8fdpfjo9easo5vpsb7s15.apps.googleusercontent.com"
+
 
 /*
 |--------------------------------------------------------------------------
@@ -158,6 +157,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
+
 
         FirebaseTokenTest.obtenerToken()
 
@@ -876,7 +876,9 @@ fun logoGrupo21PorTemporada(): Int {
                                         // Se desactiva filterByAuthorizedAccounts para que no falle al primer clic
                                         val googleIdOption = GetGoogleIdOption.Builder()
                                             .setFilterByAuthorizedAccounts(false)
-                                            .setServerClientId(GOOGLE_WEB_CLIENT_ID)
+                                            .setServerClientId(
+                                                context.getString(R.string.default_web_client_id)
+                                            )
                                             .setAutoSelectEnabled(false)
                                             .build()
 

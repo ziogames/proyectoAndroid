@@ -48,6 +48,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.viewmodel.PeriodosViewModel
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 /*
 |--------------------------------------------------------------------------
@@ -57,7 +59,6 @@ import com.sigefiv.app.viewmodel.PeriodosViewModel
 
 private val FondoSIGEFIV = Color(0xFFF8FAFC)
 private val FondoTarjeta = Color(0xFFFFFFFF)
-private val VerdePrincipal = Color(0xFF15803D)
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val Blanco = Color(0xFFFFFFFF)
 private val TextoPrincipal = Color(0xFF0F172A)
@@ -76,6 +77,10 @@ fun PeriodosScreen(
     onMiCuentaClick: () -> Unit,
     onOpenDrawer: () -> Unit = {}
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     val periodos by periodosViewModel.periodos.collectAsState()
     val cargando by periodosViewModel.cargando.collectAsState()
     val mensaje by periodosViewModel.mensaje.collectAsState()
@@ -117,7 +122,7 @@ fun PeriodosScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdePrincipal
+                    containerColor = colorPrincipal
                 )
             )
         },
@@ -143,7 +148,7 @@ fun PeriodosScreen(
 
             Text(
                 text = "AÑOS DISPONIBLES",
-                color = VerdePrincipal,
+                color = colorPrincipal,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -207,6 +212,10 @@ private fun AnioCard(
     cantidadPeriodos: Int,
     onClick: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -230,7 +239,7 @@ private fun AnioCard(
                 Icon(
                     imageVector = Icons.Outlined.CalendarMonth,
                     contentDescription = "Año $anio",
-                    tint = VerdePrincipal,
+                    tint = colorPrincipal,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -277,8 +286,12 @@ private fun BarraInferiorPeriodos(
     onPeriodosClick: () -> Unit,
     onMiCuentaClick: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     NavigationBar(
-        containerColor = VerdePrincipal,
+        containerColor = colorPrincipal,
         tonalElevation = 0.dp
     ) {
         NavigationBarItem(
@@ -324,7 +337,7 @@ private fun BarraInferiorPeriodos(
             },
             label = { Text(text = "Periodos") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdePrincipal,
+                selectedIconColor = colorPrincipal,
                 selectedTextColor = Blanco,
                 indicatorColor = Blanco,
                 unselectedIconColor = Blanco.copy(alpha = 0.75f),

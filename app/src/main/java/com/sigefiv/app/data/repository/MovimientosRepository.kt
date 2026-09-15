@@ -15,6 +15,11 @@ class MovimientosRepository(
     ): MovimientosResponse {
         return authApi.movimientos(limite)
     }
+    suspend fun obtenerMovimientoPorId(
+        id: Int
+    ): MovimientoResponse {
+        return authApi.obtenerMovimientoPorId(id)
+    }
 
     suspend fun crearMovimiento(
         request: MovimientoRequest

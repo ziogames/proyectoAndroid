@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.SmartToy
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -98,7 +99,7 @@ import com.sigefiv.app.viewmodel.MovimientosViewModel
 import com.sigefiv.app.viewmodel.PeriodoViewModel
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
-
+import androidx.compose.material.icons.outlined.Lock
 
 
 /*
@@ -134,7 +135,10 @@ fun MovimientosScreen(
     onNuevoMovimientoClick: () -> Unit = {},
     onSigiClick: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
-    onMovimientoClick: (Movimiento) -> Unit = {}
+    onMovimientoClick: (Movimiento) -> Unit = {},
+    puedeCerrarPeriodo: Boolean = false,
+    onCerrarPeriodoClick: () -> Unit = {}
+
 ) {
     val context = LocalContext.current
 
@@ -158,6 +162,9 @@ fun MovimientosScreen(
     var mostrarFormulario by remember { mutableStateOf(false) }
     var movimientoEditar by remember { mutableStateOf<Movimiento?>(null) }
     var movimientoEliminar by remember { mutableStateOf<Movimiento?>(null) }
+    var mostrarDialogoCerrarPeriodo by remember {
+        mutableStateOf(false)
+    }
 
     val handleOpenMenu = {
         onOpenDrawer()
@@ -232,6 +239,21 @@ fun MovimientosScreen(
                     }
                 },
                 actions = {
+
+                    if (puedeCerrarPeriodo && periodo != null) {
+                        IconButton(
+                            onClick = {
+                                mostrarDialogoCerrarPeriodo = true
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Lock,
+                                contentDescription = "Cerrar período",
+                                tint = Blanco
+                            )
+                        }
+                    }
+
                     IconButton(onClick = onSigiClick) {
                         Icon(
                             imageVector = Icons.Outlined.SmartToy,
@@ -239,6 +261,7 @@ fun MovimientosScreen(
                             tint = Blanco
                         )
                     }
+
                     IconButton(onClick = onNotificacionesClick) {
                         Icon(
                             imageVector = Icons.Outlined.Notifications,
@@ -624,7 +647,130 @@ fun MovimientosScreen(
             }
         }
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | DIÁLOGO DE CONFIRMACIÓN — CERRAR PERÍODO
+    |--------------------------------------------------------------------------
+    */
+
+    if (mostrarDialogoCerrarPeriodo) {
+
+        val periodoActual = periodo
+
+        if (periodoActual != null) {
+
+            AlertDialog(
+                onDismissRequest = {
+                    mostrarDialogoCerrarPeriodo = false
+                },
+
+                title = {
+                    Text(
+                        text = "Cerrar período",
+                        color = TextoPrincipal,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+
+                        Text(
+                            text = "¿Deseas cerrar el período ${periodoActual.nombre_completo}?",
+                            color = TextoPrincipal,
+                            fontSize = 14.sp
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(4.dp)
+                        )
+
+                        Text(
+                            text = "Saldo anterior: S/ %.2f"
+                                .format(periodoActual.saldo_inicial),
+                            color = TextoPrincipal,
+                            fontSize = 14.sp
+                        )
+
+                        Text(
+                            text = "Ingresos: S/ %.2f"
+                                .format(totalIngresos),
+                            color = Verde,
+                            fontSize = 14.sp
+                        )
+
+                        Text(
+                            text = "Egresos: S/ %.2f"
+                                .format(totalEgresos),
+                            color = Rojo,
+                            fontSize = 14.sp
+                        )
+
+                        Text(
+                            text = "Saldo final: S/ %.2f"
+                                .format(
+                                    periodoActual.saldo_inicial +
+                                            totalIngresos -
+                                            totalEgresos
+                                ),
+                            color = TextoPrincipal,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(4.dp)
+                        )
+
+                        Text(
+                            text = "Una vez cerrado, no podrás registrar nuevos movimientos en este período.",
+                            color = GrisClaro,
+                            fontSize = 12.sp
+                        )
+                    }
+                },
+
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            mostrarDialogoCerrarPeriodo = false
+                            onCerrarPeriodoClick()
+                        }
+                    ) {
+                        Text(
+                            text = "Cerrar período",
+                            color = SeasonalColors.primary(
+                                SeasonalTheme.getSeason()
+                            ),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            mostrarDialogoCerrarPeriodo = false
+                        }
+                    ) {
+                        Text(
+                            text = "Cancelar",
+                            color = GrisClaro
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+
 }
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -1631,3 +1777,4 @@ private fun BarraInferiorMovimientos(
         )
     }
 }
+

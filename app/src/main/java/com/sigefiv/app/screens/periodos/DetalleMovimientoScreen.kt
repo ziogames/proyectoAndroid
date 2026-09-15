@@ -50,9 +50,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Movimiento
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
-private val VerdeSIGEFIV = Color(0xFF0B9F5A)
-private val VerdeSIGEFIVOscuro = Color(0xFF087A46)
+private val VerdeIngreso = Color(0xFF0B9F5A)
+private val VerdeIngresoOscuro = Color(0xFF087A46)
 private val VerdeSuave = Color(0xFFE7F7EF)
 private val FondoSIGEFIV = Color(0xFFF7F9FA)
 private val Blanco = Color.White
@@ -75,16 +77,20 @@ fun DetalleMovimientoScreen(
     saldoCajaPeriodo: Double? = null,
     onBackClick: () -> Unit = {},
     onInicioClick: () -> Unit = {},
-    onMovimientosClick: () -> Unit = {},
     onAsambleasClick: () -> Unit = {},
-    onMasClick: () -> Unit = {}
+    onPeriodosClick: () -> Unit = {},
+    onMiCuentaClick: () -> Unit = {}
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     val esIngreso = movimiento.tipo.equals(
         "Ingreso",
         ignoreCase = true
     )
 
-    val colorMovimiento = if (esIngreso) VerdeSIGEFIV else Rojo
+    val colorMovimiento = if (esIngreso) VerdeIngreso else Rojo
     val fondoMovimiento = if (esIngreso) VerdeSuave else RojoSuave
 
     val nombrePeriodo = periodoNombre
@@ -125,7 +131,7 @@ fun DetalleMovimientoScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdeSIGEFIV,
+                    containerColor = colorPrincipal,
                     titleContentColor = Blanco,
                     navigationIconContentColor = Blanco
                 )
@@ -134,9 +140,9 @@ fun DetalleMovimientoScreen(
         bottomBar = {
             DetalleBottomBar(
                 onInicioClick = onInicioClick,
-                onMovimientosClick = onMovimientosClick,
                 onAsambleasClick = onAsambleasClick,
-                onMasClick = onMasClick
+                onPeriodosClick = onPeriodosClick,
+                onMiCuentaClick = onMiCuentaClick
             )
         }
     ) { innerPadding ->
@@ -258,6 +264,8 @@ private fun ResumenMovimientoCard(
         Column(
             modifier = Modifier.weight(1f)
         ) {
+
+            // Tipo de movimiento
             Text(
                 text = movimiento.tipo,
                 color = colorMovimiento,
@@ -269,39 +277,45 @@ private fun ResumenMovimientoCard(
                 modifier = Modifier.height(4.dp)
             )
 
+            // Concepto
             Text(
                 text = movimiento.concepto,
                 color = TextoPrincipal,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 23.sp,
+                maxLines = 3
             )
 
             Spacer(
-                modifier = Modifier.height(3.dp)
+                modifier = Modifier.height(5.dp)
             )
 
+            // Categoría
             Text(
                 text = movimiento.categoria
                     ?: "Sin categoría",
                 color = GrisTexto,
                 fontSize = 14.sp
             )
+
+            Spacer(
+                modifier = Modifier.height(10.dp)
+            )
+
+            // Monto
+            Text(
+                text = if (esIngreso) {
+                    "+ S/ %.2f".format(movimiento.monto)
+                } else {
+                    "- S/ %.2f".format(movimiento.monto)
+                },
+                color = colorMovimiento,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
-
-        Spacer(
-            modifier = Modifier.width(8.dp)
-        )
-
-        Text(
-            text = if (esIngreso) {
-                "+ S/ %.2f".format(movimiento.monto)
-            } else {
-                "- S/ %.2f".format(movimiento.monto)
-            },
-            color = colorMovimiento,
-            fontSize = 19.sp,
-            fontWeight = FontWeight.Bold
-        )
     }
 }
 
@@ -334,7 +348,7 @@ private fun InformacionGeneralCard(
             Icon(
                 imageVector = Icons.Outlined.Info,
                 contentDescription = null,
-                tint = VerdeSIGEFIV,
+                tint = VerdeIngreso,
                 modifier = Modifier.size(23.dp)
             )
 
@@ -522,6 +536,10 @@ private fun ResumenPeriodoCard(
     disponible: Double,
     saldoCaja: Double
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     val disponiblePositivo = disponible >= 0
     val saldoPositivo = saldoCaja >= 0
 
@@ -541,7 +559,7 @@ private fun ResumenPeriodoCard(
             Icon(
                 imageVector = Icons.Outlined.ReceiptLong,
                 contentDescription = null,
-                tint = VerdeSIGEFIV,
+                tint = colorPrincipal,
                 modifier = Modifier.size(24.dp)
             )
 
@@ -552,7 +570,7 @@ private fun ResumenPeriodoCard(
             Column {
                 Text(
                     text = "Resumen del período",
-                    color = VerdeSIGEFIVOscuro,
+                    color = colorPrincipal,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -576,7 +594,7 @@ private fun ResumenPeriodoCard(
             ResumenDato(
                 titulo = "Ingresos",
                 valor = "S/ %.2f".format(ingresos),
-                color = VerdeSIGEFIV
+                color = VerdeIngreso
             )
 
             ResumenDato(
@@ -598,7 +616,7 @@ private fun ResumenPeriodoCard(
                 titulo = "Disponible",
                 valor = "S/ %.2f".format(disponible),
                 color = if (disponiblePositivo) {
-                    VerdeSIGEFIV
+                    VerdeIngreso
                 } else {
                     Rojo
                 }
@@ -608,7 +626,7 @@ private fun ResumenPeriodoCard(
                 titulo = "Saldo caja",
                 valor = "S/ %.2f".format(saldoCaja),
                 color = if (saldoPositivo) {
-                    VerdeSIGEFIV
+                    VerdeIngreso
                 } else {
                     Rojo
                 }
@@ -728,13 +746,18 @@ private fun EstadoPeriodoCard(
 @Composable
 private fun DetalleBottomBar(
     onInicioClick: () -> Unit,
-    onMovimientosClick: () -> Unit,
     onAsambleasClick: () -> Unit,
-    onMasClick: () -> Unit
+    onPeriodosClick: () -> Unit,
+    onMiCuentaClick: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     NavigationBar(
-        modifier = Modifier.navigationBarsPadding(),
-        containerColor = VerdeSIGEFIV
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = colorPrincipal,
+        tonalElevation = 0.dp
     ) {
 
         NavigationBarItem(
@@ -750,29 +773,8 @@ private fun DetalleBottomBar(
                 Text("Inicio")
             },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdeSIGEFIV,
-                selectedTextColor = VerdeSIGEFIV,
-                unselectedIconColor = Blanco,
-                unselectedTextColor = Blanco,
-                indicatorColor = Blanco
-            )
-        )
-
-        NavigationBarItem(
-            selected = true,
-            onClick = onMovimientosClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.ReceiptLong,
-                    contentDescription = "Movimientos"
-                )
-            },
-            label = {
-                Text("Movimientos")
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdeSIGEFIV,
-                selectedTextColor = VerdeSIGEFIV,
+                selectedIconColor = colorPrincipal,
+                selectedTextColor = colorPrincipal,
                 unselectedIconColor = Blanco,
                 unselectedTextColor = Blanco,
                 indicatorColor = Blanco
@@ -792,8 +794,8 @@ private fun DetalleBottomBar(
                 Text("Asambleas")
             },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdeSIGEFIV,
-                selectedTextColor = VerdeSIGEFIV,
+                selectedIconColor = colorPrincipal,
+                selectedTextColor = colorPrincipal,
                 unselectedIconColor = Blanco,
                 unselectedTextColor = Blanco,
                 indicatorColor = Blanco
@@ -802,19 +804,40 @@ private fun DetalleBottomBar(
 
         NavigationBarItem(
             selected = false,
-            onClick = onMasClick,
+            onClick = onPeriodosClick,
             icon = {
                 Icon(
-                    imageVector = Icons.Outlined.Menu,
-                    contentDescription = "Más"
+                    imageVector = Icons.Outlined.CalendarMonth,
+                    contentDescription = "Períodos"
                 )
             },
             label = {
-                Text("Más")
+                Text("Períodos")
             },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdeSIGEFIV,
-                selectedTextColor = VerdeSIGEFIV,
+                selectedIconColor = colorPrincipal,
+                selectedTextColor = colorPrincipal,
+                unselectedIconColor = Blanco,
+                unselectedTextColor = Blanco,
+                indicatorColor = Blanco
+            )
+        )
+
+        NavigationBarItem(
+            selected = false,
+            onClick = onMiCuentaClick,
+            icon = {
+                Icon(
+                    imageVector = Icons.Outlined.Person,
+                    contentDescription = "Mi cuenta"
+                )
+            },
+            label = {
+                Text("Mi cuenta")
+            },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = colorPrincipal,
+                selectedTextColor = colorPrincipal,
                 unselectedIconColor = Blanco,
                 unselectedTextColor = Blanco,
                 indicatorColor = Blanco

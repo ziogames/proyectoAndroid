@@ -4,6 +4,7 @@ package com.sigefiv.app.navigation
 
 import android.app.Application
 import android.content.Context
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -42,6 +43,7 @@ import com.sigefiv.app.data.SessionManager
 import com.sigefiv.app.data.api.ApiClient
 import com.sigefiv.app.data.model.Asamblea
 import com.sigefiv.app.data.model.Movimiento
+import com.sigefiv.app.data.model.Notificacion
 import com.sigefiv.app.data.repository.CajaRepository
 import com.sigefiv.app.data.repository.ChatRepository
 import com.sigefiv.app.data.repository.RolRepository
@@ -90,6 +92,8 @@ import kotlinx.coroutines.launch
 import com.sigefiv.app.screens.notificaciones.EnviarNotificacionScreen
 import com.sigefiv.app.screens.notificaciones.NotificacionesScreen
 import com.sigefiv.app.screens.notificaciones.ConfirmarNotificacionScreen
+
+
 
 enum class AppScreen(val drawerRoute: String) {
     DASHBOARD("dashboard"),
@@ -148,6 +152,13 @@ fun AppNavigation(
     notificacionViewModel.noLeidas.collectAsState()
     val usuarioActualId by sessionManager.userId.collectAsState(initial = null)
     val usuarioPerfil by perfilViewModel.usuario.collectAsState()
+    val guardandoPerfil by perfilViewModel.guardando.collectAsState()
+    val subiendoFotoPerfil by perfilViewModel.subiendoFoto.collectAsState()
+    // El rol Consulta no tiene acceso al módulo Movimientos.
+    val puedeVerMovimientos =
+        usuarioPerfil?.rol?.equals("Consulta", ignoreCase = true) != true
+
+
     var notificacionTitulo by remember {
         mutableStateOf("")
     }
@@ -167,6 +178,7 @@ fun AppNavigation(
     var notificacionCantidad by remember {
         mutableStateOf(0)
     }
+
 
 
     LaunchedEffect(Unit) {
@@ -222,6 +234,19 @@ fun AppNavigation(
             notificacionViewModel.marcarComoLeida(id)
         }
     }
+    LaunchedEffect(pantallaActual, puedeVerMovimientos) {
+        if (!puedeVerMovimientos &&
+            (
+                    pantallaActual == AppScreen.MOVIMIENTOS ||
+                            pantallaActual == AppScreen.NUEVO_MOVIMIENTO ||
+                            pantallaActual == AppScreen.NUEVO_INGRESO ||
+                            pantallaActual == AppScreen.NUEVO_EGRESO
+                    )
+        ){
+            backStack.clear()
+            backStack.add(AppScreen.DASHBOARD)
+        }
+    }
 
     val categorias by categoriasViewModel.categorias.collectAsState()
     val cargandoCategorias by categoriasViewModel.cargando.collectAsState()
@@ -246,7 +271,11 @@ fun AppNavigation(
                 onNavigate = { route ->
                     when (route) {
                         "dashboard" -> navegarA(AppScreen.DASHBOARD, limpiarPila = true)
-                        "movimientos" -> navegarA(AppScreen.MOVIMIENTOS)
+                        "movimientos" -> {
+                            if (puedeVerMovimientos) {
+                                navegarA(AppScreen.MOVIMIENTOS)
+                            }
+                        }
                         "chat" -> navegarA(AppScreen.CHAT)
 
                         "asambleas" -> {
@@ -296,7 +325,11 @@ fun AppNavigation(
                                 navegarA(AppScreen.NOTIFICACIONES)
                             },
 
-                            onMovimientosClick = { navegarA(AppScreen.MOVIMIENTOS) },
+                            onMovimientosClick = {
+                                if (puedeVerMovimientos) {
+                                    navegarA(AppScreen.MOVIMIENTOS)
+                                }
+                            },
                             onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
                             onPeriodosClick = { navegarA(AppScreen.PERIODOS) },
                             onMiCuentaClick = {
@@ -311,7 +344,11 @@ fun AppNavigation(
                     AppScreen.SIGI -> {
                         SigiScreen(
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
-                            onMovimientosClick = { navegarA(AppScreen.MOVIMIENTOS) },
+                            onMovimientosClick = {
+                                if (puedeVerMovimientos) {
+                                    navegarA(AppScreen.MOVIMIENTOS)
+                                }
+                            },
                             onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
                             onMasClick = { navegarA(AppScreen.PERFIL) },
                             onBackClick = { retroceder() },
@@ -330,6 +367,7 @@ fun AppNavigation(
                     AppScreen.MOVIMIENTOS -> {
                         MovimientosScreen(
                             movimientosViewModel = movimientosViewModel,
+                            periodoViewModel = periodoViewModel,
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
                             onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
                             onPeriodosClick = { navegarA(AppScreen.PERIODOS) },
@@ -342,25 +380,59 @@ fun AppNavigation(
                                 movimientoSeleccionado = mov
                                 navegarA(AppScreen.DETALLE_MOVIMIENTO)
                             },
-                            onOpenDrawer = { scope.launch { drawerState.open() } }
+                            onOpenDrawer = { scope.launch { drawerState.open() } },
+                            puedeCerrarPeriodo = usuarioPerfil?.rol
+                                ?.equals("Tesorero", ignoreCase = true)
+                                    == true,
+
+                            onCerrarPeriodoClick = {
+                                periodo?.let { periodoActual ->
+                                    periodoViewModel.cerrarPeriodo(periodoActual.id) { exito, mensaje ->
+                                        if (exito) {
+                                            // El backend crea automáticamente el siguiente período.
+                                            periodoViewModel.cargarPeriodoAbierto()
+
+                                            // Actualizamos los movimientos mostrados.
+                                            movimientosViewModel.cargarMovimientos()
+                                        }
+                                    }
+                                }
+                            }
+
                         )
                     }
+
 
                     AppScreen.DETALLE_MOVIMIENTO -> {
                         movimientoSeleccionado?.let { mov ->
                             DetalleMovimientoScreen(
                                 movimiento = mov,
-                                periodoNombre = periodoDetalle?.nombre_completo ?: periodo?.nombre,
-                                periodoEstado = periodoDetalle?.estado ?: periodo?.estado,
-                                ingresosPeriodo = periodoDetalle?.total_ingresos,
-                                egresosPeriodo = periodoDetalle?.total_egresos,
+                                periodoNombre = mov.periodo?.nombre_completo
+                                    ?: periodoDetalle?.nombre_completo
+                                    ?: periodo?.nombre,
+                                periodoEstado = mov.periodo?.estado
+                                    ?: periodoDetalle?.estado
+                                    ?: periodo?.estado,
+                                ingresosPeriodo = mov.periodo?.total_ingresos
+                                    ?: periodoDetalle?.total_ingresos,
+                                egresosPeriodo = mov.periodo?.total_egresos
+                                    ?: periodoDetalle?.total_egresos,
                                 saldoDisponiblePeriodo = periodoDetalle?.saldo_disponible,
                                 saldoCajaPeriodo = periodoDetalle?.saldo_caja,
                                 onBackClick = { retroceder() },
-                                onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
-                                onMovimientosClick = { navegarA(AppScreen.MOVIMIENTOS) },
-                                onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
-                                onMasClick = { navegarA(AppScreen.PERFIL) }
+                                onInicioClick = {
+                                    navegarA(AppScreen.DASHBOARD, limpiarPila = true)
+                                },
+                                onAsambleasClick = {
+                                    navegarA(AppScreen.ASAMBLEAS)
+                                },
+                                onPeriodosClick = {
+                                    navegarA(AppScreen.PERIODOS)
+                                },
+                                onMiCuentaClick = {
+                                    perfilViewModel.cargarPerfil()
+                                    navegarA(AppScreen.PERFIL)
+                                }
                             )
                         } ?: run {
                             retroceder()
@@ -573,8 +645,8 @@ fun AppNavigation(
                             onMovimientosClick = { navegarA(AppScreen.ASAMBLEAS) },
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
                             onMovimientosPrincipalClick = { navegarA(AppScreen.ASAMBLEAS) },
-                            onAsambleasClick = { navegarA(AppScreen.PERIODOS) },
-                            onMasClick = {
+                            onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
+                            onMiCuentaClick  = {
                                 perfilViewModel.cargarPerfil()
                                 navegarA(AppScreen.PERFIL)
                             }
@@ -589,13 +661,27 @@ fun AppNavigation(
                             onPeriodosClick = { navegarA(AppScreen.PERIODOS) },
                             onMiCuentaClick = { },
                             nombre = usuarioPerfil?.name ?: "Usuario",
+                            seudonimo = usuarioPerfil?.seudonimo,
                             email = usuarioPerfil?.email ?: "",
                             telefono = usuarioPerfil?.telefono,
                             dni = usuarioPerfil?.dni,
                             direccion = usuarioPerfil?.direccion,
                             rol = usuarioPerfil?.rol,
                             foto = usuarioPerfil?.foto,
-                            metodoAcceso = usuarioPerfil?.metodo_acceso
+                            metodoAcceso = usuarioPerfil?.metodo_acceso,
+                            guardando = guardandoPerfil,
+                            subiendoFoto = subiendoFotoPerfil,
+                            onGuardarPerfil = { seudonimo ->
+                                perfilViewModel.actualizarPerfil(
+                                    seudonimo = seudonimo,
+                                    telefono = usuarioPerfil?.telefono,
+                                    dni = usuarioPerfil?.dni,
+                                    direccion = usuarioPerfil?.direccion
+                                )
+                            },
+                            onSeleccionarFoto = { uri: Uri ->
+                                perfilViewModel.actualizarFoto(uri)
+                            }
                         )
                     }
 
@@ -683,9 +769,82 @@ fun AppNavigation(
                             viewModel = notificacionViewModel,
                             fcmPreferenciaViewModel = fcmPreferenciaViewModel,
                             rol = usuarioPerfil?.rol,
+
                             onNuevaNotificacionClick = {
                                 navegarA(AppScreen.ENVIAR_NOTIFICACION)
                             },
+
+                            onNotificacionClick = { notificacion ->
+
+                                when (notificacion.tipo.lowercase()) {
+
+                                    "zoe" -> {
+                                        val periodoId = notificacion.data
+                                            ?.get("periodo_id")
+                                            ?.toIntOrNull()
+
+                                        if (periodoId != null) {
+                                            periodoIdSeleccionado = periodoId
+
+                                            navegarA(
+                                                AppScreen.PERIODO_DETALLE
+                                            )
+                                        }
+                                    }
+                                    "ingreso" -> {
+
+                                        val movimientoId =
+                                            notificacion.data
+                                                ?.get("movimiento_id")
+                                                ?.toIntOrNull()
+
+                                        if (movimientoId != null) {
+
+                                            movimientosViewModel.obtenerMovimientoPorId(
+                                                movimientoId
+                                            ) { movimiento ->
+
+                                                if (movimiento != null) {
+
+                                                    movimientoSeleccionado =
+                                                        movimiento
+
+
+
+                                                    navegarA(
+                                                        AppScreen.DETALLE_MOVIMIENTO
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    "egreso" -> {
+                                        val movimientoId =
+                                            notificacion.data
+                                                ?.get("movimiento_id")
+                                                ?.toIntOrNull()
+
+                                        if (movimientoId != null) {
+                                            movimientosViewModel.obtenerMovimientoPorId(
+                                                movimientoId
+                                            ) { movimiento ->
+                                                if (movimiento != null) {
+                                                    movimientoSeleccionado = movimiento
+
+                                                    navegarA(
+                                                        AppScreen.DETALLE_MOVIMIENTO
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    else -> {
+                                        // Los demás tipos los implementaremos después.
+                                    }
+                                }
+                            },
+
                             onBackClick = { retroceder() }
                         )
                     }

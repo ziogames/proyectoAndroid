@@ -62,6 +62,8 @@ import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Categoria
 import com.sigefiv.app.viewmodel.CategoriasViewModel
 import com.sigefiv.app.viewmodel.PeriodoViewModel
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -74,7 +76,6 @@ import java.time.ZoneOffset
 
 private val FondoSIGEFIV = Color(0xFFF8FAFC)
 private val FondoTarjeta = Color(0xFFFFFFFF)
-private val VerdePrincipal = Color(0xFF15803D)
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val RojoSuave = Color(0xFFFEE2E2)
 private val Blanco = Color(0xFFFFFFFF)
@@ -105,6 +106,9 @@ fun NuevoEgresoScreen(
     ) -> Unit
 ) {
     val context = LocalContext.current
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
     val categoriasVM = remember { CategoriasViewModel(context) }
     val periodoVM = remember { PeriodoViewModel(context) }
 
@@ -247,7 +251,7 @@ fun NuevoEgresoScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdePrincipal
+                    containerColor = colorPrincipal
                 )
             )
         }
@@ -286,7 +290,7 @@ fun NuevoEgresoScreen(
                         Icon(
                             imageVector = Icons.Outlined.DateRange,
                             contentDescription = "Período",
-                            tint = VerdePrincipal
+                            tint = colorPrincipal
                         )
                     }
 
@@ -300,7 +304,7 @@ fun NuevoEgresoScreen(
                         )
                         Text(
                             text = if (cargandoPeriodo || cargandoPeriodoVM) "Cargando..." else "$nombrePeriodoEfectivo $anioPeriodoEfectivo",
-                            color = VerdePrincipal,
+                            color = colorPrincipal,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )

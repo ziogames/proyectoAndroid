@@ -3,6 +3,7 @@
 package com.sigefiv.app.screens.dashboard
 
 import android.content.Context
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,11 +52,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.SessionManager
+import com.sigefiv.app.R
 import com.sigefiv.app.data.model.Movimiento
 import com.sigefiv.app.data.model.PeriodoDashboard
 import com.sigefiv.app.viewmodel.DashboardViewModel
@@ -69,6 +73,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.fillMaxSize
+import com.sigefiv.app.ui.theme.AppSeason
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 /*
@@ -111,7 +116,15 @@ fun DashboardScreen(
     val sessionManager = remember { SessionManager(context) }
 
     val nombreUsuario by sessionManager.nombre.collectAsState(initial = "Usuario")
-    val nombreMostrar = nombreUsuario ?: "Usuario"
+    val seudonimo by sessionManager.seudonimo.collectAsState(initial = null)
+    val rol by sessionManager.rol.collectAsState(initial = null)
+
+
+    val nombreMostrar =
+        seudonimo?.trim()?.takeIf { it.isNotEmpty() }
+            ?: (nombreUsuario?.trim()?.takeIf { it.isNotEmpty() } ?: "Usuario")
+    val puedeVerMovimientos =
+        rol?.equals("Consulta", ignoreCase = true) != true
 
     val periodo by dashboardViewModel.periodo.collectAsState()
     val movimientos by movimientosViewModel.movimientos.collectAsState()
@@ -119,7 +132,6 @@ fun DashboardScreen(
     LaunchedEffect(Unit) {
         movimientosViewModel.cargarMovimientos()
     }
-
     Scaffold(
         containerColor = FondoSIGEFIV,
         topBar = {
@@ -213,6 +225,7 @@ fun DashboardScreen(
             nombreUsuario = nombreMostrar,
             periodo = periodo,
             movimientos = movimientos,
+            puedeVerMovimientos = puedeVerMovimientos,
             onMovimientosClick = onMovimientosClick
         )
     }
@@ -230,99 +243,137 @@ private fun DashboardContenido(
     nombreUsuario: String,
     periodo: PeriodoDashboard?,
     movimientos: List<Movimiento>,
+    puedeVerMovimientos: Boolean,
     onMovimientosClick: () -> Unit
 ) {
     val scrollState = rememberScrollState()
 
-    Column(
+    val temporada = SeasonalTheme.getSeason()
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(FondoSIGEFIV)
-            .verticalScroll(scrollState)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column {
-            Text(
-                text = "Hola, $nombreUsuario",
-                color = TextoPrincipal,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = "Bienvenido nuevamente a SIGEFIV",
-                color = GrisClaro,
-                fontSize = 13.sp
+        // Decoración de Fiestas Patrias: se mantiene sin cambios.
+        if (temporada == AppSeason.FIESTAS_PATRIAS) {
+            Image(
+                painter = painterResource(id = R.drawable.bandera_fiestas_patrias),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter),
+                contentScale = ContentScale.FillWidth,
+                alpha = 0.22f
             )
         }
 
-        SaldoCard(periodo = periodo)
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            ResumenCard(
-                modifier = Modifier.weight(1f),
-                titulo = "Ingresos",
-                monto = "S/ %.2f".format(periodo?.ingresos ?: 0.0),
-                icono = Icons.Outlined.ArrowUpward,
-                color = Verde
-            )
-
-            ResumenCard(
-                modifier = Modifier.weight(1f),
-                titulo = "Egresos",
-                monto = "S/ %.2f".format(periodo?.egresos ?: 0.0),
-                icono = Icons.Outlined.ArrowDownward,
-                color = Rojo
-            )
-        }
-
-        CardPeriodo(periodo = periodo)
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Movimientos recientes",
-                color = TextoPrincipal,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = "Ver todos",
-                color = SeasonalColors.primary(
-                    SeasonalTheme.getSeason()
-                ),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable { onMovimientosClick() }
+        // Decoración navideña: solo aparece del 1 de diciembre al 6 de enero.
+        if (temporada == AppSeason.NAVIDAD) {
+            Image(
+                painter = painterResource(id = R.drawable.fondo_navidad_dashboard),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter),
+                contentScale = ContentScale.FillWidth,
+                alpha = 0.22f
             )
         }
 
         Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            movimientos.forEach { movimiento ->
-                MovimientoItem(movimiento = movimiento)
-            }
-
-            if (movimientos.isEmpty()) {
+            Column {
                 Text(
-                    text = "Cargando movimientos...",
+                    text = "Hola, $nombreUsuario",
+                    color = TextoPrincipal,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "Bienvenido nuevamente a SIGEFIV",
                     color = GrisClaro,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    fontSize = 13.sp
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+            SaldoCard(periodo = periodo)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                ResumenCard(
+                    modifier = Modifier.weight(1f),
+                    titulo = "Ingresos",
+                    monto = "S/ %.2f".format(periodo?.ingresos ?: 0.0),
+                    icono = Icons.Outlined.ArrowUpward,
+                    color = Verde
+                )
+
+                ResumenCard(
+                    modifier = Modifier.weight(1f),
+                    titulo = "Egresos",
+                    monto = "S/ %.2f".format(periodo?.egresos ?: 0.0),
+                    icono = Icons.Outlined.ArrowDownward,
+                    color = Rojo
+                )
+            }
+
+            CardPeriodo(periodo = periodo)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Movimientos recientes",
+                    color = TextoPrincipal,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                if (puedeVerMovimientos) {
+                    Text(
+                        text = "Ver todos",
+                        color = SeasonalColors.primary(
+                            SeasonalTheme.getSeason()
+                        ),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { onMovimientosClick() }
+                    )
+                }
+            }
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                movimientos.forEach { movimiento ->
+                    MovimientoItem(movimiento = movimiento)
+                }
+
+                if (movimientos.isEmpty()) {
+                    Text(
+                        text = "Cargando movimientos...",
+                        color = GrisClaro,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+            }
+
+
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
     }
 }
 
@@ -691,3 +742,4 @@ private fun SigefivBottomBar(
         )
     }
 }
+

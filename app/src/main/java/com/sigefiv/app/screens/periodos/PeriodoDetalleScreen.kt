@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -72,6 +73,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Movimiento
 import com.sigefiv.app.viewmodel.PeriodosViewModel
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 /*
 |--------------------------------------------------------------------------
@@ -81,8 +84,6 @@ import com.sigefiv.app.viewmodel.PeriodosViewModel
 
 private val FondoSIGEFIV = Color(0xFFF1F5F9)
 private val FondoTarjeta = Color(0xFFFFFFFF)
-private val VerdePrincipal = Color(0xFF0F766E)
-private val VerdeOscuro = Color(0xFF115E59)
 private val VerdeSuave = Color(0xFFCCFBF1)
 private val VerdeTexto = Color(0xFF0D9488)
 private val Blanco = Color(0xFFFFFFFF)
@@ -112,9 +113,13 @@ fun PeriodoDetalleScreen(
     onInicioClick: () -> Unit,
     onMovimientosPrincipalClick: () -> Unit,
     onAsambleasClick: () -> Unit,
-    onMasClick: () -> Unit,
+    onMiCuentaClick: () -> Unit,
     onOpenDrawer: (() -> Unit)? = null
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     val periodo by periodosViewModel.periodoDetalle.collectAsState()
     val movimientos by periodosViewModel.movimientos.collectAsState()
     val cargando by periodosViewModel.cargando.collectAsState()
@@ -167,16 +172,16 @@ fun PeriodoDetalleScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdePrincipal
+                    containerColor = colorPrincipal
                 )
             )
         },
         bottomBar = {
             BarraInferiorPeriodoDetalle(
                 onInicioClick = onInicioClick,
-                onMovimientosClick = onMovimientosPrincipalClick,
                 onAsambleasClick = onAsambleasClick,
-                onMasClick = onMasClick
+                onPeriodosClick = onBackClick,
+                onMiCuentaClick = onMiCuentaClick
             )
         }
     ) { innerPadding ->
@@ -200,7 +205,7 @@ fun PeriodoDetalleScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = VerdePrincipal)
+                            CircularProgressIndicator(color = colorPrincipal)
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
                                 text = "Obteniendo datos del período...",
@@ -348,6 +353,10 @@ fun PeriodoDetalleScreen(
 
 @Composable
 private fun HeaderPeriodoHero(datos: com.sigefiv.app.data.model.PeriodoDetalle) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     val isAbierto = datos.estado.equals("Abierto", true)
 
     Card(
@@ -361,7 +370,7 @@ private fun HeaderPeriodoHero(datos: com.sigefiv.app.data.model.PeriodoDetalle) 
                 .fillMaxWidth()
                 .background(
                     brush = Brush.horizontalGradient(
-                        colors = listOf(VerdePrincipal, VerdeOscuro)
+                        colors = listOf(colorPrincipal, colorPrincipal.copy(alpha = 0.85f))
                     ),
                     shape = RoundedCornerShape(22.dp)
                 )
@@ -446,6 +455,10 @@ private fun HeaderPeriodoHero(datos: com.sigefiv.app.data.model.PeriodoDetalle) 
 
 @Composable
 private fun CardResumenFinanciero(datos: com.sigefiv.app.data.model.PeriodoDetalle) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -481,11 +494,11 @@ private fun CardResumenFinanciero(datos: com.sigefiv.app.data.model.PeriodoDetal
             )
             SummaryRowItem(
                 icon = Icons.Outlined.AccountBalance,
-                iconColor = VerdePrincipal,
+                iconColor = colorPrincipal,
                 label = "Saldo disponible",
                 subLabel = "Acumulado disponible",
                 value = datos.saldo_disponible,
-                valueColor = VerdePrincipal,
+                valueColor = colorPrincipal,
                 isHighlight = true
             )
             HorizontalDivider(
@@ -642,6 +655,10 @@ private fun FiltrosMovimientosPeriodo(
     filtroSeleccionado: String,
     onFiltroSeleccionado: (String) -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     val filtros = listOf("Todos", "Ingresos", "Egresos")
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         filtros.forEach { filtro ->
@@ -649,7 +666,7 @@ private fun FiltrosMovimientosPeriodo(
             Surface(
                 modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { onFiltroSeleccionado(filtro) },
                 shape = RoundedCornerShape(12.dp),
-                color = if (seleccionado) VerdePrincipal else Blanco,
+                color = if (seleccionado) colorPrincipal else Blanco,
                 border = if (seleccionado) null else androidx.compose.foundation.BorderStroke(1.dp, GrisBorde)
             ) {
                 Text(
@@ -755,53 +772,93 @@ private val Transparent = Color(0x00000000)
 @Composable
 private fun BarraInferiorPeriodoDetalle(
     onInicioClick: () -> Unit,
-    onMovimientosClick: () -> Unit,
     onAsambleasClick: () -> Unit,
-    onMasClick: () -> Unit
+    onPeriodosClick: () -> Unit,
+    onMiCuentaClick: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     NavigationBar(
-        containerColor = VerdePrincipal,
+        containerColor = colorPrincipal,
         tonalElevation = 0.dp
     ) {
+
+        // INICIO
         NavigationBarItem(
             selected = false,
             onClick = onInicioClick,
-            icon = { Icon(Icons.Outlined.Home, contentDescription = "Inicio") },
-            label = { Text("Inicio") },
+            icon = {
+                Icon(
+                    Icons.Outlined.Home,
+                    contentDescription = "Inicio"
+                )
+            },
+            label = {
+                Text("Inicio")
+            },
             colors = NavigationBarItemDefaults.colors(
                 unselectedIconColor = Blanco.copy(0.75f),
                 unselectedTextColor = Blanco.copy(0.75f)
             )
         )
-        NavigationBarItem(
-            selected = false,
-            onClick = onMovimientosClick,
-            icon = { Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = "Movimientos") },
-            label = { Text("Movimientos") },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(0.75f),
-                unselectedTextColor = Blanco.copy(0.75f)
-            )
-        )
+
+        // ASAMBLEAS
         NavigationBarItem(
             selected = false,
             onClick = onAsambleasClick,
-            icon = { Icon(Icons.Outlined.Groups, contentDescription = "Asambleas") },
-            label = { Text("Asambleas") },
+            icon = {
+                Icon(
+                    Icons.Outlined.Groups,
+                    contentDescription = "Asambleas"
+                )
+            },
+            label = {
+                Text("Asambleas")
+            },
             colors = NavigationBarItemDefaults.colors(
                 unselectedIconColor = Blanco.copy(0.75f),
                 unselectedTextColor = Blanco.copy(0.75f)
             )
         )
+
+        // PERÍODOS
         NavigationBarItem(
             selected = true,
-            onClick = onMasClick,
-            icon = { Icon(Icons.Outlined.Menu, contentDescription = "Más") },
-            label = { Text("Más") },
+            onClick = onPeriodosClick,
+            icon = {
+                Icon(
+                    Icons.Outlined.CalendarToday,
+                    contentDescription = "Períodos"
+                )
+            },
+            label = {
+                Text("Períodos")
+            },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdePrincipal,
+                selectedIconColor = colorPrincipal,
                 selectedTextColor = Blanco,
                 indicatorColor = Blanco,
+                unselectedIconColor = Blanco.copy(0.75f),
+                unselectedTextColor = Blanco.copy(0.75f)
+            )
+        )
+
+        // MI CUENTA
+        NavigationBarItem(
+            selected = false,
+            onClick = onMiCuentaClick,
+            icon = {
+                Icon(
+                    imageVector = Icons.Outlined.Person,
+                    contentDescription = "Mi cuenta"
+                )
+            },
+            label = {
+                Text("Mi cuenta")
+            },
+            colors = NavigationBarItemDefaults.colors(
                 unselectedIconColor = Blanco.copy(0.75f),
                 unselectedTextColor = Blanco.copy(0.75f)
             )

@@ -19,9 +19,7 @@ class AuthInterceptor(
         /*
          * El login con Google obtiene una nueva sesión.
          *
-         * No debemos enviar un Bearer de una sesión anterior
-         * en esta petición, porque podría provocar que Laravel
-         * intente utilizar un token antiguo o inválido.
+         * No enviamos un Bearer anterior en esta petición.
          */
         val esLoginGoogle =
             originalRequest.url.encodedPath.endsWith("/auth/google")
@@ -50,12 +48,6 @@ class AuthInterceptor(
                 .newBuilder()
                 .apply {
 
-                    /*
-                     * Para /auth/google NO enviamos Authorization.
-                     *
-                     * Para todas las demás peticiones se mantiene
-                     * exactamente el comportamiento anterior.
-                     */
                     if (!token.isNullOrBlank() && !esLoginGoogle) {
 
                         addHeader(
@@ -91,6 +83,50 @@ class AuthInterceptor(
             "SIGEFIV URL: ${request.url}"
         )
 
-        return chain.proceed(request)
+        /*
+         * Enviar la petición al servidor.
+         */
+        val response = chain.proceed(request)
+
+        /*
+         * DIAGNÓSTICO
+         */
+        println(
+            "SIGEFIV HTTP CODE: ${response.code}"
+        )
+
+        println(
+            "SIGEFIV HTTP MESSAGE: ${response.message}"
+        )
+
+        println(
+            "SIGEFIV RESPONSE URL: ${response.request.url}"
+        )
+
+        /*
+         * Leer el cuerpo únicamente para diagnóstico.
+         *
+         * response.peekBody() NO consume el cuerpo original,
+         * por lo que Retrofit podrá seguir procesándolo normalmente.
+         */
+        if (esLoginGoogle || response.code >= 400) {
+
+            try {
+                val responseBody =
+                    response.peekBody(1024 * 1024)
+
+                println(
+                    "SIGEFIV RESPONSE BODY: ${responseBody.string()}"
+                )
+
+            } catch (e: Exception) {
+
+                println(
+                    "SIGEFIV RESPONSE BODY ERROR: ${e.message}"
+                )
+            }
+        }
+
+        return response
     }
 }

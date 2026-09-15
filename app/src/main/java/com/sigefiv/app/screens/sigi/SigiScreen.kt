@@ -69,6 +69,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.viewmodel.ZoeMensaje
 import com.sigefiv.app.viewmodel.ZoeViewModel
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 /*
 |--------------------------------------------------------------------------
@@ -76,7 +78,6 @@ import com.sigefiv.app.viewmodel.ZoeViewModel
 |--------------------------------------------------------------------------
 */
 
-private val VerdeCorporativo = Color(0xFF15803D)
 private val VerdeSuaveAvatar = Color(0xFFDCFCE7)
 private val VerdeOnline = Color(0xFF22C55E)
 private val VerdeBurbujaUsuario = Color(0xFFDCF8C6)
@@ -96,6 +97,10 @@ fun SigiScreen(
     onBackClick: () -> Unit = {},
     onOpenDrawer: () -> Unit = {}
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     val context = LocalContext.current
     val viewModel = remember(context) {
         ZoeViewModel(context.applicationContext)
@@ -139,7 +144,7 @@ fun SigiScreen(
                             Icon(
                                 imageVector = Icons.Outlined.SmartToy,
                                 contentDescription = "ZOE",
-                                tint = VerdeCorporativo,
+                                tint = colorPrincipal,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -179,7 +184,7 @@ fun SigiScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdeCorporativo
+                    containerColor = colorPrincipal
                 )
             )
         }
@@ -244,6 +249,10 @@ fun SigiScreen(
 
 @Composable
 private fun BurbujaChat(mensaje: ZoeMensaje) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     if (mensaje.esUsuario) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -306,7 +315,7 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
                 Icon(
                     imageVector = Icons.Outlined.SmartToy,
                     contentDescription = "ZOE",
-                    tint = VerdeCorporativo,
+                    tint = colorPrincipal,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -395,6 +404,10 @@ private fun SugerenciaChip(
     texto: String,
     onClick: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     Surface(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
@@ -410,7 +423,7 @@ private fun SugerenciaChip(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = VerdeCorporativo,
+                tint = colorPrincipal,
                 modifier = Modifier.size(15.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
@@ -432,6 +445,10 @@ private fun SugerenciaChip(
 
 @Composable
 private fun IndicadorCargaMensaje() {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     Row(
         modifier = Modifier.padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -445,7 +462,7 @@ private fun IndicadorCargaMensaje() {
             Icon(
                 imageVector = Icons.Outlined.SmartToy,
                 contentDescription = "ZOE",
-                tint = VerdeCorporativo,
+                tint = colorPrincipal,
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -461,7 +478,7 @@ private fun IndicadorCargaMensaje() {
             ) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(13.dp),
-                    color = VerdeCorporativo,
+                    color = colorPrincipal,
                     strokeWidth = 2.dp
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -488,6 +505,10 @@ private fun BarraEntradaModerna(
     onEnviar: () -> Unit,
     cargando: Boolean
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     val puedeEnviar = consulta.trim().isNotEmpty() && !cargando
 
     Surface(
@@ -521,11 +542,11 @@ private fun BarraEntradaModerna(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { onEnviar() }),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = VerdeCorporativo,
+                    focusedBorderColor = colorPrincipal,
                     unfocusedBorderColor = BordeSutil,
                     focusedTextColor = TextoPrincipal,
                     unfocusedTextColor = TextoPrincipal,
-                    cursorColor = VerdeCorporativo
+                    cursorColor = colorPrincipal
                 )
             )
 
@@ -537,7 +558,7 @@ private fun BarraEntradaModerna(
                 modifier = Modifier
                     .size(44.dp)
                     .background(
-                        color = if (puedeEnviar) VerdeCorporativo else Color(0xFFE2E8F0),
+                        color = if (puedeEnviar) colorPrincipal else Color(0xFFE2E8F0),
                         shape = CircleShape
                     )
             ) {

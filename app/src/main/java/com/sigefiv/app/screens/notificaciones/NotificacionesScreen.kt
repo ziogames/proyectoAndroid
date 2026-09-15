@@ -55,7 +55,6 @@ import com.sigefiv.app.ui.theme.SeasonalTheme
 
 private val Fondo = Color(0xFFF8FAFC)
 private val Blanco = Color.White
-private val colorPrincipal = Color(0xFF15803D)
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val VerdePendiente = Color(0xFFF0FDF4)
 private val TextoPrincipal = Color(0xFF0F172A)
@@ -65,25 +64,107 @@ private val GrisBorde = Color(0xFFE2E8F0)
 private val AzulIcono = Color(0xFF334E8C)
 private val Rojo = Color(0xFFDC2626)
 
+// ====================================================================
+// ITEM DE PREFERENCIA
+// ====================================================================
+
+@Composable
+private fun PreferenciaItem(
+    titulo: String,
+    descripcion: String,
+    checked: Boolean,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = 16.dp,
+                end = 10.dp,
+                top = 10.dp,
+                bottom = 10.dp
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+
+            Text(
+                text = titulo,
+                color = if (enabled) {
+                    TextoPrincipal
+                } else {
+                    GrisFecha
+                },
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(
+                modifier = Modifier.height(2.dp)
+            )
+
+            Text(
+                text = descripcion,
+                color = if (enabled) {
+                    Gris
+                } else {
+                    GrisFecha
+                },
+                fontSize = 11.sp
+            )
+        }
+
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled
+        )
+    }
+}
+
+
 @Composable
 fun NotificacionesScreen(
     viewModel: NotificacionViewModel,
     fcmPreferenciaViewModel: FcmPreferenciaViewModel,
     onNuevaNotificacionClick: () -> Unit,
     onBackClick: () -> Unit,
-    rol: String? = null
+    rol: String? = null,
+    onNotificacionClick: (Notificacion) -> Unit,
 ) {
 
     val notificaciones by viewModel.notificaciones.collectAsState()
     val noLeidas by viewModel.noLeidas.collectAsState()
     val cargando by viewModel.cargando.collectAsState()
     val mensaje by viewModel.mensaje.collectAsState()
+
     val colorPrincipal = SeasonalColors.primary(
         SeasonalTheme.getSeason()
     )
 
+    // ============================================================
+    // PREFERENCIAS FCM
+    // ============================================================
+
     val notificacionesActivadas by
     fcmPreferenciaViewModel.notificacionesActivadas.collectAsState()
+
+    val ingresos by
+    fcmPreferenciaViewModel.ingresos.collectAsState()
+
+    val egresos by
+    fcmPreferenciaViewModel.egresos.collectAsState()
+
+    val zoe by
+    fcmPreferenciaViewModel.zoe.collectAsState()
+
+    val avisos by
+    fcmPreferenciaViewModel.avisos.collectAsState()
 
     val guardandoPreferencia by
     fcmPreferenciaViewModel.guardando.collectAsState()
@@ -98,163 +179,58 @@ fun NotificacionesScreen(
     val puedeCrearNotificacion =
         !rol.equals("Consulta", ignoreCase = true)
 
+    // ============================================================
+    // CARGAR DATOS
+    // ============================================================
+
     LaunchedEffect(Unit) {
+
         viewModel.cargarNotificaciones()
+
+        fcmPreferenciaViewModel.cargarPreferencias()
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(Fondo)
-            .statusBarsPadding()
+            .statusBarsPadding(),
+        contentPadding = PaddingValues(bottom = 28.dp)
     ) {
 
-        // ============================================================
-        // ENCABEZADO
-        // ============================================================
+        item {
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Blanco)
-                .padding(
-                    start = 8.dp,
-                    end = 16.dp,
-                    top = 6.dp,
-                    bottom = 10.dp
-                ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            IconButton(
-                onClick = onBackClick,
-                modifier = Modifier.size(44.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Volver",
-                    tint = TextoPrincipal
-                )
-            }
-
-            Spacer(
-                modifier = Modifier.width(4.dp)
-            )
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-
-                Text(
-                    text = "Notificaciones",
-                    color = TextoPrincipal,
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = when {
-                        noLeidas == 0 ->
-                            "Todas las notificaciones están leídas"
-
-                        noLeidas == 1 ->
-                            "Tienes 1 notificación pendiente"
-
-                        else ->
-                            "Tienes $noLeidas notificaciones pendientes"
-                    },
-                    color = Gris,
-                    fontSize = 12.sp
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        VerdeSuave,
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = null,
-                    tint = colorPrincipal,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-        }
-
-        HorizontalDivider(
-            color = GrisBorde,
-            thickness = 1.dp
-        )
-
-        // ============================================================
-        // PREFERENCIA DE NOTIFICACIONES
-        // ============================================================
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = 14.dp,
-                    end = 14.dp,
-                    top = 12.dp,
-                    bottom = 4.dp
-                ),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Blanco
-            ),
-            border = androidx.compose.foundation.BorderStroke(
-                width = 1.dp,
-                color = GrisBorde
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 1.dp
-            )
-        ) {
+            // ============================================================
+            // ENCABEZADO
+            // ============================================================
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(Blanco)
                     .padding(
-                        horizontal = 14.dp,
-                        vertical = 12.dp
+                        start = 8.dp,
+                        end = 16.dp,
+                        top = 6.dp,
+                        bottom = 10.dp
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .background(
-                            if (notificacionesActivadas) {
-                                VerdeSuave
-                            } else {
-                                Color(0xFFF1F5F9)
-                            },
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier.size(44.dp)
                 ) {
 
                     Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = null,
-                        tint = if (notificacionesActivadas) {
-                            colorPrincipal
-                        } else {
-                            Gris
-                        },
-                        modifier = Modifier.size(21.dp)
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = TextoPrincipal
                     )
                 }
 
                 Spacer(
-                    modifier = Modifier.width(12.dp)
+                    modifier = Modifier.width(4.dp)
                 )
 
                 Column(
@@ -264,156 +240,371 @@ fun NotificacionesScreen(
                     Text(
                         text = "Notificaciones",
                         color = TextoPrincipal,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(2.dp)
+                        fontSize = 21.sp,
+                        fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        text = if (notificacionesActivadas) {
-                            "Recibir avisos en este dispositivo"
-                        } else {
-                            "Las notificaciones están desactivadas"
+                        text = when {
+
+                            noLeidas == 0 ->
+                                "Todas las notificaciones están leídas"
+
+                            noLeidas == 1 ->
+                                "Tienes 1 notificación pendiente"
+
+                            else ->
+                                "Tienes $noLeidas notificaciones pendientes"
                         },
                         color = Gris,
                         fontSize = 12.sp
                     )
                 }
 
-                Switch(
-                    checked = notificacionesActivadas,
-                    onCheckedChange = { activo ->
-                        fcmPreferenciaViewModel.cambiarEstado(activo)
-                    },
-                    enabled = !guardandoPreferencia
-                )
-            }
-        }
-
-        // Mensaje de la preferencia FCM
-
-        if (mensajePreferencia != null) {
-
-            Text(
-                text = mensajePreferencia
-                    ?: "",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = 18.dp,
-                        end = 18.dp,
-                        top = 4.dp,
-                        bottom = 4.dp
-                    ),
-                color = Gris,
-                fontSize = 11.sp
-            )
-        }
-
-        // ============================================================
-        // NUEVA NOTIFICACIÓN
-        // SOLO ROLES DIFERENTES DE CONSULTA
-        // ============================================================
-
-        if (puedeCrearNotificacion) {
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = 14.dp,
-                        end = 14.dp,
-                        top = 8.dp,
-                        bottom = 4.dp
-                    ),
-                horizontalArrangement = Arrangement.End
-            ) {
-
-                Button(
-                    onClick = onNuevaNotificacionClick,
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colorPrincipal
-                    ),
-                    contentPadding = PaddingValues(
-                        horizontal = 14.dp,
-                        vertical = 8.dp
-                    )
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            VerdeSuave,
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
 
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        tint = colorPrincipal,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            HorizontalDivider(
+                color = GrisBorde,
+                thickness = 1.dp
+            )
+
+            // ============================================================
+            // PREFERENCIAS DE NOTIFICACIONES
+            // ============================================================
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 14.dp,
+                        end = 14.dp,
+                        top = 12.dp,
+                        bottom = 4.dp
+                    ),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Blanco
+                ),
+                border = androidx.compose.foundation.BorderStroke(
+                    width = 1.dp,
+                    color = GrisBorde
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 1.dp
+                )
+            ) {
+
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+
+                    // ====================================================
+                    // INTERRUPTOR GENERAL
+                    // ====================================================
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = 14.dp,
+                                vertical = 12.dp
+                            ),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .background(
+                                    if (notificacionesActivadas) {
+                                        VerdeSuave
+                                    } else {
+                                        Color(0xFFF1F5F9)
+                                    },
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = null,
+                                tint = if (notificacionesActivadas) {
+                                    colorPrincipal
+                                } else {
+                                    Gris
+                                },
+                                modifier = Modifier.size(21.dp)
+                            )
+                        }
+
+                        Spacer(
+                            modifier = Modifier.width(12.dp)
+                        )
+
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+
+                            Text(
+                                text = "Activar notificaciones",
+                                color = TextoPrincipal,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            Spacer(
+                                modifier = Modifier.height(2.dp)
+                            )
+
+                            Text(
+                                text = if (notificacionesActivadas) {
+                                    "Recibir notificaciones en este dispositivo"
+                                } else {
+                                    "Las notificaciones están desactivadas"
+                                },
+                                color = Gris,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        Switch(
+                            checked = notificacionesActivadas,
+                            onCheckedChange = { activo ->
+                                fcmPreferenciaViewModel.cambiarEstado(
+                                    activo
+                                )
+                            },
+                            enabled = !guardandoPreferencia
+                        )
+                    }
+
+                    HorizontalDivider(
+                        color = GrisBorde,
+                        thickness = 1.dp
                     )
 
-                    Spacer(
-                        modifier = Modifier.width(7.dp)
+                    // ====================================================
+                    // NUEVOS INGRESOS
+                    // ====================================================
+
+                    PreferenciaItem(
+                        titulo = "Nuevos ingresos",
+                        descripcion = "Avisarme cuando se registre un ingreso",
+                        checked = ingresos,
+                        enabled = notificacionesActivadas &&
+                                !guardandoPreferencia,
+                        onCheckedChange = {
+                            fcmPreferenciaViewModel.cambiarIngresos(it)
+                        }
                     )
 
-                    Text(
-                        text = "Nueva notificación",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
+                    HorizontalDivider(
+                        color = GrisBorde,
+                        thickness = 1.dp
+                    )
+
+                    // ====================================================
+                    // NUEVOS EGRESOS
+                    // ====================================================
+
+                    PreferenciaItem(
+                        titulo = "Nuevos egresos",
+                        descripcion = "Avisarme cuando se registre un egreso",
+                        checked = egresos,
+                        enabled = notificacionesActivadas &&
+                                !guardandoPreferencia,
+                        onCheckedChange = {
+                            fcmPreferenciaViewModel.cambiarEgresos(it)
+                        }
+                    )
+
+                    HorizontalDivider(
+                        color = GrisBorde,
+                        thickness = 1.dp
+                    )
+
+                    // ====================================================
+                    // ZOE
+                    // ====================================================
+
+                    PreferenciaItem(
+                        titulo = "Cierre de período por Zoe",
+                        descripcion = "Avisarme cuando Zoe cierre un período",
+                        checked = zoe,
+                        enabled = notificacionesActivadas &&
+                                !guardandoPreferencia,
+                        onCheckedChange = {
+                            fcmPreferenciaViewModel.cambiarZoe(it)
+                        }
+                    )
+
+                    HorizontalDivider(
+                        color = GrisBorde,
+                        thickness = 1.dp
+                    )
+
+                    // ====================================================
+                    // AVISOS VECINALES
+                    // ====================================================
+
+                    PreferenciaItem(
+                        titulo = "Avisos vecinales",
+                        descripcion = "Recibir avisos enviados a los vecinos",
+                        checked = avisos,
+                        enabled = notificacionesActivadas &&
+                                !guardandoPreferencia,
+                        onCheckedChange = {
+                            fcmPreferenciaViewModel.cambiarAvisos(it)
+                        }
                     )
                 }
             }
         }
 
-        // ============================================================
-        // MARCAR TODAS COMO LEÍDAS
-        // ============================================================
+        item {
 
-        if (noLeidas > 0) {
+            // ============================================================
+            // MENSAJE DE LA PREFERENCIA FCM
+            // ============================================================
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Blanco)
-                    .padding(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 10.dp,
-                        bottom = 10.dp
-                    ),
-                horizontalArrangement = Arrangement.End
-            ) {
+            if (mensajePreferencia != null) {
 
-                Button(
-                    onClick = {
-                        viewModel.marcarTodasComoLeidas()
-                    },
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = VerdeSuave,
-                        contentColor = colorPrincipal
-                    ),
-                    contentPadding = PaddingValues(
-                        horizontal = 14.dp,
-                        vertical = 8.dp
-                    )
+                Text(
+                    text = mensajePreferencia ?: "",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            start = 18.dp,
+                            end = 18.dp,
+                            top = 4.dp,
+                            bottom = 4.dp
+                        ),
+                    color = Gris,
+                    fontSize = 11.sp
+                )
+            }
+
+            // ============================================================
+            // NUEVA NOTIFICACIÓN
+            // SOLO ROLES DIFERENTES DE CONSULTA
+            // ============================================================
+
+            if (puedeCrearNotificacion) {
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            start = 14.dp,
+                            end = 14.dp,
+                            top = 8.dp,
+                            bottom = 4.dp
+                        ),
+                    horizontalArrangement = Arrangement.End
                 ) {
 
-                    Icon(
-                        imageVector = Icons.Default.DoneAll,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Button(
+                        onClick = onNuevaNotificacionClick,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colorPrincipal
+                        ),
+                        contentPadding = PaddingValues(
+                            horizontal = 14.dp,
+                            vertical = 8.dp
+                        )
+                    ) {
 
-                    Spacer(
-                        modifier = Modifier.width(7.dp)
-                    )
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
 
-                    Text(
-                        text = "Marcar todas como leídas",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                        Spacer(
+                            modifier = Modifier.width(7.dp)
+                        )
+
+                        Text(
+                            text = "Nueva notificación",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
+
+            // ============================================================
+            // MARCAR TODAS COMO LEÍDAS
+            // ============================================================
+
+            if (noLeidas > 0) {
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Blanco)
+                        .padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 10.dp,
+                            bottom = 10.dp
+                        ),
+                    horizontalArrangement = Arrangement.End
+                ) {
+
+                    Button(
+                        onClick = {
+                            viewModel.marcarTodasComoLeidas()
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = VerdeSuave,
+                            contentColor = colorPrincipal
+                        ),
+                        contentPadding = PaddingValues(
+                            horizontal = 14.dp,
+                            vertical = 8.dp
+                        )
+                    ) {
+
+                        Icon(
+                            imageVector = Icons.Default.DoneAll,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+
+                        Spacer(
+                            modifier = Modifier.width(7.dp)
+                        )
+
+                        Text(
+                            text = "Marcar todas como leídas",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
         }
 
         // ============================================================
@@ -424,79 +615,86 @@ fun NotificacionesScreen(
 
             cargando -> {
 
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp),
+                        contentAlignment = Alignment.Center
                     ) {
 
-                        CircularProgressIndicator(
-                            color = colorPrincipal,
-                            strokeWidth = 3.dp
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
 
-                        Spacer(
-                            modifier = Modifier.height(12.dp)
-                        )
+                            CircularProgressIndicator(
+                                color = colorPrincipal,
+                                strokeWidth = 3.dp
+                            )
 
-                        Text(
-                            text = "Cargando notificaciones...",
-                            color = Gris,
-                            fontSize = 14.sp
-                        )
+                            Spacer(
+                                modifier = Modifier.height(12.dp)
+                            )
+
+                            Text(
+                                text = "Cargando notificaciones...",
+                                color = Gris,
+                                fontSize = 14.sp
+                            )
+                        }
                     }
                 }
             }
 
             mensaje != null -> {
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
                     ) {
 
-                        Text(
-                            text = mensaje
-                                ?: "No se pudieron cargar las notificaciones.",
-                            color = Rojo,
-                            fontSize = 14.sp
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(16.dp)
-                        )
-
-                        Button(
-                            onClick = {
-                                viewModel.limpiarMensaje()
-                                viewModel.cargarNotificaciones()
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colorPrincipal
-                            ),
-                            shape = RoundedCornerShape(10.dp)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
 
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                            Text(
+                                text = mensaje
+                                    ?: "No se pudieron cargar las notificaciones.",
+                                color = Rojo,
+                                fontSize = 14.sp
                             )
 
                             Spacer(
-                                modifier = Modifier.width(6.dp)
+                                modifier = Modifier.height(16.dp)
                             )
 
-                            Text("Reintentar")
+                            Button(
+                                onClick = {
+                                    viewModel.limpiarMensaje()
+                                    viewModel.cargarNotificaciones()
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = colorPrincipal
+                                ),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+
+                                Spacer(
+                                    modifier = Modifier.width(6.dp)
+                                )
+
+                                Text("Reintentar")
+                            }
                         }
                     }
                 }
@@ -504,86 +702,80 @@ fun NotificacionesScreen(
 
             notificaciones.isEmpty() -> {
 
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp),
+                        contentAlignment = Alignment.Center
                     ) {
 
-                        Box(
-                            modifier = Modifier
-                                .size(72.dp)
-                                .background(
-                                    VerdeSuave,
-                                    CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
 
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = null,
-                                tint = colorPrincipal,
-                                modifier = Modifier.size(36.dp)
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .background(
+                                        VerdeSuave,
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+
+                                Icon(
+                                    imageVector = Icons.Default.Notifications,
+                                    contentDescription = null,
+                                    tint = colorPrincipal,
+                                    modifier = Modifier.size(36.dp)
+                                )
+                            }
+
+                            Spacer(
+                                modifier = Modifier.height(16.dp)
+                            )
+
+                            Text(
+                                text = "No tienes notificaciones",
+                                color = TextoPrincipal,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(
+                                modifier = Modifier.height(6.dp)
+                            )
+
+                            Text(
+                                text = "Aquí aparecerán los avisos de SIGEFIV.",
+                                color = Gris,
+                                fontSize = 14.sp
                             )
                         }
-
-                        Spacer(
-                            modifier = Modifier.height(16.dp)
-                        )
-
-                        Text(
-                            text = "No tienes notificaciones",
-                            color = TextoPrincipal,
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(6.dp)
-                        )
-
-                        Text(
-                            text = "Aquí aparecerán los avisos de SIGEFIV.",
-                            color = Gris,
-                            fontSize = 14.sp
-                        )
                     }
                 }
             }
 
             else -> {
 
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = 14.dp,
-                        end = 14.dp,
-                        top = 14.dp,
-                        bottom = 28.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
+                items(
+                    items = notificaciones,
+                    key = { it.id }
+                ) { notificacion ->
 
-                    items(
-                        items = notificaciones,
-                        key = { it.id }
-                    ) { notificacion ->
-
-                        NotificacionItem(
-                            notificacion = notificacion,
-                            onClick = {
-                                if (!notificacion.leida) {
-                                    viewModel.marcarComoLeida(
-                                        notificacion.id
-                                    )
-                                }
+                    NotificacionItem(
+                        notificacion = notificacion,
+                        onClick = {
+                            if (!notificacion.leida) {
+                                viewModel.marcarComoLeida(
+                                    notificacion.id
+                                )
                             }
-                        )
-                    }
+
+                            onNotificacionClick(notificacion)
+                        }
+                    )
                 }
             }
         }
@@ -591,7 +783,7 @@ fun NotificacionesScreen(
 }
 
 // ====================================================================
-// TARJETA
+// TARJETA DE NOTIFICACIÓN
 // ====================================================================
 
 @Composable
@@ -602,11 +794,15 @@ private fun NotificacionItem(
 
     val pendiente = !notificacion.leida
 
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(
-                enabled = pendiente,
+
                 onClick = onClick
             ),
         shape = RoundedCornerShape(14.dp),
@@ -789,3 +985,4 @@ private fun formatearFecha(
 
     return fecha
 }
+

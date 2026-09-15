@@ -31,6 +31,9 @@ class SessionManager(
         private val NOMBRE =
             stringPreferencesKey("nombre")
 
+        private val SEUDONIMO =
+            stringPreferencesKey("seudonimo")
+
         private val ROL =
             stringPreferencesKey("rol")
 
@@ -58,6 +61,11 @@ class SessionManager(
             preferences[NOMBRE]
         }
 
+    val seudonimo: Flow<String?> =
+        context.dataStore.data.map { preferences ->
+            preferences[SEUDONIMO]
+        }
+
     val rol: Flow<String?> =
         context.dataStore.data.map { preferences ->
             preferences[ROL]
@@ -73,6 +81,7 @@ class SessionManager(
         token: String,
         email: String,
         nombre: String,
+        seudonimo: String? = null,
         rol: String?,
         bienvenidaVista: Boolean = false
     ) {
@@ -81,8 +90,27 @@ class SessionManager(
             preferences[TOKEN] = token
             preferences[EMAIL] = email
             preferences[NOMBRE] = nombre
+
+            if (seudonimo.isNullOrBlank()) {
+                preferences.remove(SEUDONIMO)
+            } else {
+                preferences[SEUDONIMO] = seudonimo
+            }
+
             preferences[ROL] = rol ?: ""
             preferences[BIENVENIDA_VISTA] = bienvenidaVista
+        }
+    }
+
+    suspend fun actualizarSeudonimo(
+        seudonimo: String?
+    ) {
+        context.dataStore.edit { preferences ->
+            if (seudonimo.isNullOrBlank()) {
+                preferences.remove(SEUDONIMO)
+            } else {
+                preferences[SEUDONIMO] = seudonimo
+            }
         }
     }
 
@@ -98,6 +126,7 @@ class SessionManager(
             preferences.remove(TOKEN)
             preferences.remove(EMAIL)
             preferences.remove(NOMBRE)
+            preferences.remove(SEUDONIMO)
             preferences.remove(ROL)
             preferences.remove(BIENVENIDA_VISTA)
         }

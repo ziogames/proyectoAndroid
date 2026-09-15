@@ -3,15 +3,20 @@ package com.sigefiv.app.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.sigefiv.app.FcmTokenManager
 import com.sigefiv.app.data.SessionManager
 import com.sigefiv.app.data.api.ApiClient
 import com.sigefiv.app.data.repository.AuthRepository
 import com.sigefiv.app.data.repository.UsuarioRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import com.google.android.gms.tasks.Tasks
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -29,6 +34,8 @@ class LoginViewModel(
     private val usuarioRepository = UsuarioRepository(
         ApiClient.usuarioApi(appContext)
     )
+
+    private val firebaseAuth = FirebaseAuth.getInstance()
 
     private val _cargando = MutableStateFlow(false)
     val cargando: StateFlow<Boolean> = _cargando
@@ -114,6 +121,7 @@ class LoginViewModel(
                             token = tokenRecibido,
                             email = usuario.email,
                             nombre = usuario.name,
+                            seudonimo = usuario.seudonimo,
                             rol = usuario.rol,
                             bienvenidaVista = usuario.bienvenidaVista
                         )
@@ -146,7 +154,19 @@ class LoginViewModel(
 
     /*
     |--------------------------------------------------------------------------
-    | INICIO DE SESIÓN CON GOOGLE
+    | INICIO DE SESIÓN CON GOOGLE + FIREBASE
+    |--------------------------------------------------------------------------
+    |
+    | Flujo:
+    |
+    | Google ID Token
+    |       ↓
+    | Firebase Authentication
+    |       ↓
+    | Firebase ID Token
+    |       ↓
+    | Laravel
+    |
     |--------------------------------------------------------------------------
     */
     fun iniciarSesionConGoogle(
@@ -163,15 +183,97 @@ class LoginViewModel(
             _loginCorrecto.value = false
 
             try {
-                val respuesta = authRepository.loginConGoogle(
-                    idToken = idToken
+
+                /*
+                 * 1. Convertimos el Google ID Token en credencial Firebase.
+                 */
+                val credential = GoogleAuthProvider.getCredential(
+                    idToken,
+                    null
                 )
 
+                /*
+                 * 2. Iniciamos sesión en Firebase.
+                 */
+                withContext(Dispatchers.IO) {
+                    Tasks.await(
+                        firebaseAuth.signInWithCredential(credential)
+                    )
+                }
+
+                /*
+                 * 3. Obtenemos el usuario directamente desde FirebaseAuth.
+                 */
+                val firebaseUser = firebaseAuth.currentUser
+
+                if (firebaseUser == null) {
+                    _mensaje.value =
+                        "Firebase autenticó la cuenta pero no devolvió el usuario."
+                    return@launch
+                }
+
+                println(
+                    "SIGEFIV FIREBASE UID: ${firebaseUser.uid}"
+                )
+
+                println(
+                    "SIGEFIV FIREBASE EMAIL: ${firebaseUser.email}"
+                )
+
+                /*
+                 * 4. Solicitamos el Firebase ID Token.
+                 *
+                 * Primero intentamos obtener un token actualizado.
+                 */
+                val firebaseTokenResult = withContext(Dispatchers.IO) {
+                    Tasks.await(
+                        firebaseUser.getIdToken(true)
+                    )
+                }
+
+                val firebaseIdToken = firebaseTokenResult.token
+
+                println(
+                    "SIGEFIV FIREBASE TOKEN RESULT: " +
+                            "presente=${!firebaseIdToken.isNullOrBlank()} " +
+                            "longitud=${firebaseIdToken?.length ?: 0}"
+                )
+
+                /*
+                 * Nunca mostramos el token completo por seguridad.
+                 */
+                if (firebaseIdToken.isNullOrBlank()) {
+                    _mensaje.value =
+                        "Firebase autenticó la cuenta, pero no pudo generar el token de sesión."
+
+                    println(
+                        "SIGEFIV FIREBASE ERROR: getIdToken() devolvió token vacío"
+                    )
+
+                    return@launch
+                }
+
+                /*
+                 * 5. Enviamos el Firebase ID Token a Laravel.
+                 */
+                println(
+                    "SIGEFIV AUTH: enviando Firebase ID Token a Laravel"
+                )
+
+                val respuesta = authRepository.loginConGoogle(
+                    idToken = firebaseIdToken
+                )
+
+                /*
+                 * 6. Laravel devuelve el token Sanctum.
+                 */
                 if (respuesta.success) {
+
                     val tokenRecibido = respuesta.token
                     val usuario = respuesta.usuario
 
                     if (!tokenRecibido.isNullOrBlank() && usuario != null) {
+
                         _token.value = tokenRecibido
                         _bienvenidaVista.value = usuario.bienvenidaVista
 
@@ -180,30 +282,62 @@ class LoginViewModel(
                             token = tokenRecibido,
                             email = usuario.email,
                             nombre = usuario.name,
+                            seudonimo = usuario.seudonimo,
                             rol = usuario.rol,
                             bienvenidaVista = usuario.bienvenidaVista
                         )
 
                         FcmTokenManager.registrarToken(appContext)
+
                         _loginCorrecto.value = true
+
                     } else {
-                        _mensaje.value = "El servidor no devolvió todos los datos necesarios."
+
+                        _mensaje.value =
+                            "El servidor no devolvió todos los datos necesarios."
                     }
+
                 } else {
+
                     _mensaje.value = respuesta.message
                 }
+
             } catch (e: HttpException) {
+
                 when (e.code()) {
-                    401 -> _mensaje.value = "No se pudo autenticar la cuenta de Google."
-                    403 -> _mensaje.value = "Tu cuenta de SIGEFIV está bloqueada."
-                    else -> _mensaje.value = "Error al autenticar con Google (${e.code()})."
+
+                    401 -> _mensaje.value =
+                        "No se pudo autenticar la cuenta de Google."
+
+                    403 -> _mensaje.value =
+                        "Tu cuenta de SIGEFIV está bloqueada."
+
+                    422 -> _mensaje.value =
+                        "Los datos de autenticación no son válidos."
+
+                    else -> _mensaje.value =
+                        "Error al autenticar con Google (${e.code()})."
                 }
+
             } catch (e: IOException) {
-                _mensaje.value = "Sin conexión con el servidor. Revisa tu internet."
+
+                _mensaje.value =
+                    "Sin conexión con el servidor. Revisa tu internet."
+
             } catch (e: Exception) {
+
                 e.printStackTrace()
-                _mensaje.value = "No fue posible iniciar sesión con Google. Inténtalo nuevamente."
+
+                _mensaje.value =
+                    "No fue posible autenticar la cuenta de Google con Firebase."
+
+                println(
+                    "SIGEFIV FIREBASE EXCEPTION: " +
+                            "${e.javaClass.simpleName}: ${e.message}"
+                )
+
             } finally {
+
                 _cargando.value = false
             }
         }
@@ -239,14 +373,20 @@ class LoginViewModel(
             _cargando.value = true
 
             try {
-                FcmTokenManager.desactivarToken(appContext)
                 try {
                     authRepository.cerrarSesion()
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
+
+                /*
+                 * Cerramos también la sesión de Firebase.
+                 */
+                firebaseAuth.signOut()
+
             } finally {
                 sessionManager.cerrarSesion()
+
                 _token.value = null
                 _loginCorrecto.value = false
                 _bienvenidaVista.value = true

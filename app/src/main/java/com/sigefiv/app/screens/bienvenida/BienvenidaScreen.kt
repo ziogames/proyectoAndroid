@@ -21,8 +21,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
-private val AzulPrimario = Color(0xFF2563EB)
 private val AzulSubtitulo = Color(0xFF1D4ED8)
 private val FondoPantalla = Color(0xFFF0F6FE)
 private val FondoTarjeta = Color(0xFFFFFFFF)
@@ -38,6 +39,10 @@ private val AzulBurbujaSigi = Color(0xFFEFF6FF)
 fun BienvenidaScreen(
     onComenzarClick: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -72,14 +77,14 @@ fun BienvenidaScreen(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = AzulPrimario.copy(alpha = 0.12f),
+                            color = colorPrincipal.copy(alpha = 0.12f),
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.HomeWork,
                                     contentDescription = null,
-                                    tint = AzulPrimario,
+                                    tint = colorPrincipal,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -141,7 +146,7 @@ fun BienvenidaScreen(
                                 .width(40.dp)
                                 .height(3.dp)
                                 .clip(CircleShape)
-                                .background(AzulPrimario)
+                                .background(colorPrincipal)
                         )
                     }
 
@@ -326,7 +331,7 @@ fun BienvenidaScreen(
                     Button(
                         onClick = onComenzarClick,
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario),
+                        colors = ButtonDefaults.buttonColors(containerColor = colorPrincipal),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)

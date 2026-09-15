@@ -63,10 +63,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sigefiv.app.data.model.UsuarioListado
 import com.sigefiv.app.viewmodel.UsuarioViewModel
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
 
 // Paleta Oficial SIGEFIV (Verde Corporativo & Neutros)
-private val VerdePrincipal = Color(0xFF0F766E)
-private val VerdeGradienteFin = Color(0xFF115E59)
 private val VerdeClaroContraste = Color(0xFFCCFBF1)
 private val FondoSuperficie = Color(0xFFF8FAFC)
 private val TextoTitulos = Color(0xFF0F172A)
@@ -91,6 +91,11 @@ fun UsuariosScreen(
     viewModel: UsuarioViewModel,
     onBackClick: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+    val colorPrincipalOscuro = colorPrincipal.copy(alpha = 0.88f)
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var buscar by remember {
@@ -313,7 +318,7 @@ fun UsuariosScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(VerdePrincipal)
+            .background(colorPrincipal)
     ) {
         Scaffold(
             containerColor = Color.Transparent
@@ -338,8 +343,8 @@ fun UsuariosScreen(
                             .background(
                                 brush = Brush.horizontalGradient(
                                     colors = listOf(
-                                        VerdePrincipal,
-                                        VerdeGradienteFin
+                                        colorPrincipal,
+                                        colorPrincipalOscuro
                                     )
                                 )
                             )
@@ -452,7 +457,7 @@ fun UsuariosScreen(
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Buscar",
-                                tint = VerdePrincipal,
+                                tint = colorPrincipal,
                                 modifier = Modifier.size(22.dp)
                             )
                         },
@@ -460,7 +465,7 @@ fun UsuariosScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = Color.White,
                             unfocusedContainerColor = Color.White,
-                            focusedBorderColor = VerdePrincipal,
+                            focusedBorderColor = colorPrincipal,
                             unfocusedBorderColor = Color(0xFFE2E8F0),
                             focusedTextColor = TextoTitulos,
                             unfocusedTextColor = TextoTitulos
@@ -477,7 +482,7 @@ fun UsuariosScreen(
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     CircularProgressIndicator(
-                                        color = VerdePrincipal,
+                                        color = colorPrincipal,
                                         strokeWidth = 3.dp
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
@@ -585,6 +590,10 @@ private fun UsuarioTarjetaProfional(
     onGuardarRol: (String) -> Unit,
     onEliminarUsuario: () -> Unit
 ) {
+    val colorPrincipal = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    )
+
     val nombre = usuario.name.ifBlank { "Usuario" }
     val inicial = nombre.trim().firstOrNull()?.uppercase() ?: "U"
 
@@ -633,14 +642,14 @@ private fun UsuarioTarjetaProfional(
                         modifier = Modifier.size(54.dp),
                         shape = CircleShape,
                         color = VerdeClaroContraste,
-                        border = BorderStroke(2.dp, VerdePrincipal.copy(alpha = 0.2f))
+                        border = BorderStroke(2.dp, colorPrincipal.copy(alpha = 0.2f))
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 text = inicial,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = VerdePrincipal
+                                color = colorPrincipal
                             )
                         }
                     }
@@ -726,14 +735,14 @@ private fun UsuarioTarjetaProfional(
                                 imageVector = Icons.Default.Shield,
                                 contentDescription = null,
                                 modifier = Modifier.size(13.dp),
-                                tint = VerdePrincipal
+                                tint = colorPrincipal
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = rolSeleccionado,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = VerdePrincipal,
+                                color = colorPrincipal,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -741,7 +750,7 @@ private fun UsuarioTarjetaProfional(
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = "Cambiar rol",
-                                tint = VerdePrincipal,
+                                tint = colorPrincipal,
                                 modifier = Modifier.size(17.dp)
                             )
                         }
@@ -775,7 +784,7 @@ private fun UsuarioTarjetaProfional(
                     Surface(
                         onClick = { onGuardarRol(rolSeleccionado) },
                         shape = CircleShape,
-                        color = VerdePrincipal,
+                        color = colorPrincipal,
                         shadowElevation = 2.dp,
                         modifier = Modifier.size(36.dp)
                     ) {
@@ -857,7 +866,7 @@ private fun UsuarioTarjetaProfional(
                     Surface(
                         onClick = { onGuardarEstado(estadoSeleccionado) },
                         shape = CircleShape,
-                        color = VerdePrincipal,
+                        color = colorPrincipal,
                         shadowElevation = 2.dp,
                         modifier = Modifier.size(36.dp)
                     ) {

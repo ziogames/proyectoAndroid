@@ -73,6 +73,8 @@ fun AppDrawer(
 
     val esAdmin =
         rol?.trim()?.equals("Administrador", ignoreCase = true) == true
+    val esConsulta =
+        rol?.trim()?.equals("Consulta", ignoreCase = true) == true
 
     fun puede(permiso: String): Boolean {
         if (esAdmin) return true
@@ -360,7 +362,7 @@ fun AppDrawer(
                     )
                 }
 
-                if (puede("movimientos.index")) {
+                if (puede("movimientos.index") && !esConsulta) {
 
                     DrawerItem(
                         title = "Movimientos",
@@ -369,15 +371,15 @@ fun AppDrawer(
                         currentScreen = currentScreen,
                         onNavigate = onNavigate
                     )
-
-                    DrawerItem(
-                        title = "Períodos",
-                        icon = Icons.Default.Timeline,
-                        route = "periodos",
-                        currentScreen = currentScreen,
-                        onNavigate = onNavigate
-                    )
                 }
+
+                DrawerItem(
+                    title = "Períodos",
+                    icon = Icons.Default.Timeline,
+                    route = "periodos",
+                    currentScreen = currentScreen,
+                    onNavigate = onNavigate
+                )
 
                 if (puede("caja.index")) {
 
