@@ -2,6 +2,8 @@ package com.sigefiv.app
 
 import android.os.Bundle
 import android.content.Intent
+import android.content.ComponentName
+import android.os.Build
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -112,6 +114,8 @@ import android.util.Log
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import android.content.Context
 
 
 /*
@@ -167,6 +171,8 @@ class MainActivity : ComponentActivity() {
     private var asambleaIdNotificacion = mutableStateOf<Int?>(null)
     private var notificacionIdNotificacion =
         mutableStateOf<Int?>(null)
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -288,7 +294,48 @@ class MainActivity : ComponentActivity() {
 | CONTROLADOR DEL FLUJO PRINCIPAL
 |--------------------------------------------------------------------------
 */
+    private fun esDispositivoXiaomi(): Boolean {
+        val fabricante = Build.MANUFACTURER.lowercase()
+        val marca = Build.BRAND.lowercase()
 
+        return fabricante.contains("xiaomi") ||
+                fabricante.contains("redmi") ||
+                fabricante.contains("poco") ||
+                marca.contains("xiaomi") ||
+                marca.contains("redmi") ||
+                marca.contains("poco")
+    }
+
+private fun abrirAutostartXiaomi(context: Context) {
+    try {
+        val intent = Intent().apply {
+            action = "miui.intent.action.OP_AUTO_START"
+            addCategory(Intent.CATEGORY_DEFAULT)
+        }
+
+        context.startActivity(intent)
+
+    } catch (e: Exception) {
+        try {
+            val intent = Intent().apply {
+                component = ComponentName(
+                    "com.miui.securitycenter",
+                    "com.miui.permcenter.autostart.AutoStartManagementActivity"
+                )
+            }
+
+            context.startActivity(intent)
+
+        } catch (e2: Exception) {
+            val intent = Intent(
+                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                android.net.Uri.parse("package:${context.packageName}")
+            )
+
+            context.startActivity(intent)
+        }
+    }
+}
     @Composable
     fun AppSIGEFIV(
         loginViewModel: LoginViewModel,
@@ -300,6 +347,9 @@ class MainActivity : ComponentActivity() {
     ){
         var pantalla by remember { mutableStateOf(PantallaInicial.SPLASH) }
         var mostrarBanner by remember {
+            mutableStateOf(false)
+        }
+        var mostrarDialogoAutostart by remember {
             mutableStateOf(false)
         }
 
@@ -338,6 +388,23 @@ class MainActivity : ComponentActivity() {
             }
         }
         val context = LocalContext.current
+        LaunchedEffect(loginCorrecto) {
+            if (loginCorrecto && esDispositivoXiaomi()) {
+
+                val preferencias = context.getSharedPreferences(
+                    "sigefiv_config",
+                    Context.MODE_PRIVATE
+                )
+
+                val autostartMostrado =
+                    preferencias.getBoolean("autostart_mostrado", false)
+
+                if (!autostartMostrado) {
+                    mostrarDialogoAutostart = true
+                }
+            }
+        }
+
         LaunchedEffect(loginCorrecto) {
             if (
                 loginCorrecto &&
@@ -538,6 +605,60 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+
+        if (mostrarDialogoAutostart) {
+            AlertDialog(
+                onDismissRequest = {
+                    mostrarDialogoAutostart = false
+                },
+                title = {
+                    Text("🔔 Notificaciones de SIGEFIV")
+                },
+                text = {
+                    Text(
+                        "Para recibir las notificaciones de SIGEFIV " +
+                                "aunque la aplicación esté cerrada, " +
+                                "te recomendamos activar el inicio automático."
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            mostrarDialogoAutostart = false
+
+                            context.getSharedPreferences(
+                                "sigefiv_config",
+                                Context.MODE_PRIVATE
+                            )
+                                .edit()
+                                .putBoolean("autostart_mostrado", true)
+                                .apply()
+
+                            abrirAutostartXiaomi(context)
+                        }
+                    ) {
+                        Text("Activar ahora")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            mostrarDialogoAutostart = false
+
+                            context.getSharedPreferences(
+                                "sigefiv_config",
+                                Context.MODE_PRIVATE
+                            )
+                                .edit()
+                                .putBoolean("autostart_mostrado", true)
+                                .apply()
+                        }
+                    ) {
+                        Text("Ahora no")
+                    }
+                }
+            )
         }
     }
 

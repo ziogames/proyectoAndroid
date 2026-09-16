@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">SIGEFIV</string>
+    <string name="default_notification_channel_id">sigefiv_notificaciones</string>
 </resources>
