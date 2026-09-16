@@ -75,6 +75,8 @@ fun AppDrawer(
         rol?.trim()?.equals("Administrador", ignoreCase = true) == true
     val esConsulta =
         rol?.trim()?.equals("Consulta", ignoreCase = true) == true
+    val esTesorero =
+        rol?.trim()?.equals("Tesorero", ignoreCase = true) == true
 
     fun puede(permiso: String): Boolean {
         if (esAdmin) return true
@@ -362,7 +364,7 @@ fun AppDrawer(
                     )
                 }
 
-                if (puede("movimientos.index") && !esConsulta) {
+                if (esTesorero) {
 
                     DrawerItem(
                         title = "Movimientos",

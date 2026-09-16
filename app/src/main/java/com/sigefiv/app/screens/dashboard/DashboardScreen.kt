@@ -62,6 +62,7 @@ import com.sigefiv.app.data.SessionManager
 import com.sigefiv.app.R
 import com.sigefiv.app.data.model.Movimiento
 import com.sigefiv.app.data.model.PeriodoDashboard
+import com.sigefiv.app.notifications.NotificacionEventBus
 import com.sigefiv.app.viewmodel.DashboardViewModel
 import com.sigefiv.app.viewmodel.MovimientosViewModel
 import androidx.compose.material3.Badge
@@ -76,6 +77,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import com.sigefiv.app.ui.theme.AppSeason
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
+
 /*
 |--------------------------------------------------------------------------
 | COLORES SIGEFIV
@@ -112,26 +114,58 @@ fun DashboardScreen(
     onMiCuentaClick: () -> Unit = {},
     onSigiClick: () -> Unit = {},
     onOpenDrawer: () -> Unit = {}
-){
+) {
     val sessionManager = remember { SessionManager(context) }
 
     val nombreUsuario by sessionManager.nombre.collectAsState(initial = "Usuario")
     val seudonimo by sessionManager.seudonimo.collectAsState(initial = null)
     val rol by sessionManager.rol.collectAsState(initial = null)
 
-
     val nombreMostrar =
         seudonimo?.trim()?.takeIf { it.isNotEmpty() }
             ?: (nombreUsuario?.trim()?.takeIf { it.isNotEmpty() } ?: "Usuario")
+
+    /*
+     * Solo el Tesorero puede acceder al módulo completo
+     * de Movimientos.
+     *
+     * Los demás roles siguen viendo los movimientos
+     * recientes en el Dashboard.
+     */
     val puedeVerMovimientos =
-        rol?.equals("Consulta", ignoreCase = true) != true
+        rol?.equals("Tesorero", ignoreCase = true) == true
 
     val periodo by dashboardViewModel.periodo.collectAsState()
     val movimientos by movimientosViewModel.movimientos.collectAsState()
 
+    /*
+     * Carga inicial y sincronización en tiempo real.
+     *
+     * Cuando otro dispositivo registra, actualiza o elimina
+     * un movimiento, Laravel envía el evento FCM:
+     *
+     * tipo = movimiento_actualizado
+     *
+     * El EventBus recibe el evento y aquí recargamos
+     * nuevamente la información del Dashboard y los
+     * movimientos recientes.
+     */
     LaunchedEffect(Unit) {
+
+        // Carga inicial de los movimientos.
         movimientosViewModel.cargarMovimientos()
+
+        // Escucha cambios realizados desde otros dispositivos.
+        NotificacionEventBus.movimientoActualizado.collect {
+
+            // Actualiza saldo, ingresos y egresos.
+            dashboardViewModel.cargarDashboard()
+
+            // Actualiza movimientos recientes.
+            movimientosViewModel.cargarMovimientos()
+        }
     }
+
     Scaffold(
         containerColor = FondoSIGEFIV,
         topBar = {
@@ -161,6 +195,7 @@ fun DashboardScreen(
                             tint = Blanco
                         )
                     }
+
                     Box(
                         modifier = Modifier.size(48.dp),
                         contentAlignment = Alignment.Center
@@ -255,6 +290,7 @@ private fun DashboardContenido(
             .fillMaxSize()
             .background(FondoSIGEFIV)
     ) {
+
         // Decoración de Fiestas Patrias: se mantiene sin cambios.
         if (temporada == AppSeason.FIESTAS_PATRIAS) {
             Image(
@@ -288,6 +324,7 @@ private fun DashboardContenido(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+
             Column {
                 Text(
                     text = "Hola, $nombreUsuario",
@@ -309,6 +346,7 @@ private fun DashboardContenido(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+
                 ResumenCard(
                     modifier = Modifier.weight(1f),
                     titulo = "Ingresos",
@@ -333,6 +371,7 @@ private fun DashboardContenido(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
                 Text(
                     text = "Movimientos recientes",
                     color = TextoPrincipal,
@@ -348,7 +387,9 @@ private fun DashboardContenido(
                         ),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable { onMovimientosClick() }
+                        modifier = Modifier.clickable {
+                            onMovimientosClick()
+                        }
                     )
                 }
             }
@@ -356,6 +397,7 @@ private fun DashboardContenido(
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+
                 movimientos.forEach { movimiento ->
                     MovimientoItem(movimiento = movimiento)
                 }
@@ -369,8 +411,6 @@ private fun DashboardContenido(
                     )
                 }
             }
-
-
 
             Spacer(modifier = Modifier.height(12.dp))
         }
@@ -388,9 +428,14 @@ private fun SaldoCard(periodo: PeriodoDashboard?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = FondoTarjeta
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.5.dp
+        )
     ) {
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -398,7 +443,9 @@ private fun SaldoCard(periodo: PeriodoDashboard?) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             Column {
+
                 Text(
                     text = "SALDO DISPONIBLE",
                     color = GrisClaro,
@@ -410,7 +457,9 @@ private fun SaldoCard(periodo: PeriodoDashboard?) {
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "S/ %.2f".format(periodo?.saldo_final ?: 0.0),
+                    text = "S/ %.2f".format(
+                        periodo?.saldo_final ?: 0.0
+                    ),
                     color = SeasonalColors.primary(
                         SeasonalTheme.getSeason()
                     ),
@@ -439,6 +488,7 @@ private fun SaldoCard(periodo: PeriodoDashboard?) {
                     ),
                 contentAlignment = Alignment.Center
             ) {
+
                 Icon(
                     imageVector = Icons.Outlined.AccountBalanceWallet,
                     contentDescription = "Saldo disponible",
@@ -469,13 +519,22 @@ private fun ResumenCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = FondoTarjeta
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.5.dp
+        )
     ) {
+
         Column(
             modifier = Modifier.padding(14.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
                 Icon(
                     imageVector = icono,
                     contentDescription = titulo,
@@ -516,13 +575,19 @@ private fun CardPeriodo(periodo: PeriodoDashboard?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = FondoTarjeta
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.5.dp
+        )
     ) {
+
         Row(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -532,6 +597,7 @@ private fun CardPeriodo(periodo: PeriodoDashboard?) {
                     ),
                 contentAlignment = Alignment.Center
             ) {
+
                 Icon(
                     imageVector = Icons.Outlined.Assignment,
                     contentDescription = "Periodo",
@@ -543,6 +609,7 @@ private fun CardPeriodo(periodo: PeriodoDashboard?) {
             Spacer(modifier = Modifier.width(12.dp))
 
             Column {
+
                 Text(
                     text = "Periodo actual",
                     color = GrisClaro,
@@ -570,31 +637,52 @@ private fun CardPeriodo(periodo: PeriodoDashboard?) {
 
 @Composable
 private fun MovimientoItem(movimiento: Movimiento) {
-    val ingreso = movimiento.tipo.equals("Ingreso", ignoreCase = true)
+
+    val ingreso =
+        movimiento.tipo.equals(
+            "Ingreso",
+            ignoreCase = true
+        )
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = FondoTarjeta
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )
     ) {
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             Box(
                 modifier = Modifier
                     .size(38.dp)
                     .background(
-                        color = if (ingreso) VerdeSuave else Color(0xFFFEE2E2),
+                        color = if (ingreso) {
+                            VerdeSuave
+                        } else {
+                            Color(0xFFFEE2E2)
+                        },
                         shape = RoundedCornerShape(10.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {
+
                 Icon(
-                    imageVector = if (ingreso) Icons.Outlined.ArrowUpward else Icons.Outlined.ArrowDownward,
+                    imageVector =
+                        if (ingreso) {
+                            Icons.Outlined.ArrowUpward
+                        } else {
+                            Icons.Outlined.ArrowDownward
+                        },
                     contentDescription = movimiento.concepto,
                     tint = if (ingreso) Verde else Rojo,
                     modifier = Modifier.size(20.dp)
@@ -603,7 +691,10 @@ private fun MovimientoItem(movimiento: Movimiento) {
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+
                 Text(
                     text = movimiento.concepto,
                     color = TextoPrincipal,
@@ -615,6 +706,7 @@ private fun MovimientoItem(movimiento: Movimiento) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+
                     Text(
                         text = movimiento.fecha ?: "Sin fecha",
                         color = GrisClaro,
@@ -636,7 +728,12 @@ private fun MovimientoItem(movimiento: Movimiento) {
             }
 
             Text(
-                text = if (ingreso) "+ S/ %.2f".format(movimiento.monto) else "- S/ %.2f".format(movimiento.monto),
+                text =
+                    if (ingreso) {
+                        "+ S/ %.2f".format(movimiento.monto)
+                    } else {
+                        "- S/ %.2f".format(movimiento.monto)
+                    },
                 color = if (ingreso) Verde else Rojo,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
@@ -659,11 +756,12 @@ private fun SigefivBottomBar(
     onMiCuentaClick: () -> Unit = {}
 ) {
     NavigationBar(
-        containerColor =SeasonalColors.primary(
+        containerColor = SeasonalColors.primary(
             SeasonalTheme.getSeason()
         ),
         tonalElevation = 0.dp
     ) {
+
         NavigationBarItem(
             selected = true,
             onClick = onInicioClick,
@@ -742,4 +840,3 @@ private fun SigefivBottomBar(
         )
     }
 }
-

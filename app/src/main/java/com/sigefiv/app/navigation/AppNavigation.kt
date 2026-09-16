@@ -92,6 +92,7 @@ import kotlinx.coroutines.launch
 import com.sigefiv.app.screens.notificaciones.EnviarNotificacionScreen
 import com.sigefiv.app.screens.notificaciones.NotificacionesScreen
 import com.sigefiv.app.screens.notificaciones.ConfirmarNotificacionScreen
+import android.util.Log
 
 
 
@@ -154,9 +155,9 @@ fun AppNavigation(
     val usuarioPerfil by perfilViewModel.usuario.collectAsState()
     val guardandoPerfil by perfilViewModel.guardando.collectAsState()
     val subiendoFotoPerfil by perfilViewModel.subiendoFoto.collectAsState()
-    // El rol Consulta no tiene acceso al módulo Movimientos.
+    // Solo el rol Tesorero tiene acceso al módulo Movimientos.
     val puedeVerMovimientos =
-        usuarioPerfil?.rol?.equals("Consulta", ignoreCase = true) != true
+        usuarioPerfil?.rol?.equals("Tesorero", ignoreCase = true) == true
 
 
     var notificacionTitulo by remember {
@@ -221,10 +222,30 @@ fun AppNavigation(
 
     LaunchedEffect(asambleaIdNotificacion) {
         asambleaIdNotificacion?.let { id ->
+
+            Log.d(
+                "SIGEFIV_NOTIF",
+                "NAVEGANDO A ASAMBLEA ID = $id"
+            )
+
             asambleasViewModel.obtenerAsamblea(id) { asamblea ->
+
+                Log.d(
+                    "SIGEFIV_NOTIF",
+                    "ASAMBLEA OBTENIDA = $asamblea"
+                )
+
                 if (asamblea != null) {
+
                     asambleaConvocatoria = asamblea
-                    navegarA(AppScreen.CONVOCATORIA_ASAMBLEA)
+
+                    Log.d(
+                        "SIGEFIV_NOTIF",
+                        "ABRIENDO CONVOCATORIA"
+                    )
+
+                    backStack.clear()
+                    backStack.add(AppScreen.CONVOCATORIA_ASAMBLEA)
                 }
             }
         }

@@ -8,6 +8,10 @@ data class NotificacionEvento(
     val mensaje: String
 )
 
+data class MovimientoActualizadoEvento(
+    val movimientoId: Int? = null
+)
+
 object NotificacionEventBus {
 
     private val _evento =
@@ -17,6 +21,14 @@ object NotificacionEventBus {
 
     val evento =
         _evento.asSharedFlow()
+
+    private val _movimientoActualizado =
+        MutableSharedFlow<MovimientoActualizadoEvento>(
+            extraBufferCapacity = 1
+        )
+
+    val movimientoActualizado =
+        _movimientoActualizado.asSharedFlow()
 
     fun notificacionRecibida() {
         // Mantiene compatibilidad con el código existente.
@@ -30,6 +42,16 @@ object NotificacionEventBus {
             NotificacionEvento(
                 titulo = titulo,
                 mensaje = mensaje
+            )
+        )
+    }
+
+    suspend fun publicarMovimientoActualizado(
+        movimientoId: Int? = null
+    ) {
+        _movimientoActualizado.emit(
+            MovimientoActualizadoEvento(
+                movimientoId = movimientoId
             )
         )
     }

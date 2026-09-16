@@ -100,6 +100,7 @@ import com.sigefiv.app.viewmodel.PeriodoViewModel
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 import androidx.compose.material.icons.outlined.Lock
+import com.sigefiv.app.notifications.NotificacionEventBus
 
 
 /*
@@ -172,9 +173,21 @@ fun MovimientosScreen(
     }
 
     LaunchedEffect(Unit) {
+
+        // Carga inicial.
         movimientosViewModel.cargarMovimientos()
         categoriasVM.cargarCategorias()
         periodoVM.cargarPeriodoAbierto()
+
+        // Escucha cambios realizados desde otros dispositivos.
+        NotificacionEventBus.movimientoActualizado.collect {
+
+            // Recarga los movimientos automáticamente.
+            movimientosViewModel.cargarMovimientos()
+
+            // Actualiza también el período activo.
+            periodoVM.cargarPeriodoAbierto()
+        }
     }
 
     /*

@@ -108,6 +108,10 @@ import com.sigefiv.app.notifications.NotificacionEventBus
 import com.sigefiv.app.ui.theme.AppSeason
 import com.sigefiv.app.ui.theme.SeasonalTheme
 import com.sigefiv.app.ui.theme.SeasonalColors
+import android.util.Log
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts
 
 
 /*
@@ -149,6 +153,17 @@ private enum class PantallaInicial {
 
 class MainActivity : ComponentActivity() {
 
+    private val solicitarPermisoNotificaciones =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { concedido ->
+
+            Log.d(
+                "SIGEFIV_NOTIF",
+                "Permiso de notificaciones: $concedido"
+            )
+        }
+
     private var asambleaIdNotificacion = mutableStateOf<Int?>(null)
     private var notificacionIdNotificacion =
         mutableStateOf<Int?>(null)
@@ -176,15 +191,37 @@ class MainActivity : ComponentActivity() {
             MovimientosViewModelFactory(applicationContext)
         )[MovimientosViewModel::class.java]
 
+        Log.d(
+            "SIGEFIV_NOTIF",
+            "========== ON CREATE =========="
+        )
+
+        Log.d(
+            "SIGEFIV_NOTIF",
+            "Intent extras: ${intent?.extras?.keySet()}"
+        )
+
+        intent?.extras?.keySet()?.forEach { clave ->
+            Log.d(
+                "SIGEFIV_NOTIF",
+                "$clave = ${intent.extras?.get(clave)}"
+            )
+        }
+
         asambleaIdNotificacion.value =
             intent?.getStringExtra(
                 SIGEFIVFirebaseMessagingService.EXTRA_ASAMBLEA_ID
             )?.toIntOrNull()
+
         notificacionIdNotificacion.value =
             intent?.getStringExtra(
                 SIGEFIVFirebaseMessagingService.EXTRA_NOTIFICACION_ID
             )?.toIntOrNull()
 
+        Log.d(
+            "SIGEFIV_NOTIF",
+            "ON CREATE - asamblea_id = ${asambleaIdNotificacion.value}"
+        )
         setContent {
             SIGEFIVTheme {
                 Surface(
@@ -196,7 +233,8 @@ class MainActivity : ComponentActivity() {
                         dashboardViewModel = dashboardViewModel,
                         movimientosViewModel = movimientosViewModel,
                         asambleaIdNotificacion = asambleaIdNotificacion.value,
-                        notificacionIdNotificacion = notificacionIdNotificacion.value
+                        notificacionIdNotificacion = notificacionIdNotificacion.value,
+                        solicitarPermisoNotificaciones = solicitarPermisoNotificaciones
                     )
                 }
             }
@@ -206,15 +244,42 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
 
+        Log.d(
+            "SIGEFIV_NOTIF",
+            "========== NOTIFICACIÓN ABIERTA =========="
+        )
+
+        Log.d(
+            "SIGEFIV_NOTIF",
+            "Intent extras: ${intent.extras?.keySet()}"
+        )
+
+        intent.extras?.keySet()?.forEach { clave ->
+            Log.d(
+                "SIGEFIV_NOTIF",
+                "$clave = ${intent.extras?.get(clave)}"
+            )
+        }
+
         asambleaIdNotificacion.value =
-            intent?.getStringExtra(
+            intent.getStringExtra(
                 SIGEFIVFirebaseMessagingService.EXTRA_ASAMBLEA_ID
             )?.toIntOrNull()
 
         notificacionIdNotificacion.value =
-            intent?.getStringExtra(
+            intent.getStringExtra(
                 SIGEFIVFirebaseMessagingService.EXTRA_NOTIFICACION_ID
             )?.toIntOrNull()
+
+        Log.d(
+            "SIGEFIV_NOTIF",
+            "asamblea_id leído = ${asambleaIdNotificacion.value}"
+        )
+
+        Log.d(
+            "SIGEFIV_NOTIF",
+            "notificacion_id leído = ${notificacionIdNotificacion.value}"
+        )
     }
 }
 
@@ -231,8 +296,8 @@ class MainActivity : ComponentActivity() {
         movimientosViewModel: MovimientosViewModel,
         asambleaIdNotificacion: Int? = null,
         notificacionIdNotificacion: Int? = null,
-
-    ) {
+        solicitarPermisoNotificaciones: androidx.activity.result.ActivityResultLauncher<String>
+    ){
         var pantalla by remember { mutableStateOf(PantallaInicial.SPLASH) }
         var mostrarBanner by remember {
             mutableStateOf(false)
@@ -247,17 +312,9 @@ class MainActivity : ComponentActivity() {
         }
 
         LaunchedEffect(Unit) {
-
-            NotificacionEventBus.evento.collect { evento ->
-
-                tituloBanner = evento.titulo
-                mensajeBanner = evento.mensaje
-
-                mostrarBanner = true
-
-                delay(4000)
-
-                mostrarBanner = false
+            NotificacionEventBus.evento.collect {
+                // La notificación se gestiona mediante Firebase.
+                // No mostrar banner interno.
             }
         }
 
@@ -274,8 +331,34 @@ class MainActivity : ComponentActivity() {
                 } else {
                     PantallaInicial.APLICACION
                 }
-            } else if (pantalla == PantallaInicial.APLICACION || pantalla == PantallaInicial.ONBOARDING_BIENVENIDA) {
+            } else if (pantalla == PantallaInicial.APLICACION ||
+                pantalla == PantallaInicial.ONBOARDING_BIENVENIDA)
+            {
                 pantalla = PantallaInicial.LOGIN
+            }
+        }
+        val context = LocalContext.current
+        LaunchedEffect(loginCorrecto) {
+            if (
+                loginCorrecto &&
+                android.os.Build.VERSION.SDK_INT >=
+                android.os.Build.VERSION_CODES.TIRAMISU
+            ) {
+                val permiso = Manifest.permission.POST_NOTIFICATIONS
+
+                if (
+                    androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        permiso
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    Log.d(
+                        "SIGEFIV_NOTIF",
+                        "Solicitando permiso POST_NOTIFICATIONS"
+                    )
+
+                    solicitarPermisoNotificaciones.launch(permiso)
+                }
             }
         }
 

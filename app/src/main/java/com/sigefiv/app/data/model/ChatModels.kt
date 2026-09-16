@@ -144,7 +144,12 @@ data class ChatNuevosResponse(
     val message: String? = null,
     val personas_en_linea: Int = 0,
     val mensajes: List<ChatMessage> = emptyList(),
-    val usuarios_escribiendo: List<ChatTypingUser> = emptyList()
+    val usuarios_escribiendo: List<ChatTypingUser> = emptyList(),
+
+    // 📖 Estado de lectura actualizado desde Laravel
+    val ultimo_leido_message_id: Int? = null,
+    val primer_no_leido_id: Int? = null,
+    val mensajes_no_leidos: Int = 0
 )
 
 data class ChatPresenciaResponse(

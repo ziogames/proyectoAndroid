@@ -134,7 +134,25 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
          */
         val tipo =
             remoteMessage.data["tipo"]
+        if (
+            tipo?.equals(
+                "movimiento_actualizado",
+                ignoreCase = true
+            ) == true
+        ) {
 
+            val movimientoId =
+                remoteMessage.data["movimiento_id"]
+                    ?.toIntOrNull()
+
+            kotlinx.coroutines.runBlocking {
+                NotificacionEventBus.publicarMovimientoActualizado(
+                    movimientoId = movimientoId
+                )
+            }
+
+            return
+        }
         val asambleaId =
             remoteMessage.data["asamblea_id"]
 
@@ -147,6 +165,13 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                 mensaje = mensaje
             )
         }
+        /*
+   * Si FCM ya trae notification,
+   * Android/Firebase se encargará de mostrarla
+   * cuando la aplicación esté en segundo plano.
+   *
+   * Si es data-only, nosotros la mostramos.
+   */
         crearCanalNotificaciones()
 
         mostrarNotificacion(
@@ -277,7 +302,10 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
             asambleaId
                 ?.toIntOrNull()
                 ?: NOTIFICATION_ID
-
+        Log.d(
+            TAG,
+            "CREANDO NOTIFICACIÓN - tipo=$tipo asamblea_id=$asambleaId"
+        )
         val pendingIntent =
             PendingIntent.getActivity(
                 this,
@@ -312,19 +340,18 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                 .setPriority(
                     NotificationCompat.PRIORITY_HIGH
                 )
-                .setAutoCancel(
-                    !esAsamblea
-                )
-                .setOngoing(
-                    esAsamblea
-                )
+                .setAutoCancel(false)
+                .setOngoing(true)
                 .setContentIntent(
                     pendingIntent
                 )
                 .build()
 
         try {
-
+            Log.d(
+                TAG,
+                "MOSTRANDO NOTIFICACIÓN - requestCode=$requestCode"
+            )
             NotificationManagerCompat
                 .from(this)
                 .notify(

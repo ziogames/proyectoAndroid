@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowDownward
@@ -123,22 +124,86 @@ fun ChatVecinalScreen(
     var posicionInicialAplicada by remember {
         mutableStateOf(false)
     }
-    // 🔽 Mostrar botón de nuevos mensajes
+    // 🔽 Estado visual del botón y del separador "Nuevos mensajes".
+    //
+    // IMPORTANTE:
+    // - El servidor sigue siendo la fuente de verdad para "no leídos".
+    // - El separador visual se conserva después de marcar leído.
+    // - El botón se oculta al visitar la tanda y no reaparece por hacer scroll.
+    var nuevosMensajesVisitados by remember {
+        mutableStateOf(false)
+    }
+
+    // ID que usamos SOLO para conservar visualmente el separador.
+    // No se borra cuando el servidor marca los mensajes como leídos.
+    var separadorNuevosId by remember {
+        mutableStateOf<Int?>(null)
+    }
+
+    var ultimoConteoNoLeidos by remember {
+        mutableStateOf(0)
+    }
+
+    // 📨 Detectar una nueva tanda real de mensajes no leídos.
+    //
+    // Si el servidor cambia el primerNoLeidoId, tenemos una nueva tanda
+    // y el botón vuelve a aparecer.
+    LaunchedEffect(
+        uiState.primerNoLeidoId,
+        uiState.mensajesNoLeidos
+    ) {
+        val primerNoLeido = uiState.primerNoLeidoId
+
+        if (primerNoLeido != null) {
+            if (separadorNuevosId != primerNoLeido) {
+                separadorNuevosId = primerNoLeido
+                nuevosMensajesVisitados = false
+            } else if (
+                uiState.mensajesNoLeidos > ultimoConteoNoLeidos
+            ) {
+                // Llegó un mensaje nuevo a la misma tanda.
+                nuevosMensajesVisitados = false
+            }
+        }
+
+        // Si no hay no leídos, NO borramos separadorNuevosId.
+        // Así el separador permanece visualmente hasta que llegue
+        // una nueva tanda.
+        ultimoConteoNoLeidos = uiState.mensajesNoLeidos
+    }
+
+    // 📍 Llegar al final significa que el usuario ya visitó los nuevos.
+    // Aquí SÍ sincronizamos la lectura persistente con el servidor.
+    //
+    // No usamos canScrollForward para mostrar/ocultar el botón;
+    // solamente lo usamos para detectar que se llegó al final.
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            listState.canScrollForward &&
+                    uiState.mensajesNoLeidos > 0
+        }
+            .collect { puedeSeguirBajandoYHayNoLeidos ->
+                if (
+                    !puedeSeguirBajandoYHayNoLeidos &&
+                    uiState.mensajesNoLeidos > 0 &&
+                    !nuevosMensajesVisitados
+                ) {
+                    nuevosMensajesVisitados = true
+
+                    // Marcamos leído hasta el último mensaje actualmente
+                    // disponible. El servidor impedirá retroceder la
+                    // posición de lectura.
+                    uiState.mensajes.lastOrNull()?.id?.let { ultimoMensajeId ->
+                        viewModel.marcarLeido(ultimoMensajeId)
+                    }
+                }
+            }
+    }
+
     val mostrarBotonNuevos by remember {
         derivedStateOf {
-            val ultimoVisible =
-                listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
-
-            val totalItems =
-                listState.layoutInfo.totalItemsCount
-
-            val estaAlFinal =
-                ultimoVisible != null &&
-                        totalItems > 0 &&
-                        ultimoVisible >= totalItems - 1
-
             uiState.mensajesNoLeidos > 0 &&
-                    !estaAlFinal
+                    !nuevosMensajesVisitados
         }
     }
     LaunchedEffect(uiState.mensajes) {
@@ -175,72 +240,9 @@ fun ChatVecinalScreen(
         viewModel.actualizarPresencia()
         viewModel.iniciarActualizacionAutomatica()
     }
-// 📖 Marcar mensajes como leídos al llegar al final
-    // 📖 Marcar como leído solamente cuando el usuario
-// llegue manualmente al final del chat.
-    // 📖 Marcar como leído solamente después de que
-// el usuario haya realizado un desplazamiento real.
-    LaunchedEffect(listState) {
+// 📖 Marcar como leído solamente cuando el usuario
+// llega realmente al final mediante desplazamiento manual.
 
-        var usuarioDesplazo = false
-        var inicializado = false
-
-        snapshotFlow {
-            val layoutInfo = listState.layoutInfo
-
-            val ultimoVisible =
-                layoutInfo.visibleItemsInfo.lastOrNull()?.index
-
-            val totalItems =
-                layoutInfo.totalItemsCount
-
-            val estaAlFinal =
-                ultimoVisible != null &&
-                        totalItems > 0 &&
-                        ultimoVisible >= totalItems - 1
-
-            Triple(
-                estaAlFinal,
-                listState.isScrollInProgress,
-                totalItems
-            )
-        }.collect { (estaAlFinal, desplazandose, totalItems) ->
-
-            // Ignorar completamente la primera emisión
-            // producida al abrir el Chat.
-            if (!inicializado) {
-                inicializado = true
-                return@collect
-            }
-
-            // El usuario realmente comenzó a desplazarse.
-            if (desplazandose) {
-                usuarioDesplazo = true
-            }
-
-            // Solo marcar leído después de un desplazamiento real.
-            if (
-                usuarioDesplazo &&
-                estaAlFinal &&
-                !desplazandose &&
-                totalItems > 0 &&
-                uiState.primerNoLeidoId != null
-            ) {
-                uiState.mensajes.lastOrNull()?.let { ultimoMensaje ->
-
-                    println(
-                        "📖 USUARIO LLEGÓ AL FINAL: ${ultimoMensaje.id}"
-                    )
-
-                    viewModel.marcarLeido(
-                        ultimoMensaje.id
-                    )
-                }
-
-                usuarioDesplazo = false
-            }
-        }
-    }
 
 
     Scaffold(
@@ -347,8 +349,10 @@ fun ChatVecinalScreen(
                             key = { _, mensaje -> mensaje.id }
                         ) { indice, mensaje ->
 
-                            // 🔔 Separador de nuevos mensajes
-                            if (mensaje.id == uiState.primerNoLeidoId) {
+                            // 🔔 Separador de nuevos mensajes.
+                            // Usa un ID visual independiente del estado de lectura
+                            // del servidor, por eso permanece después de marcar leído.
+                            if (mensaje.id == separadorNuevosId) {
                                 Text(
                                     text = "Nuevos mensajes",
                                     modifier = Modifier
@@ -406,10 +410,17 @@ fun ChatVecinalScreen(
                                 .padding(bottom = 16.dp)
                                 .clip(RoundedCornerShape(20.dp))
                                 .clickable {
+                                    // El botón solo lleva al primer mensaje nuevo.
+                                    // El marcado persistente se realiza al llegar
+                                    // al final del chat.
                                     coroutineScope.launch {
+                                        val idDestino =
+                                            separadorNuevosId
+                                                ?: uiState.primerNoLeidoId
+
                                         val indiceNoLeido =
                                             uiState.mensajes.indexOfFirst {
-                                                it.id == uiState.primerNoLeidoId
+                                                it.id == idDestino
                                             }
 
                                         if (indiceNoLeido >= 0) {
@@ -542,8 +553,9 @@ private fun ChatInput(
             .background(colorPrincipal())
             .navigationBarsPadding()
             .imePadding()
-            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .padding(horizontal = 8.dp, vertical = 5.dp)
     ) {
+        // 💬 Vista previa de la respuesta
         if (mensajeRespondido != null && !esBloqueoPermanente) {
             Surface(
                 color = Color.Black.copy(alpha = 0.25f),
@@ -591,16 +603,18 @@ private fun ChatInput(
             }
         }
 
+        // ✍️ Indicador de escritura
         if (usuariosEscribiendo.isNotEmpty()) {
             val nombres = usuariosEscribiendo.joinToString(", ") { it.name ?: "Vecino" }
             Text(
                 text = "$nombres está escribiendo...",
                 color = Color.White.copy(alpha = 0.85f),
                 fontSize = 12.sp,
-                modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
+                modifier = Modifier.padding(start = 12.dp, bottom = 3.dp)
             )
         }
 
+        // 🟢 Barra compacta tipo WhatsApp
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Bottom
@@ -608,62 +622,82 @@ private fun ChatInput(
             Surface(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(end = 6.dp),
+                    .padding(end = 5.dp),
                 shape = RoundedCornerShape(24.dp),
-                color = if (esBloqueoPermanente) Color(0xFFF1F1F1) else Color.White
+                color = if (esBloqueoPermanente) {
+                    Color(0xFFF1F1F1)
+                } else {
+                    Color.White
+                }
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 2.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Bottom
                 ) {
                     IconButton(
                         onClick = onAdjuntar,
                         enabled = !esBloqueoPermanente,
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.AttachFile,
                             contentDescription = "Adjuntar archivo",
-                            tint = if (!esBloqueoPermanente) TextoSecundario else TextoSecundario.copy(alpha = 0.4f),
+                            tint = if (!esBloqueoPermanente) {
+                                TextoSecundario
+                            } else {
+                                TextoSecundario.copy(alpha = 0.4f)
+                            },
                             modifier = Modifier.size(20.dp)
                         )
                     }
 
-                    OutlinedTextField(
+                    BasicTextField(
                         value = if (esBloqueoPermanente) "" else texto,
                         onValueChange = onTextoChange,
                         enabled = !esBloqueoPermanente,
-                        modifier = Modifier.weight(1f),
-                        placeholder = {
-                            Text(
-                                if (esBloqueoPermanente) "Cuenta suspendida." else "Escribe un mensaje...",
-                                fontSize = 14.sp,
-                                color = if (esBloqueoPermanente) Color.Red.copy(alpha = 0.7f) else TextoSecundario
-                            )
-                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 4.dp, vertical = 9.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            color = TextoPrincipal,
+                            fontSize = 14.sp
+                        ),
+                        singleLine = false,
                         maxLines = 4,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            disabledBorderColor = Color.Transparent,
-                            focusedTextColor = TextoPrincipal,
-                            unfocusedTextColor = TextoPrincipal,
-                            disabledTextColor = TextoSecundario,
-                            cursorColor = colorPrincipal()
-                        )
+                        decorationBox = { innerTextField ->
+                            if (texto.isBlank() || esBloqueoPermanente) {
+                                Text(
+                                    text = if (esBloqueoPermanente) {
+                                        "Cuenta suspendida."
+                                    } else {
+                                        "Escribe un mensaje..."
+                                    },
+                                    color = if (esBloqueoPermanente) {
+                                        Color.Red.copy(alpha = 0.7f)
+                                    } else {
+                                        TextoSecundario
+                                    },
+                                    fontSize = 14.sp,
+                                    maxLines = 1
+                                )
+                            }
+                            innerTextField()
+                        }
                     )
                 }
             }
 
+            // ➤ Botón enviar compacto
             Surface(
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(46.dp),
                 shape = CircleShape,
-                color = if (!esBloqueoPermanente && texto.isNotBlank()) colorPrincipal() else colorPrincipal().copy(alpha = 0.4f)
+                color = if (!esBloqueoPermanente && texto.isNotBlank()) {
+                    colorPrincipal()
+                } else {
+                    colorPrincipal().copy(alpha = 0.4f)
+                }
             ) {
                 IconButton(
                     onClick = onEnviar,
@@ -671,7 +705,7 @@ private fun ChatInput(
                 ) {
                     if (enviando) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(22.dp),
+                            modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp,
                             color = Color.White
                         )
@@ -841,10 +875,10 @@ private fun ChatMessageItem(
                         text = mensaje.usuario?.name ?: "Vecino",
                         color = NombreEmisorColor,
                         fontSize = 12.sp,
+                        lineHeight = 11.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
                 }
 
                 // 📁 DETECCIÓN DE ARCHIVO ADJUNTO

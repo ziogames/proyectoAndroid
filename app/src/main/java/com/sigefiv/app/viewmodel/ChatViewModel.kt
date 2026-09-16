@@ -49,6 +49,11 @@ class ChatViewModel(
 
     private var ultimoMensajeId: Int = 0
 
+    // 📖 ID de lectura pendiente de confirmación en Laravel.
+    // Evita que una respuesta del polling con el estado anterior
+    // pueda pisar temporalmente el marcado como leído.
+    private var mensajeLeidoPendienteId: Int? = null
+
     fun cargarChat() {
         viewModelScope.launch {
 
@@ -72,28 +77,54 @@ class ChatViewModel(
                     println("📖 ÚLTIMO LEÍDO: ${respuesta.ultimo_leido_message_id}")
                     println("📖 PRIMER NO LEÍDO: ${respuesta.primer_no_leido_id}")
                     println("📖 NO LEÍDOS: ${respuesta.mensajes_no_leidos}")
+                    val lecturaPendiente =
+                        mensajeLeidoPendienteId
+
+                    val respuestaEsAnterior =
+                        lecturaPendiente != null &&
+                                (
+                                        respuesta.ultimo_leido_message_id == null ||
+                                                respuesta.ultimo_leido_message_id < lecturaPendiente
+                                        )
+
                     _uiState.value =
-                        _uiState.value.copy(
-                            cargando = false,
-                            mensajes = mensajes,
-                            personas = respuesta.personas,
-                            personasEnLinea =
-                                respuesta.personas_en_linea,
-                            usuariosEscribiendo =
-                                respuesta.usuarios_escribiendo,
+                        if (respuestaEsAnterior) {
+                            // Laravel todavía puede responder con el estado
+                            // anterior mientras la petición de marcar leído
+                            // termina.
+                            _uiState.value.copy(
+                                cargando = false,
+                                mensajes = mensajes,
+                                personas = respuesta.personas,
+                                personasEnLinea =
+                                    respuesta.personas_en_linea,
+                                usuariosEscribiendo =
+                                    respuesta.usuarios_escribiendo,
+                                error = null
+                            )
+                        } else {
+                            _uiState.value.copy(
+                                cargando = false,
+                                mensajes = mensajes,
+                                personas = respuesta.personas,
+                                personasEnLinea =
+                                    respuesta.personas_en_linea,
+                                usuariosEscribiendo =
+                                    respuesta.usuarios_escribiendo,
 
-                            // 📖 Estado de lectura
-                            ultimoLeidoMessageId =
-                                respuesta.ultimo_leido_message_id,
+                                // 📖 Estado de lectura
+                                ultimoLeidoMessageId =
+                                    respuesta.ultimo_leido_message_id,
 
-                            primerNoLeidoId =
-                                respuesta.primer_no_leido_id,
+                                primerNoLeidoId =
+                                    respuesta.primer_no_leido_id,
 
-                            mensajesNoLeidos =
-                                respuesta.mensajes_no_leidos,
+                                mensajesNoLeidos =
+                                    respuesta.mensajes_no_leidos,
 
-                            error = null
-                        )
+                                error = null
+                            )
+                        }
                 }
                 .onFailure { error ->
 
@@ -110,29 +141,48 @@ class ChatViewModel(
 
     fun marcarLeido(mensajeId: Int) {
         println("📖 MARCAR LEÍDO LLAMADO: $mensajeId")
-        // No permitir retroceder la posición de lectura
-        val ultimoLeido = _uiState.value.ultimoLeidoMessageId
 
+        val estadoActual = _uiState.value
+        val ultimoLeido = estadoActual.ultimoLeidoMessageId
+        val pendiente = mensajeLeidoPendienteId
+
+        // No permitir retroceder la posición de lectura.
         if (ultimoLeido != null && mensajeId <= ultimoLeido) {
             return
         }
 
+        // Evitar enviar repetidamente el mismo marcado mientras
+        // la petición anterior todavía está en curso.
+        if (pendiente != null && mensajeId <= pendiente) {
+            return
+        }
+
+        mensajeLeidoPendienteId = mensajeId
+
         viewModelScope.launch {
             repository.marcarLeido(mensajeId)
                 .onSuccess {
-                    val mensajesNoLeidos =
-                        _uiState.value.mensajes.count {
-                            it.id > mensajeId
-                        }
 
+                    // Solo actualizamos el estado local después de que
+                    // Laravel confirme el marcado.
                     _uiState.value = _uiState.value.copy(
                         ultimoLeidoMessageId = mensajeId,
                         primerNoLeidoId = null,
-                        mensajesNoLeidos = mensajesNoLeidos
+                        mensajesNoLeidos = 0
                     )
+
+                    mensajeLeidoPendienteId = null
                 }
-                .onFailure {
-                    // No cambiamos el estado local si el servidor falla
+                .onFailure { error ->
+
+                    println(
+                        "📖 ERROR AL MARCAR LEÍDO: " +
+                                (error.message ?: "error desconocido")
+                    )
+
+                    // Conservamos el estado anterior porque el servidor
+                    // no confirmó el marcado.
+                    mensajeLeidoPendienteId = null
                 }
         }
     }
@@ -197,51 +247,70 @@ class ChatViewModel(
                                 }
                                 ?: ultimoMensajeId
 
-                        // 📖 Recalcular mensajes no leídos
-                        val ultimoLeido =
-                            _uiState.value.ultimoLeidoMessageId
+                        // 📖 Laravel es la fuente de verdad, salvo mientras
+                        // existe un marcado de lectura más reciente pendiente.
+                        val lecturaPendiente =
+                            mensajeLeidoPendienteId
 
-                        val primerNoLeido =
-                            if (ultimoLeido != null) {
-                                mensajesActualizados
-                                    .firstOrNull { it.id > ultimoLeido }
-                                    ?.id
-                            } else {
-                                null
-                            }
-
-                        val cantidadNoLeidos =
-                            if (ultimoLeido != null) {
-                                mensajesActualizados.count {
-                                    it.id > ultimoLeido
-                                }
-                            } else {
-                                0
-                            }
+                        val respuestaEsAnterior =
+                            lecturaPendiente != null &&
+                                    (
+                                            respuesta.ultimo_leido_message_id == null ||
+                                                    respuesta.ultimo_leido_message_id < lecturaPendiente
+                                            )
 
                         _uiState.value =
-                            _uiState.value.copy(
-                                mensajes = mensajesActualizados,
-
-                                // 📖 Estado de lectura
-                                primerNoLeidoId = primerNoLeido,
-                                mensajesNoLeidos = cantidadNoLeidos
-                            )
-
-                        println("📖 LEÍDO: $ultimoLeido")
-                        println("📖 PRIMER NO LEÍDO: $primerNoLeido")
-                        println("📖 CANTIDAD NO LEÍDOS: $cantidadNoLeidos")
+                            if (respuestaEsAnterior) {
+                                _uiState.value.copy(
+                                    mensajes = mensajesActualizados
+                                )
+                            } else {
+                                _uiState.value.copy(
+                                    mensajes = mensajesActualizados,
+                                    ultimoLeidoMessageId =
+                                        respuesta.ultimo_leido_message_id,
+                                    primerNoLeidoId =
+                                        respuesta.primer_no_leido_id,
+                                    mensajesNoLeidos =
+                                        respuesta.mensajes_no_leidos
+                                )
+                            }
                     }
                 }
 
+                val lecturaPendiente =
+                    mensajeLeidoPendienteId
+
+                val respuestaEsAnterior =
+                    lecturaPendiente != null &&
+                            (
+                                    respuesta.ultimo_leido_message_id == null ||
+                                            respuesta.ultimo_leido_message_id < lecturaPendiente
+                                    )
+
                 _uiState.value =
-                    _uiState.value.copy(
-                        personasEnLinea =
-                            respuesta.personas_en_linea,
-                        usuariosEscribiendo =
-                            respuesta.usuarios_escribiendo,
-                        error = null
-                    )
+                    if (respuestaEsAnterior) {
+                        _uiState.value.copy(
+                            personasEnLinea = respuesta.personas_en_linea,
+                            usuariosEscribiendo = respuesta.usuarios_escribiendo,
+                            error = null
+                        )
+                    } else {
+                        _uiState.value.copy(
+                            personasEnLinea = respuesta.personas_en_linea,
+                            usuariosEscribiendo = respuesta.usuarios_escribiendo,
+
+                            // 📖 Sincronizar lectura con Laravel
+                            ultimoLeidoMessageId =
+                                respuesta.ultimo_leido_message_id,
+                            primerNoLeidoId =
+                                respuesta.primer_no_leido_id,
+                            mensajesNoLeidos =
+                                respuesta.mensajes_no_leidos,
+
+                            error = null
+                        )
+                    }
             }
     }
 
