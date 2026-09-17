@@ -243,8 +243,8 @@ fun AppNavigation(
                         "SIGEFIV_NOTIF",
                         "ABRIENDO CONVOCATORIA"
                     )
-
                     backStack.clear()
+                    backStack.add(AppScreen.DASHBOARD)
                     backStack.add(AppScreen.CONVOCATORIA_ASAMBLEA)
                 }
             }
@@ -903,6 +903,7 @@ fun AppNavigation(
                             destinatario = notificacionDestinatario,
                             cantidadDestinatarios = notificacionCantidad,
                             onBackClick = {
+                                enviarNotificacionViewModel.limpiarResultado()
                                 retroceder()
                             },
                             onConfirmarEnvio = {
