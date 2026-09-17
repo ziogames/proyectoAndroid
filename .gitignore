@@ -38,3 +38,5 @@
 
 # Firebase
 google-services.json
+.idea/.name
+app/google-services.json
