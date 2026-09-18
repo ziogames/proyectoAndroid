@@ -803,7 +803,10 @@ fun AppNavigation(
                     }
                     AppScreen.ACTIVIDAD -> {
                         ActividadScreen(
-                            viewModel = actividadViewModel
+                            viewModel = actividadViewModel,
+                            onBack = {
+                                retroceder()
+                            }
                         )
                     }
                     AppScreen.NOTIFICACIONES -> {

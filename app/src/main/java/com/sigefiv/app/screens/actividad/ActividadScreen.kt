@@ -62,18 +62,30 @@ import com.sigefiv.app.viewmodel.ActividadUiState
 import com.sigefiv.app.viewmodel.ActividadViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
-
+import androidx.compose.material.icons.filled.ArrowBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActividadScreen(
-    viewModel: ActividadViewModel
+    viewModel: ActividadViewModel,
+    onBack: () -> Unit
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    IconButton(
+                        onClick = onBack
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically
