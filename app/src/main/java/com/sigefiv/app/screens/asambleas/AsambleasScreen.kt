@@ -44,6 +44,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -85,15 +86,9 @@ import com.sigefiv.app.ui.theme.SeasonalTheme
 |--------------------------------------------------------------------------
 */
 
-private val FondoSIGEFIV = Color(0xFFF1F5F9)
-private val FondoTarjeta = Color(0xFFFFFFFF)
 private val VerdeSuave = Color(0xFFCCFBF1)
 private val VerdeTexto = Color(0xFF0D9488)
-private val Blanco = Color(0xFFFFFFFF)
-private val TextoPrincipal = Color(0xFF0F172A)
-private val GrisSecundario = Color(0xFF475569)
-private val GrisClaro = Color(0xFF94A3B8)
-private val GrisBorde = Color(0xFFE2E8F0)
+private val Blanco = Color.White
 
 private val AzulBadge = Color(0xFF2563EB)
 private val AzulSuave = Color(0xFFDBEAFE)
@@ -157,7 +152,7 @@ fun AsambleasScreen(
     }
 
     Scaffold(
-        containerColor = FondoSIGEFIV,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
@@ -302,12 +297,12 @@ fun AsambleasScreen(
                         } else {
                             Blanco
                         },
-                        border = if (seleccionado) null else BorderStroke(1.dp, GrisBorde)
+                        border = if (seleccionado) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Text(
                             text = filtro.titulo,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            color = if (seleccionado) Blanco else GrisSecundario,
+                            color = if (seleccionado) Blanco else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 13.sp,
                             fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Medium
                         )
@@ -335,7 +330,7 @@ fun AsambleasScreen(
                                     SeasonalTheme.getSeason()
                                 ))
                                 Spacer(modifier = Modifier.height(12.dp))
-                                Text("Obteniendo asambleas...", color = GrisSecundario, fontSize = 13.sp)
+                                Text("Obteniendo asambleas...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                             }
                         }
                     }
@@ -387,7 +382,7 @@ fun AsambleasScreen(
     asambleaParaPublicar?.let { asamblea ->
         AlertDialog(
             onDismissRequest = { asambleaParaPublicar = null },
-            title = { Text("Publicar asamblea", color = TextoPrincipal, fontWeight = FontWeight.Bold) },
+            title = { Text("Publicar asamblea", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
             text = { Text("¿Deseas publicar la asamblea \"${asamblea.titulo ?: "Sin título"}\"? Una vez publicada ya no podrá editarse.") },
             confirmButton = {
                 TextButton(onClick = {
@@ -399,7 +394,7 @@ fun AsambleasScreen(
             },
             dismissButton = {
                 TextButton(onClick = { asambleaParaPublicar = null }) {
-                    Text("Cancelar", color = GrisSecundario)
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -408,7 +403,7 @@ fun AsambleasScreen(
     asambleaParaEliminar?.let { asamblea ->
         AlertDialog(
             onDismissRequest = { asambleaParaEliminar = null },
-            title = { Text("Eliminar asamblea", color = TextoPrincipal, fontWeight = FontWeight.Bold) },
+            title = { Text("Eliminar asamblea", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
             text = { Text("¿Deseas eliminar la asamblea \"${asamblea.titulo ?: "Sin título"}\"?") },
             confirmButton = {
                 TextButton(onClick = {
@@ -420,7 +415,7 @@ fun AsambleasScreen(
             },
             dismissButton = {
                 TextButton(onClick = { asambleaParaEliminar = null }) {
-                    Text("Cancelar", color = GrisSecundario)
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -448,8 +443,8 @@ private fun AsambleaCard(
             .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-        border = BorderStroke(1.dp, GrisBorde),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -482,14 +477,14 @@ private fun AsambleaCard(
                         text = asamblea.titulo?.takeIf { it.isNotBlank() } ?: "Sin título",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextoPrincipal,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = textoTipo(asamblea.tipo),
                         fontSize = 12.sp,
-                        color = GrisClaro
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                     )
                 }
 
@@ -502,7 +497,7 @@ private fun AsambleaCard(
                     Icon(
                         imageVector = Icons.Outlined.Delete,
                         contentDescription = if (esBorrador) "Eliminar" else "No se puede eliminar",
-                        tint = if (esBorrador) GrisClaro else GrisBorde,
+                        tint = if (esBorrador) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f) else MaterialTheme.colorScheme.outlineVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -538,7 +533,7 @@ private fun AsambleaCard(
                 Text(
                     text = "Convoca: ${asamblea.convoca}",
                     fontSize = 12.sp,
-                    color = GrisSecundario,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -550,7 +545,7 @@ private fun AsambleaCard(
                 Text(
                     text = asamblea.descripcion ?: "",
                     fontSize = 12.sp,
-                    color = GrisSecundario,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -561,7 +556,7 @@ private fun AsambleaCard(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    color = FondoSIGEFIV
+                    color = MaterialTheme.colorScheme.background
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
@@ -576,7 +571,7 @@ private fun AsambleaCard(
                             Text(
                                 text = "${agenda.numero}. ${agenda.descripcion?.trim() ?: ""}",
                                 fontSize = 12.sp,
-                                color = TextoPrincipal,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(vertical = 1.dp)
@@ -658,7 +653,7 @@ private fun InfoItem(
         Text(
             text = text,
             fontSize = 12.sp,
-            color = TextoPrincipal,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -694,7 +689,7 @@ private fun EmptyAsambleas() {
         modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
         shape = RoundedCornerShape(16.dp),
         color = Blanco,
-        border = BorderStroke(1.dp, GrisBorde)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier.padding(32.dp),
@@ -718,13 +713,13 @@ private fun EmptyAsambleas() {
                 text = "No hay asambleas",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextoPrincipal
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "No se encontraron registros en este filtro.",
                 fontSize = 12.sp,
-                color = GrisClaro,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
                 textAlign = TextAlign.Center
             )
         }

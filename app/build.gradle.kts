@@ -98,4 +98,5 @@ dependencies {
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
 }

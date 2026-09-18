@@ -1,4 +1,3 @@
-
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.sigefiv.app.screens.periodos
@@ -33,6 +32,7 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,7 +50,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,12 +64,6 @@ import com.sigefiv.app.ui.theme.SeasonalTheme
 |--------------------------------------------------------------------------
 */
 
-private val FondoSIGEFIV = Color(0xFFF8FAFC)
-private val FondoTarjeta = Color(0xFFFFFFFF)
-private val FondoActivo = Color(0xFFDCFCE7)
-private val Blanco = Color(0xFFFFFFFF)
-private val TextoPrincipal = Color(0xFF0F172A)
-private val GrisClaro = Color(0xFF64748B)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,20 +118,20 @@ fun PeriodosAnioScreen(
     }
 
     Scaffold(
-        containerColor = FondoSIGEFIV,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
                     Column {
                         Text(
                             text = "Períodos - $anio",
-                            color = Blanco,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 19.sp
                         )
                         Text(
                             text = "Meses del ejercicio $anio",
-                            color = Blanco.copy(alpha = 0.85f),
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
                             fontSize = 12.sp
                         )
                     }
@@ -148,7 +141,7 @@ fun PeriodosAnioScreen(
                         Icon(
                             imageVector = Icons.Outlined.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Blanco
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },
@@ -158,7 +151,7 @@ fun PeriodosAnioScreen(
                             Icon(
                                 imageVector = Icons.Outlined.Menu,
                                 contentDescription = "Abrir menú",
-                                tint = Blanco
+                                tint = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }
@@ -183,7 +176,7 @@ fun PeriodosAnioScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(FondoSIGEFIV)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -195,7 +188,7 @@ fun PeriodosAnioScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
                 ) {
                     Row(
@@ -207,7 +200,7 @@ fun PeriodosAnioScreen(
                         Box(
                             modifier = Modifier
                                 .size(46.dp)
-                                .background(FondoActivo, shape = RoundedCornerShape(12.dp)),
+                                .background(MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -223,7 +216,7 @@ fun PeriodosAnioScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Ejercicio $anio",
-                                color = TextoPrincipal,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -232,7 +225,7 @@ fun PeriodosAnioScreen(
 
                             Text(
                                 text = "$periodosRegistrados de 12 meses registrados",
-                                color = GrisClaro,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp
                             )
                         }
@@ -241,7 +234,7 @@ fun PeriodosAnioScreen(
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
                                     text = "Mes activo",
-                                    color = GrisClaro,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 10.sp
                                 )
 
@@ -313,8 +306,8 @@ private fun PeriodoMesCard(
     }
 
     val fondoTarjeta = when (estado) {
-        EstadoMes.ABIERTO -> FondoActivo
-        else -> FondoTarjeta
+        EstadoMes.ABIERTO -> MaterialTheme.colorScheme.secondaryContainer
+        else -> MaterialTheme.colorScheme.surface
     }
 
     val textoEstado = when (estado) {
@@ -326,9 +319,9 @@ private fun PeriodoMesCard(
 
     val colorEstado = when (estado) {
         EstadoMes.ABIERTO -> colorPrincipal
-        EstadoMes.CERRADO -> GrisClaro
-        EstadoMes.NO_INICIADO -> GrisClaro.copy(alpha = 0.6f)
-        EstadoMes.OTRO -> GrisClaro
+        EstadoMes.CERRADO -> MaterialTheme.colorScheme.onSurfaceVariant
+        EstadoMes.NO_INICIADO -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        EstadoMes.OTRO -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     Card(
@@ -364,7 +357,7 @@ private fun PeriodoMesCard(
 
             Text(
                 text = nombre,
-                color = if (estado == EstadoMes.ABIERTO) colorPrincipal else TextoPrincipal,
+                color = if (estado == EstadoMes.ABIERTO) colorPrincipal else MaterialTheme.colorScheme.onSurface,
                 fontSize = 15.sp,
                 fontWeight = if (estado == EstadoMes.ABIERTO) FontWeight.Bold else FontWeight.Medium,
                 modifier = Modifier.weight(1f)
@@ -383,7 +376,7 @@ private fun PeriodoMesCard(
                 Icon(
                     imageVector = Icons.Outlined.ChevronRight,
                     contentDescription = "Ver mes",
-                    tint = GrisClaro,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -434,8 +427,8 @@ private fun BarraInferiorPeriodosAnio(
                 Text(text = "Inicio")
             },
             colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
+                unselectedIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
+                unselectedTextColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
             )
         )
 
@@ -453,8 +446,8 @@ private fun BarraInferiorPeriodosAnio(
                 Text(text = "Asambleas")
             },
             colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
+                unselectedIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
+                unselectedTextColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
             )
         )
 
@@ -473,10 +466,10 @@ private fun BarraInferiorPeriodosAnio(
             },
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = colorPrincipal,
-                selectedTextColor = Blanco,
-                indicatorColor = Blanco,
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
+                selectedTextColor = MaterialTheme.colorScheme.onPrimary,
+                indicatorColor = MaterialTheme.colorScheme.onPrimary,
+                unselectedIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
+                unselectedTextColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
             )
         )
 
@@ -494,8 +487,8 @@ private fun BarraInferiorPeriodosAnio(
                 Text(text = "Mi cuenta")
             },
             colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
+                unselectedIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
+                unselectedTextColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
             )
         )
     }

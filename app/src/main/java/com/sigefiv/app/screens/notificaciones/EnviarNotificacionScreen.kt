@@ -41,6 +41,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -57,7 +58,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
@@ -71,18 +71,8 @@ import com.sigefiv.app.viewmodel.EnviarNotificacionViewModel
 import com.sigefiv.app.viewmodel.UsuarioViewModel
 
 // ====================================================================
-// PALETA DE COLORES CORPORATIVA SIGEFIV
+// COLORES ADAPTATIVOS PARA TEMA CLARO Y OSCURO
 // ====================================================================
-private val FondoPantalla = Color(0xFFF8FAFC)
-private val Blanco = Color.White
-private val VerdeOscuro = Color(0xFF166534)
-private val VerdeSuave = Color(0xFFDCFCE7)
-private val TextoPrincipal = Color(0xFF0F172A)
-private val GrisTexto = Color(0xFF64748B)
-private val GrisBorde = Color(0xFFCBD5E1)
-private val RojoError = Color(0xFFDC2626)
-private val AzulInfoFondo = Color(0xFFF0FDF4) // Tono suave armónico con verde para info
-private val AzulInfoTexto = Color(0xFF166534)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -169,7 +159,7 @@ fun EnviarNotificacionScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(FondoPantalla)
+            .background(MaterialTheme.colorScheme.background)
     ) {
 
         // ========================================================
@@ -194,7 +184,7 @@ fun EnviarNotificacionScreen(
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Volver",
-                        tint = Blanco,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -204,13 +194,13 @@ fun EnviarNotificacionScreen(
                 Column {
                     Text(
                         text = "SIGEFIV",
-                        color = Blanco,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontSize = 19.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "Centro de Notificaciones",
-                        color = Blanco.copy(alpha = 0.85f),
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
                         fontSize = 13.sp
                     )
                 }
@@ -232,7 +222,7 @@ fun EnviarNotificacionScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Blanco),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
@@ -246,7 +236,7 @@ fun EnviarNotificacionScreen(
                         Box(
                             modifier = Modifier
                                 .size(50.dp)
-                                .background(VerdeSuave, CircleShape),
+                                .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -262,13 +252,13 @@ fun EnviarNotificacionScreen(
                         Column {
                             Text(
                                 text = "Nueva notificación",
-                                color = TextoPrincipal,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 19.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "Transmite avisos importantes a la comunidad",
-                                color = GrisTexto,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 13.sp
                             )
                         }
@@ -281,7 +271,7 @@ fun EnviarNotificacionScreen(
                     // ====================================================
                     Text(
                         text = "Título del comunicado *",
-                        color = TextoPrincipal,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -290,7 +280,7 @@ fun EnviarNotificacionScreen(
                         value = titulo,
                         onValueChange = { titulo = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Ej. Reunión extraordinaria de vecinos", color = GrisTexto) },
+                        placeholder = { Text("Ej. Reunión extraordinaria de vecinos", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         singleLine = true,
                         shape = RoundedCornerShape(10.dp),
                         colors = textFieldColorsCustom()
@@ -303,7 +293,7 @@ fun EnviarNotificacionScreen(
                     // ====================================================
                     Text(
                         text = "Mensaje detallado *",
-                        color = TextoPrincipal,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -314,7 +304,7 @@ fun EnviarNotificacionScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(140.dp),
-                        placeholder = { Text("Escribe aquí el contenido del mensaje...", color = GrisTexto) },
+                        placeholder = { Text("Escribe aquí el contenido del mensaje...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         shape = RoundedCornerShape(10.dp),
                         colors = textFieldColorsCustom()
                     )
@@ -327,7 +317,7 @@ fun EnviarNotificacionScreen(
                     ) {
                         Text(
                             text = "${mensaje.length}/500",
-                            color = GrisTexto,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
@@ -339,7 +329,7 @@ fun EnviarNotificacionScreen(
                     // ====================================================
                     Text(
                         text = "Categoría o tipo *",
-                        color = TextoPrincipal,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -373,7 +363,7 @@ fun EnviarNotificacionScreen(
                         ) {
                             listOf("Aviso", "Asamblea", "Financiero", "Sistema").forEach { opcion ->
                                 DropdownMenuItem(
-                                    text = { Text(opcion, color = TextoPrincipal) },
+                                    text = { Text(opcion, color = MaterialTheme.colorScheme.onSurface) },
                                     onClick = {
                                         tipo = opcion
                                         tipoExpandido = false
@@ -390,7 +380,7 @@ fun EnviarNotificacionScreen(
                     // ====================================================
                     Text(
                         text = "Enviar a *",
-                        color = TextoPrincipal,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -428,7 +418,7 @@ fun EnviarNotificacionScreen(
                                 "Seleccionar usuarios"
                             ).forEach { opcion ->
                                 DropdownMenuItem(
-                                    text = { Text(opcion, color = TextoPrincipal) },
+                                    text = { Text(opcion, color = MaterialTheme.colorScheme.onSurface) },
                                     onClick = {
                                         destinatario = opcion
                                         destinatarioExpandido = false
@@ -450,7 +440,7 @@ fun EnviarNotificacionScreen(
 
                         Text(
                             text = "Lista de destinatarios",
-                            color = TextoPrincipal,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -460,9 +450,9 @@ fun EnviarNotificacionScreen(
                             value = busquedaUsuario,
                             onValueChange = { busquedaUsuario = it },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Buscar por nombre o correo...", color = GrisTexto) },
+                            placeholder = { Text("Buscar por nombre o correo...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             leadingIcon = {
-                                Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = GrisTexto)
+                                Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             },
                             singleLine = true,
                             shape = RoundedCornerShape(10.dp),
@@ -485,8 +475,8 @@ fun EnviarNotificacionScreen(
                                 .fillMaxWidth()
                                 .height(210.dp),
                             shape = RoundedCornerShape(10.dp),
-                            colors = CardDefaults.cardColors(containerColor = FondoPantalla),
-                            border = BorderStroke(1.dp, GrisBorde)
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                         ) {
                             when {
                                 usuarioUiState.cargando -> {
@@ -498,14 +488,14 @@ fun EnviarNotificacionScreen(
                                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                         Text(
                                             text = usuarioUiState.error ?: "Error al cargar usuarios.",
-                                            color = RojoError,
+                                            color = MaterialTheme.colorScheme.error,
                                             fontSize = 13.sp
                                         )
                                     }
                                 }
                                 usuariosFiltrados.isEmpty() -> {
                                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        Text(text = "No se encontraron usuarios.", color = GrisTexto, fontSize = 13.sp)
+                                        Text(text = "No se encontraron usuarios.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                                     }
                                 }
                                 else -> {
@@ -533,13 +523,13 @@ fun EnviarNotificacionScreen(
                                                 Column(modifier = Modifier.weight(1f)) {
                                                     Text(
                                                         text = usuario.name,
-                                                        color = TextoPrincipal,
+                                                        color = MaterialTheme.colorScheme.onSurface,
                                                         fontSize = 14.sp,
                                                         fontWeight = FontWeight.Medium
                                                     )
                                                     Text(
                                                         text = usuario.email,
-                                                        color = GrisTexto,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                         fontSize = 11.sp
                                                     )
                                                     Text(
@@ -565,7 +555,7 @@ fun EnviarNotificacionScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.cardColors(containerColor = AzulInfoFondo)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
@@ -574,7 +564,7 @@ fun EnviarNotificacionScreen(
                             Icon(
                                 imageVector = Icons.Default.Info,
                                 contentDescription = null,
-                                tint = AzulInfoTexto,
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
@@ -584,7 +574,7 @@ fun EnviarNotificacionScreen(
                                     "Seleccionar usuarios" -> "Se enviará la notificación de forma personalizada a los destinatarios marcados."
                                     else -> "Se enviará la notificación de difusión masiva a todos los vecinos registrados."
                                 },
-                                color = AzulInfoTexto,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 fontSize = 12.sp,
                                 lineHeight = 18.sp
                             )
@@ -596,7 +586,7 @@ fun EnviarNotificacionScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = mensajeEstado ?: "",
-                            color = if (enviado) SeasonalColors.primary(SeasonalTheme.getSeason()) else RojoError,
+                            color = if (enviado) SeasonalColors.primary(SeasonalTheme.getSeason()) else MaterialTheme.colorScheme.error,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -612,7 +602,7 @@ fun EnviarNotificacionScreen(
         // ============================================================
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Blanco,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = 8.dp
         ) {
             val puedeEnviar = !enviando &&
@@ -633,8 +623,8 @@ fun EnviarNotificacionScreen(
                         .height(50.dp),
                     enabled = !enviando,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.5.dp, GrisBorde),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = GrisTexto)
+                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                 ) {
                     Text(
                         text = "Cancelar",
@@ -667,13 +657,13 @@ fun EnviarNotificacionScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
                         disabledContainerColor = SeasonalColors.primary(SeasonalTheme.getSeason()).copy(alpha = 0.4f),
-                        contentColor = Blanco
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
                     if (enviando) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            color = Blanco,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -702,8 +692,14 @@ fun EnviarNotificacionScreen(
 // ====================================================================
 @Composable
 private fun textFieldColorsCustom() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
-    unfocusedBorderColor = GrisBorde,
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
     focusedLabelColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    focusedBorderColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
+    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
     cursorColor = SeasonalColors.primary(SeasonalTheme.getSeason())
 )
+

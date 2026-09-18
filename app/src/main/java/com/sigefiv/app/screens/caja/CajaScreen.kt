@@ -28,6 +28,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -52,7 +53,6 @@ import com.sigefiv.app.viewmodel.CajaViewModel
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 
-private val FondoSIGEFIV = Color(0xFFF1F5F9)
 
 private val Verde = Color(0xFF15803D)
 private val VerdeClaro = Color(0xFFDCFCE7)
@@ -60,11 +60,7 @@ private val Rojo = Color(0xFFDC2626)
 private val RojoClaro = Color(0xFFFEE2E2)
 private val Azul = Color(0xFF2563EB)
 private val AzulClaro = Color(0xFFDBEAFE)
-private val TextoPrincipal = Color(0xFF0F172A)
-private val GrisSecundario = Color(0xFF475569)
-private val GrisClaro = Color(0xFF64748B)
 private val Blanco = Color.White
-private val Borde = Color(0xFFE2E8F0)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,7 +85,7 @@ fun CajaScreen(
     }
 
     Scaffold(
-        containerColor = FondoSIGEFIV,
+        containerColor = MaterialTheme.colorScheme.background,
 
         topBar = {
             TopAppBar(
@@ -152,7 +148,7 @@ fun CajaScreen(
                             text = "No se pudo cargar Caja",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
-                            color = TextoPrincipal
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Spacer(
@@ -161,7 +157,7 @@ fun CajaScreen(
 
                         Text(
                             text = error ?: "Error desconocido",
-                            color = GrisSecundario
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -194,11 +190,11 @@ fun CajaScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(14.dp),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = Blanco
+                                        containerColor = MaterialTheme.colorScheme.surface
                                     ),
                                     border = androidx.compose.foundation.BorderStroke(
                                         1.dp,
-                                        Borde
+                                        MaterialTheme.colorScheme.outlineVariant
                                     ),
                                     onClick = {
                                         menuAnioAbierto =
@@ -243,7 +239,7 @@ fun CajaScreen(
                                                 fontSize =
                                                     12.sp,
                                                 color =
-                                                    GrisClaro
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
                                             )
 
                                             Text(
@@ -254,7 +250,7 @@ fun CajaScreen(
                                                 fontWeight =
                                                     FontWeight.Bold,
                                                 color =
-                                                    TextoPrincipal
+                                                    MaterialTheme.colorScheme.onSurface
                                             )
                                         }
 
@@ -310,7 +306,7 @@ fun CajaScreen(
                                 text = "Resumen financiero",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextoPrincipal,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(
                                     top = 4.dp
                                 )
@@ -419,12 +415,12 @@ fun CajaScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = Blanco
+                                    containerColor = MaterialTheme.colorScheme.surface
                                 ),
                                 border =
                                     androidx.compose.foundation.BorderStroke(
                                         1.dp,
-                                        Borde
+                                        MaterialTheme.colorScheme.outlineVariant
                                     )
                             ) {
 
@@ -441,7 +437,7 @@ fun CajaScreen(
                                         fontWeight =
                                             FontWeight.Bold,
                                         color =
-                                            TextoPrincipal
+                                            MaterialTheme.colorScheme.onSurface
                                     )
 
                                     Spacer(
@@ -464,7 +460,7 @@ fun CajaScreen(
                                                 fontSize =
                                                     13.sp,
                                                 color =
-                                                    GrisSecundario
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
                                             )
 
                                             Text(
@@ -490,7 +486,7 @@ fun CajaScreen(
                                                 fontSize =
                                                     13.sp,
                                                 color =
-                                                    GrisSecundario
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
                                             )
 
                                             Text(
@@ -558,7 +554,7 @@ fun CajaScreen(
                                 text = "Consolidado mensual",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextoPrincipal,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(
                                     top = 4.dp
                                 )
@@ -604,11 +600,11 @@ private fun CajaResumenCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Blanco
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            Borde
+            MaterialTheme.colorScheme.outlineVariant
         )
     ) {
 
@@ -647,7 +643,7 @@ private fun CajaResumenCard(
                 Text(
                     text = titulo,
                     fontSize = 13.sp,
-                    color = GrisSecundario
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(
@@ -658,7 +654,7 @@ private fun CajaResumenCard(
                     text = moneda(valor),
                     fontSize = 21.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextoPrincipal
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -678,11 +674,11 @@ private fun CajaMesCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Blanco
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            Borde
+            MaterialTheme.colorScheme.outlineVariant
         )
     ) {
 
@@ -704,7 +700,7 @@ private fun CajaMesCard(
                         text = mes.nombre_mes,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextoPrincipal
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(
@@ -718,7 +714,7 @@ private fun CajaMesCard(
                             if (tieneMovimientos)
                                 Verde
                             else
-                                GrisClaro
+                                MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -739,7 +735,7 @@ private fun CajaMesCard(
             )
 
             HorizontalDivider(
-                color = Borde
+                color = MaterialTheme.colorScheme.outlineVariant
             )
 
             Spacer(
@@ -749,7 +745,7 @@ private fun CajaMesCard(
             CajaMesFila(
                 etiqueta = "Saldo inicial",
                 valor = mes.saldo_inicial,
-                color = TextoPrincipal
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             CajaMesFila(
@@ -795,7 +791,7 @@ private fun CajaMesFila(
         Text(
             text = etiqueta,
             fontSize = 13.sp,
-            color = GrisSecundario
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Text(

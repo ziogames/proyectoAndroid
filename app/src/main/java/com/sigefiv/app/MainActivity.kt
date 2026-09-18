@@ -1,3 +1,4 @@
+
 package com.sigefiv.app
 
 import android.os.Bundle
@@ -51,6 +52,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 
@@ -59,6 +61,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Alignment
@@ -124,14 +127,9 @@ import android.content.Context
 |--------------------------------------------------------------------------
 */
 
-private val FondoSIGEFIV = Color(0xFFF8FAFC)
-private val FondoTarjeta = Color(0xFFFFFFFF)
 private val VerdePrincipal = Color(0xFF15803D)
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val Blanco = Color(0xFFFFFFFF)
-private val TextoPrincipal = Color(0xFF0F172A)
-private val GrisClaro = Color(0xFF64748B)
-private val GrisBorde = Color(0xFFCBD5E1)
 private val Rojo = Color(0xFFDC2626)
 
 
@@ -228,11 +226,25 @@ class MainActivity : ComponentActivity() {
             "SIGEFIV_NOTIF",
             "ON CREATE - asamblea_id = ${asambleaIdNotificacion.value}"
         )
+
         setContent {
-            SIGEFIVTheme {
+            val preferenciasTema = getSharedPreferences(
+                "sigefiv_config",
+                Context.MODE_PRIVATE
+            )
+
+            var darkTheme by rememberSaveable {
+                mutableStateOf(
+                    preferenciasTema.getBoolean("tema_oscuro", false)
+                )
+            }
+
+            SIGEFIVTheme(
+                darkTheme = darkTheme
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = FondoSIGEFIV
+                    color = MaterialTheme.colorScheme.background
                 ) {
                     AppSIGEFIV(
                         loginViewModel = loginViewModel,
@@ -240,7 +252,15 @@ class MainActivity : ComponentActivity() {
                         movimientosViewModel = movimientosViewModel,
                         asambleaIdNotificacion = asambleaIdNotificacion.value,
                         notificacionIdNotificacion = notificacionIdNotificacion.value,
-                        solicitarPermisoNotificaciones = solicitarPermisoNotificaciones
+                        solicitarPermisoNotificaciones = solicitarPermisoNotificaciones,
+                        darkTheme = darkTheme,
+                        onThemeToggle = {
+                            darkTheme = !darkTheme
+
+                            preferenciasTema.edit()
+                                .putBoolean("tema_oscuro", darkTheme)
+                                .apply()
+                        }
                     )
                 }
             }
@@ -289,22 +309,22 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-    /*
+/*
 |--------------------------------------------------------------------------
 | CONTROLADOR DEL FLUJO PRINCIPAL
 |--------------------------------------------------------------------------
 */
-    private fun esDispositivoXiaomi(): Boolean {
-        val fabricante = Build.MANUFACTURER.lowercase()
-        val marca = Build.BRAND.lowercase()
+private fun esDispositivoXiaomi(): Boolean {
+    val fabricante = Build.MANUFACTURER.lowercase()
+    val marca = Build.BRAND.lowercase()
 
-        return fabricante.contains("xiaomi") ||
-                fabricante.contains("redmi") ||
-                fabricante.contains("poco") ||
-                marca.contains("xiaomi") ||
-                marca.contains("redmi") ||
-                marca.contains("poco")
-    }
+    return fabricante.contains("xiaomi") ||
+            fabricante.contains("redmi") ||
+            fabricante.contains("poco") ||
+            marca.contains("xiaomi") ||
+            marca.contains("redmi") ||
+            marca.contains("poco")
+}
 
 private fun abrirAutostartXiaomi(context: Context) {
     try {
@@ -336,331 +356,332 @@ private fun abrirAutostartXiaomi(context: Context) {
         }
     }
 }
-    @Composable
-    fun AppSIGEFIV(
-        loginViewModel: LoginViewModel,
-        dashboardViewModel: DashboardViewModel,
-        movimientosViewModel: MovimientosViewModel,
-        asambleaIdNotificacion: Int? = null,
-        notificacionIdNotificacion: Int? = null,
-        solicitarPermisoNotificaciones: androidx.activity.result.ActivityResultLauncher<String>
-    ){
-        var pantalla by remember { mutableStateOf(PantallaInicial.SPLASH) }
-        var mostrarBanner by remember {
-            mutableStateOf(false)
-        }
-        var mostrarDialogoAutostart by remember {
-            mutableStateOf(false)
-        }
+@Composable
+fun AppSIGEFIV(
+    loginViewModel: LoginViewModel,
+    dashboardViewModel: DashboardViewModel,
+    movimientosViewModel: MovimientosViewModel,
+    asambleaIdNotificacion: Int? = null,
+    notificacionIdNotificacion: Int? = null,
+    solicitarPermisoNotificaciones: androidx.activity.result.ActivityResultLauncher<String>,
+    darkTheme: Boolean,
+    onThemeToggle: () -> Unit
+) {
+    var pantalla by remember { mutableStateOf(PantallaInicial.SPLASH) }
+    var mostrarBanner by remember {
+        mutableStateOf(false)
+    }
+    var mostrarDialogoAutostart by remember {
+        mutableStateOf(false)
+    }
 
-        var tituloBanner by remember {
-            mutableStateOf("")
-        }
+    var tituloBanner by remember {
+        mutableStateOf("")
+    }
 
-        var mensajeBanner by remember {
-            mutableStateOf("")
-        }
+    var mensajeBanner by remember {
+        mutableStateOf("")
+    }
 
-        LaunchedEffect(Unit) {
-            NotificacionEventBus.evento.collect {
-                // La notificación se gestiona mediante Firebase.
-                // No mostrar banner interno.
+    LaunchedEffect(Unit) {
+        NotificacionEventBus.evento.collect {
+            // La notificación se gestiona mediante Firebase.
+            // No mostrar banner interno.
+        }
+    }
+
+    val loginCorrecto by loginViewModel.loginCorrecto.collectAsStateWithLifecycle()
+    val bienvenidaVista by loginViewModel.bienvenidaVista.collectAsStateWithLifecycle()
+    val mensaje by loginViewModel.mensaje.collectAsStateWithLifecycle()
+    val cargando by loginViewModel.cargando.collectAsStateWithLifecycle()
+
+    // Sincroniza cambios de estado de login y onboarding
+    LaunchedEffect(loginCorrecto, bienvenidaVista) {
+        if (loginCorrecto) {
+            pantalla = if (!bienvenidaVista) {
+                PantallaInicial.ONBOARDING_BIENVENIDA
+            } else {
+                PantallaInicial.APLICACION
+            }
+        } else if (pantalla == PantallaInicial.APLICACION ||
+            pantalla == PantallaInicial.ONBOARDING_BIENVENIDA)
+        {
+            pantalla = PantallaInicial.LOGIN
+        }
+    }
+    val context = LocalContext.current
+    LaunchedEffect(loginCorrecto) {
+        if (loginCorrecto && esDispositivoXiaomi()) {
+
+            val preferencias = context.getSharedPreferences(
+                "sigefiv_config",
+                Context.MODE_PRIVATE
+            )
+
+            val autostartMostrado =
+                preferencias.getBoolean("autostart_mostrado", false)
+
+            if (!autostartMostrado) {
+                mostrarDialogoAutostart = true
             }
         }
+    }
 
-        val loginCorrecto by loginViewModel.loginCorrecto.collectAsStateWithLifecycle()
-        val bienvenidaVista by loginViewModel.bienvenidaVista.collectAsStateWithLifecycle()
-        val mensaje by loginViewModel.mensaje.collectAsStateWithLifecycle()
-        val cargando by loginViewModel.cargando.collectAsStateWithLifecycle()
+    LaunchedEffect(loginCorrecto) {
+        if (
+            loginCorrecto &&
+            android.os.Build.VERSION.SDK_INT >=
+            android.os.Build.VERSION_CODES.TIRAMISU
+        ) {
+            val permiso = Manifest.permission.POST_NOTIFICATIONS
 
-        // Sincroniza cambios de estado de login y onboarding
-        LaunchedEffect(loginCorrecto, bienvenidaVista) {
-            if (loginCorrecto) {
-                pantalla = if (!bienvenidaVista) {
-                    PantallaInicial.ONBOARDING_BIENVENIDA
-                } else {
-                    PantallaInicial.APLICACION
-                }
-            } else if (pantalla == PantallaInicial.APLICACION ||
-                pantalla == PantallaInicial.ONBOARDING_BIENVENIDA)
-            {
-                pantalla = PantallaInicial.LOGIN
-            }
-        }
-        val context = LocalContext.current
-        LaunchedEffect(loginCorrecto) {
-            if (loginCorrecto && esDispositivoXiaomi()) {
-
-                val preferencias = context.getSharedPreferences(
-                    "sigefiv_config",
-                    Context.MODE_PRIVATE
+            if (
+                androidx.core.content.ContextCompat.checkSelfPermission(
+                    context,
+                    permiso
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                Log.d(
+                    "SIGEFIV_NOTIF",
+                    "Solicitando permiso POST_NOTIFICATIONS"
                 )
 
-                val autostartMostrado =
-                    preferencias.getBoolean("autostart_mostrado", false)
-
-                if (!autostartMostrado) {
-                    mostrarDialogoAutostart = true
-                }
+                solicitarPermisoNotificaciones.launch(permiso)
             }
         }
+    }
 
-        LaunchedEffect(loginCorrecto) {
-            if (
-                loginCorrecto &&
-                android.os.Build.VERSION.SDK_INT >=
-                android.os.Build.VERSION_CODES.TIRAMISU
-            ) {
-                val permiso = Manifest.permission.POST_NOTIFICATIONS
-
-                if (
-                    androidx.core.content.ContextCompat.checkSelfPermission(
-                        context,
-                        permiso
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    Log.d(
-                        "SIGEFIV_NOTIF",
-                        "Solicitando permiso POST_NOTIFICATIONS"
-                    )
-
-                    solicitarPermisoNotificaciones.launch(permiso)
-                }
-            }
-        }
-
-        // Retardo inicial del Splash
-        LaunchedEffect(Unit) {
-            delay(2000)
-            if (loginCorrecto) {
-                pantalla = if (!bienvenidaVista) {
-                    PantallaInicial.ONBOARDING_BIENVENIDA
-                } else {
-                    PantallaInicial.APLICACION
-                }
+    // Retardo inicial del Splash
+    LaunchedEffect(Unit) {
+        delay(2000)
+        if (loginCorrecto) {
+            pantalla = if (!bienvenidaVista) {
+                PantallaInicial.ONBOARDING_BIENVENIDA
             } else {
-                pantalla = PantallaInicial.LOGIN
+                PantallaInicial.APLICACION
             }
+        } else {
+            pantalla = PantallaInicial.LOGIN
+        }
+    }
+
+    when (pantalla) {
+        PantallaInicial.SPLASH -> {
+            PantallaSplash()
         }
 
-        when (pantalla) {
-            PantallaInicial.SPLASH -> {
-                PantallaSplash()
-            }
-
-            PantallaInicial.LOGIN -> {
-                AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn(animationSpec = tween(450)) +
-                            slideInVertically(
-                                initialOffsetY = { 40 },
-                                animationSpec = tween(450)
-                            )
-                ) {
-                    PantallaLogin(
-                        cargando = cargando,
-                        mensaje = mensaje,
-                        onIniciarSesion = { email, password ->
-                            loginViewModel.iniciarSesion(
-                                email = email,
-                                password = password
-                            )
-                        },
-                        onIniciarSesionGoogle = { idToken ->
-                            loginViewModel.iniciarSesionConGoogle(idToken)
-                        },
-                        onIniciarSesionFacebook = {
-                            // Reservado para futura implementación
-                        },
-                        onLimpiarMensaje = {
-                            loginViewModel.limpiarMensaje()
-                        }
-                    )
-                }
-            }
-
-            PantallaInicial.ONBOARDING_BIENVENIDA -> {
-                BienvenidaScreen(
-                    onComenzarClick = {
-                        loginViewModel.marcarBienvenidaVista {
-                            pantalla = PantallaInicial.APLICACION
-                        }
+        PantallaInicial.LOGIN -> {
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = tween(450)) +
+                        slideInVertically(
+                            initialOffsetY = { 40 },
+                            animationSpec = tween(450)
+                        )
+            ) {
+                PantallaLogin(
+                    cargando = cargando,
+                    mensaje = mensaje,
+                    onIniciarSesion = { email, password ->
+                        loginViewModel.iniciarSesion(
+                            email = email,
+                            password = password
+                        )
+                    },
+                    onIniciarSesionGoogle = { idToken ->
+                        loginViewModel.iniciarSesionConGoogle(idToken)
+                    },
+                    onIniciarSesionFacebook = {
+                        // Reservado para futura implementación
+                    },
+                    onLimpiarMensaje = {
+                        loginViewModel.limpiarMensaje()
                     }
                 )
             }
+        }
 
-            PantallaInicial.APLICACION -> {
+        PantallaInicial.ONBOARDING_BIENVENIDA -> {
+            BienvenidaScreen(
+                onComenzarClick = {
+                    loginViewModel.marcarBienvenidaVista {
+                        pantalla = PantallaInicial.APLICACION
+                    }
+                }
+            )
+        }
 
-                Box(
-                    modifier = Modifier.fillMaxSize()
+        PantallaInicial.APLICACION -> {
+
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+
+                AppNavigation(
+                    context = LocalContext.current,
+                    dashboardViewModel = dashboardViewModel,
+                    movimientosViewModel = movimientosViewModel,
+                    loginViewModel = loginViewModel,
+                    asambleaIdNotificacion = asambleaIdNotificacion,
+                    notificacionIdNotificacion = notificacionIdNotificacion,
+                    darkTheme = darkTheme,
+                    onThemeToggle = onThemeToggle
+                )
+
+                AnimatedVisibility(
+                    visible = mostrarBanner,
+                    enter = slideInVertically(
+                        initialOffsetY = { -it }
+                    ) + fadeIn(
+                        animationSpec = tween(300)
+                    ),
+                    exit = fadeOut(
+                        animationSpec = tween(300)
+                    ),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(
+                            top = 12.dp,
+                            start = 12.dp,
+                            end = 12.dp
+                        )
                 ) {
 
-                    AppNavigation(
-                        context = LocalContext.current,
-                        dashboardViewModel = dashboardViewModel,
-                        movimientosViewModel = movimientosViewModel,
-                        loginViewModel = loginViewModel,
-                        asambleaIdNotificacion =
-                            asambleaIdNotificacion,
-                        notificacionIdNotificacion =
-                            notificacionIdNotificacion,
-
-                    )
-
-                    AnimatedVisibility(
-                        visible = mostrarBanner,
-                        enter = slideInVertically(
-                            initialOffsetY = { -it }
-                        ) + fadeIn(
-                            animationSpec = tween(300)
-                        ),
-                        exit = fadeOut(
-                            animationSpec = tween(300)
-                        ),
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(
-                                top = 12.dp,
-                                start = 12.dp,
-                                end = 12.dp
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = SeasonalColors.primary(
+                                SeasonalTheme.getSeason()
                             )
+                        ),
+                        elevation = CardDefaults.cardElevation(
+                            defaultElevation = 6.dp
+                        )
                     ) {
 
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = SeasonalColors.primary(
-                                    SeasonalTheme.getSeason()
-                                )
-                            ),
-                            elevation = CardDefaults.cardElevation(
-                                defaultElevation = 6.dp
-                            )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalAlignment =
+                                Alignment.CenterVertically
                         ) {
 
-                            Row(
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(14.dp),
-                                verticalAlignment =
-                                    Alignment.CenterVertically
+                                    .size(42.dp)
+                                    .background(
+                                        VerdeSuave,
+                                        CircleShape
+                                    ),
+                                contentAlignment =
+                                    Alignment.Center
                             ) {
 
-                                Box(
-                                    modifier = Modifier
-                                        .size(42.dp)
-                                        .background(
-                                            VerdeSuave,
-                                            CircleShape
-                                        ),
-                                    contentAlignment =
-                                        Alignment.Center
-                                ) {
+                                Icon(
+                                    imageVector =
+                                        Icons.Filled.Notifications,
+                                    contentDescription =
+                                        "Nueva notificación",
+                                    tint =
+                                        VerdePrincipal,
+                                    modifier =
+                                        Modifier.size(23.dp)
+                                )
+                            }
 
-                                    Icon(
-                                        imageVector =
-                                            Icons.Filled.Notifications,
-                                        contentDescription =
-                                            "Nueva notificación",
-                                        tint =
-                                            VerdePrincipal,
-                                        modifier =
-                                            Modifier.size(23.dp)
-                                    )
-                                }
+                            Spacer(
+                                modifier =
+                                    Modifier.width(12.dp)
+                            )
+
+                            Column(
+                                modifier =
+                                    Modifier.weight(1f)
+                            ) {
+
+                                Text(
+                                    text = tituloBanner,
+                                    color = Blanco,
+                                    fontSize = 15.sp,
+                                    fontWeight =
+                                        FontWeight.Bold
+                                )
 
                                 Spacer(
                                     modifier =
-                                        Modifier.width(12.dp)
+                                        Modifier.height(2.dp)
                                 )
 
-                                Column(
-                                    modifier =
-                                        Modifier.weight(1f)
-                                ) {
-
-                                    Text(
-                                        text = tituloBanner,
-                                        color = Blanco,
-                                        fontSize = 15.sp,
-                                        fontWeight =
-                                            FontWeight.Bold
-                                    )
-
-                                    Spacer(
-                                        modifier =
-                                            Modifier.height(2.dp)
-                                    )
-
-                                    Text(
-                                        text = mensajeBanner,
-                                        color = Blanco,
-                                        fontSize = 12.sp,
-                                        maxLines = 2
-                                    )
-                                }
+                                Text(
+                                    text = mensajeBanner,
+                                    color = Blanco,
+                                    fontSize = 12.sp,
+                                    maxLines = 2
+                                )
                             }
                         }
                     }
                 }
             }
         }
-
-        if (mostrarDialogoAutostart) {
-            AlertDialog(
-                onDismissRequest = {
-                    mostrarDialogoAutostart = false
-                },
-                title = {
-                    Text("🔔 Notificaciones de SIGEFIV")
-                },
-                text = {
-                    Text(
-                        "Para recibir las notificaciones de SIGEFIV " +
-                                "aunque la aplicación esté cerrada, " +
-                                "te recomendamos activar el inicio automático."
-                    )
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            mostrarDialogoAutostart = false
-
-                            context.getSharedPreferences(
-                                "sigefiv_config",
-                                Context.MODE_PRIVATE
-                            )
-                                .edit()
-                                .putBoolean("autostart_mostrado", true)
-                                .apply()
-
-                            abrirAutostartXiaomi(context)
-                        }
-                    ) {
-                        Text("Activar ahora")
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            mostrarDialogoAutostart = false
-
-                            context.getSharedPreferences(
-                                "sigefiv_config",
-                                Context.MODE_PRIVATE
-                            )
-                                .edit()
-                                .putBoolean("autostart_mostrado", true)
-                                .apply()
-                        }
-                    ) {
-                        Text("Ahora no")
-                    }
-                }
-            )
-        }
     }
+
+    if (mostrarDialogoAutostart) {
+        AlertDialog(
+            onDismissRequest = {
+                mostrarDialogoAutostart = false
+            },
+            title = {
+                Text("🔔 Notificaciones de SIGEFIV")
+            },
+            text = {
+                Text(
+                    "Para recibir las notificaciones de SIGEFIV " +
+                            "aunque la aplicación esté cerrada, " +
+                            "te recomendamos activar el inicio automático."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        mostrarDialogoAutostart = false
+
+                        context.getSharedPreferences(
+                            "sigefiv_config",
+                            Context.MODE_PRIVATE
+                        )
+                            .edit()
+                            .putBoolean("autostart_mostrado", true)
+                            .apply()
+
+                        abrirAutostartXiaomi(context)
+                    }
+                ) {
+                    Text("Activar ahora")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        mostrarDialogoAutostart = false
+
+                        context.getSharedPreferences(
+                            "sigefiv_config",
+                            Context.MODE_PRIVATE
+                        )
+                            .edit()
+                            .putBoolean("autostart_mostrado", true)
+                            .apply()
+                    }
+                ) {
+                    Text("Ahora no")
+                }
+            }
+        )
+    }
+}
 
 @Composable
 fun logoGrupo21PorTemporada(): Int {
@@ -677,536 +698,537 @@ fun logoGrupo21PorTemporada(): Int {
             R.drawable.logo_grupo_21_navidad
     }
 }
-    /*
+/*
 |--------------------------------------------------------------------------
 | PANTALLA SPLASH DE BIENVENIDA
 |--------------------------------------------------------------------------
 */
 
-    @Composable
-    fun PantallaSplash() {
-        Box(
+@Composable
+fun PantallaSplash() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(FondoSIGEFIV)
+                .padding(horizontal = 24.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Image(
+                painter = painterResource(id = logoGrupo21PorTemporada()),
+                contentDescription = "Logo Grupo Residencial 21",
+                modifier = Modifier.size(160.dp),
+                contentScale = ContentScale.Fit
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 28.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Image(
-                    painter = painterResource(id = logoGrupo21PorTemporada()),
-                    contentDescription = "Logo Grupo Residencial 21",
-                    modifier = Modifier.size(160.dp),
-                    contentScale = ContentScale.Fit
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Tu comunidad,",
-                        color = TextoPrincipal,
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Text(
-                        text = "siempre conectada",
-                        color = SeasonalColors.primary(
-                            SeasonalTheme.getSeason()
-                        ),
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Caracteristica(icono = Icons.Outlined.Info, titulo = "Información clara")
-                    Caracteristica(
-                        icono = Icons.Outlined.VerifiedUser,
-                        titulo = "Gestión transparente"
-                    )
-                    Caracteristica(
-                        icono = Icons.Outlined.AccountBalance,
-                        titulo = "Comunicación directa"
-                    )
-                    Caracteristica(icono = Icons.Outlined.Groups, titulo = "Comunidad unida")
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
                 Text(
-                    text = "Sistema de Gestión Financiera Vecinal",
-                    color = GrisClaro,
-                    fontSize = 13.sp,
+                    text = "Tu comunidad,",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
-
                 Text(
-                    text = "SIGEFIV • Grupo Residencial 21",
+                    text = "siempre conectada",
                     color = SeasonalColors.primary(
                         SeasonalTheme.getSeason()
                     ),
-                    fontSize = 12.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Caracteristica(icono = Icons.Outlined.Info, titulo = "Información clara")
+                Caracteristica(
+                    icono = Icons.Outlined.VerifiedUser,
+                    titulo = "Gestión transparente"
+                )
+                Caracteristica(
+                    icono = Icons.Outlined.AccountBalance,
+                    titulo = "Comunicación directa"
+                )
+                Caracteristica(icono = Icons.Outlined.Groups, titulo = "Comunidad unida")
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Text(
+                text = "Sistema de Gestión Financiera Vecinal",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "SIGEFIV • Grupo Residencial 21",
+                color = SeasonalColors.primary(
+                    SeasonalTheme.getSeason()
+                ),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
         }
     }
+}
 
-    /*
+/*
 |--------------------------------------------------------------------------
 | CARACTERÍSTICA (SPLASH)
 |--------------------------------------------------------------------------
 */
 
-    @Composable
-    fun Caracteristica(
-        icono: ImageVector,
-        titulo: String
+@Composable
+fun Caracteristica(
+    icono: ImageVector,
+    titulo: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .size(42.dp)
+                    .background(VerdeSuave, shape = RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .background(VerdeSuave, shape = RoundedCornerShape(10.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icono,
-                        contentDescription = titulo,
-                        tint = SeasonalColors.primary(
-                            SeasonalTheme.getSeason()
-                        ),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(14.dp))
-
-                Text(
-                    text = titulo,
-                    color = TextoPrincipal,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
+                Icon(
+                    imageVector = icono,
+                    contentDescription = titulo,
+                    tint = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
+                    ),
+                    modifier = Modifier.size(24.dp)
                 )
             }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Text(
+                text = titulo,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
+}
 
-    /*
+/*
 |--------------------------------------------------------------------------
 | PANTALLA LOGIN
 |--------------------------------------------------------------------------
 */
 
-    @Composable
-    fun PantallaLogin(
-        cargando: Boolean,
-        mensaje: String?,
-        onIniciarSesion: (String, String) -> Unit,
-        onIniciarSesionGoogle: (String) -> Unit,
-        onIniciarSesionFacebook: () -> Unit,
-        onLimpiarMensaje: () -> Unit
+@Composable
+fun PantallaLogin(
+    cargando: Boolean,
+    mensaje: String?,
+    onIniciarSesion: (String, String) -> Unit,
+    onIniciarSesionGoogle: (String) -> Unit,
+    onIniciarSesionFacebook: () -> Unit,
+    onLimpiarMensaje: () -> Unit
+) {
+    var usuario by remember { mutableStateOf("admin@sigefiv.com") }
+    var password by remember { mutableStateOf("12345678") }
+    var mostrarPassword by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val credentialManager = remember(context) { CredentialManager.create(context) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        var usuario by remember { mutableStateOf("admin@sigefiv.com") }
-        var password by remember { mutableStateOf("12345678") }
-        var mostrarPassword by remember { mutableStateOf(false) }
-
-        val context = LocalContext.current
-        val coroutineScope = rememberCoroutineScope()
-        val credentialManager = remember(context) { CredentialManager.create(context) }
-
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(FondoSIGEFIV)
+                .padding(horizontal = 24.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            Image(
+                painter = painterResource(id = logoGrupo21PorTemporada()),
+                contentDescription = "Logo Grupo Residencial 21",
+                modifier = Modifier.size(130.dp),
+                contentScale = ContentScale.Fit
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "¡Bienvenido!",
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Ingresa tus credenciales para continuar",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 14.sp
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Image(
-                    painter = painterResource(id = logoGrupo21PorTemporada()),
-                    contentDescription = "Logo Grupo Residencial 21",
-                    modifier = Modifier.size(130.dp),
-                    contentScale = ContentScale.Fit
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "¡Bienvenido!",
-                    color = TextoPrincipal,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Ingresa tus credenciales para continuar",
-                    color = GrisClaro,
-                    fontSize = 14.sp
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp)
-                    ) {
-                        /*
-                    --------------------------------------------------------
-                    | USUARIO
-                    --------------------------------------------------------
-                    */
-                        OutlinedTextField(
-                            value = usuario,
-                            onValueChange = {
-                                usuario = it
-                                if (mensaje != null) onLimpiarMensaje()
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            enabled = !cargando,
-                            label = { Text("Usuario o correo") },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Outlined.MailOutline,
-                                    contentDescription = "Usuario o correo",
-                                    tint = SeasonalColors.primary(
-                                        SeasonalTheme.getSeason()
-                                    )
+                    /*
+                --------------------------------------------------------
+                | USUARIO
+                --------------------------------------------------------
+                */
+                    OutlinedTextField(
+                        value = usuario,
+                        onValueChange = {
+                            usuario = it
+                            if (mensaje != null) onLimpiarMensaje()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !cargando,
+                        label = { Text("Usuario o correo") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.MailOutline,
+                                contentDescription = "Usuario o correo",
+                                tint = SeasonalColors.primary(
+                                    SeasonalTheme.getSeason()
                                 )
-                            },
-                            colors = coloresCampoLogin()
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        /*
-                    --------------------------------------------------------
-                    | CONTRASEÑA
-                    --------------------------------------------------------
-                    */
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = {
-                                password = it
-                                if (mensaje != null) onLimpiarMensaje()
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            enabled = !cargando,
-                            label = { Text("Contraseña") },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Outlined.Lock,
-                                    contentDescription = "Contraseña",
-                                    tint = VerdePrincipal
-                                )
-                            },
-                            trailingIcon = {
-                                IconButton(
-                                    onClick = { mostrarPassword = !mostrarPassword },
-                                    enabled = !cargando
-                                ) {
-                                    Icon(
-                                        imageVector = if (mostrarPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                        contentDescription = if (mostrarPassword) "Ocultar contraseña" else "Mostrar contraseña",
-                                        tint = GrisClaro
-                                    )
-                                }
-                            },
-                            visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                            colors = coloresCampoLogin()
-                        )
-
-                        /*
-                    --------------------------------------------------------
-                    | MENSAJE DE ERROR
-                    --------------------------------------------------------
-                    */
-                        if (!mensaje.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text(
-                                text = mensaje,
-                                color = Rojo,
-                                fontSize = 13.sp,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
                             )
-                        }
+                        },
+                        colors = coloresCampoLogin()
+                    )
 
-                        /*
-                    --------------------------------------------------------
-                    | OLVIDASTE TU CONTRASEÑA
-                    --------------------------------------------------------
-                    */
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            TextButton(
-                                onClick = { },
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    /*
+                --------------------------------------------------------
+                | CONTRASEÑA
+                --------------------------------------------------------
+                */
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = {
+                            password = it
+                            if (mensaje != null) onLimpiarMensaje()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !cargando,
+                        label = { Text("Contraseña") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.Lock,
+                                contentDescription = "Contraseña",
+                                tint = VerdePrincipal
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { mostrarPassword = !mostrarPassword },
                                 enabled = !cargando
                             ) {
-                                Text(
-                                    text = "¿Olvidaste tu contraseña?",
-                                    color = SeasonalColors.primary(
-                                        SeasonalTheme.getSeason()
-                                    ),
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold
+                                Icon(
+                                    imageVector = if (mostrarPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                    contentDescription = if (mostrarPassword) "Ocultar contraseña" else "Mostrar contraseña",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                        }
+                        },
+                        visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        colors = coloresCampoLogin()
+                    )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                    /*
+                --------------------------------------------------------
+                | MENSAJE DE ERROR
+                --------------------------------------------------------
+                */
+                    if (!mensaje.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = mensaje,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
 
-                        /*
-                    --------------------------------------------------------
-                    | BOTÓN INICIAR SESIÓN
-                    --------------------------------------------------------
-                    */
-                        Button(
-                            onClick = {
-                                onIniciarSesion(usuario.trim(), password)
-                            },
-                            enabled = !cargando,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = SeasonalColors.primary(
+                    /*
+                --------------------------------------------------------
+                | OLVIDASTE TU CONTRASEÑA
+                --------------------------------------------------------
+                */
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(
+                            onClick = { },
+                            enabled = !cargando
+                        ) {
+                            Text(
+                                text = "¿Olvidaste tu contraseña?",
+                                color = SeasonalColors.primary(
                                     SeasonalTheme.getSeason()
                                 ),
-                                contentColor = Blanco
-                            )
-                        ) {
-                            if (cargando) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(22.dp),
-                                    color = Blanco,
-                                    strokeWidth = 2.5.dp
-                                )
-                            } else {
-                                Text(
-                                    text = "Iniciar sesión",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(18.dp))
-
-                        // Separador
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Spacer(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(1.dp)
-                                    .background(GrisBorde)
-                            )
-                            Text(
-                                text = "  o  ",
-                                color = GrisClaro,
-                                fontSize = 13.sp
-                            )
-                            Spacer(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(1.dp)
-                                    .background(GrisBorde)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(18.dp))
-
-                        /*
-                    --------------------------------------------------------
-                    | GOOGLE (CORREGIDO CON GetGoogleIdOption)
-                    --------------------------------------------------------
-                    */
-                        OutlinedButton(
-                            onClick = {
-                                coroutineScope.launch {
-                                    try {
-                                        // Se desactiva filterByAuthorizedAccounts para que no falle al primer clic
-                                        val googleIdOption = GetGoogleIdOption.Builder()
-                                            .setFilterByAuthorizedAccounts(false)
-                                            .setServerClientId(
-                                                context.getString(R.string.default_web_client_id)
-                                            )
-                                            .setAutoSelectEnabled(false)
-                                            .build()
-
-                                        val request = GetCredentialRequest.Builder()
-                                            .addCredentialOption(googleIdOption)
-                                            .build()
-
-                                        val result = credentialManager.getCredential(
-                                            context = context,
-                                            request = request
-                                        )
-
-                                        val credential = result.credential
-
-                                        if (
-                                            credential is CustomCredential &&
-                                            credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                                        ) {
-                                            try {
-                                                val googleCredential =
-                                                    GoogleIdTokenCredential.createFrom(credential.data)
-                                                onIniciarSesionGoogle(googleCredential.idToken)
-                                            } catch (e: GoogleIdTokenParsingException) {
-                                                e.printStackTrace()
-                                                onLimpiarMensaje()
-                                            }
-                                        } else {
-                                            onLimpiarMensaje()
-                                        }
-                                    } catch (e: GetCredentialException) {
-                                        e.printStackTrace()
-                                        onLimpiarMensaje()
-                                    } catch (e: Exception) {
-                                        e.printStackTrace()
-                                        onLimpiarMensaje()
-                                    }
-                                }
-                            },
-                            enabled = !cargando,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Blanco,
-                                contentColor = TextoPrincipal
-                            )
-                        ) {
-                            Text(
-                                text = "G   Continuar con Google",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        /*
-                    --------------------------------------------------------
-                    | FACEBOOK
-                    --------------------------------------------------------
-                    */
-                        OutlinedButton(
-                            onClick = { onIniciarSesionFacebook() },
-                            enabled = !cargando,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Blanco,
-                                contentColor = TextoPrincipal
-                            )
-                        ) {
-                            Text(
-                                text = "f   Continuar con Facebook",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    /*
+                --------------------------------------------------------
+                | BOTÓN INICIAR SESIÓN
+                --------------------------------------------------------
+                */
+                    Button(
+                        onClick = {
+                            onIniciarSesion(usuario.trim(), password)
+                        },
+                        enabled = !cargando,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = SeasonalColors.primary(
+                                SeasonalTheme.getSeason()
+                            ),
+                            contentColor = Blanco
+                        )
+                    ) {
+                        if (cargando) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(22.dp),
+                                color = Blanco,
+                                strokeWidth = 2.5.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Iniciar sesión",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // Separador
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Spacer(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(1.dp)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                        )
+                        Text(
+                            text = "  o  ",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 13.sp
+                        )
+                        Spacer(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(1.dp)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    /*
+                --------------------------------------------------------
+                | GOOGLE (CORREGIDO CON GetGoogleIdOption)
+                --------------------------------------------------------
+                */
+                    OutlinedButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                try {
+                                    // Se desactiva filterByAuthorizedAccounts para que no falle al primer clic
+                                    val googleIdOption = GetGoogleIdOption.Builder()
+                                        .setFilterByAuthorizedAccounts(false)
+                                        .setServerClientId(
+                                            context.getString(R.string.default_web_client_id)
+                                        )
+                                        .setAutoSelectEnabled(false)
+                                        .build()
+
+                                    val request = GetCredentialRequest.Builder()
+                                        .addCredentialOption(googleIdOption)
+                                        .build()
+
+                                    val result = credentialManager.getCredential(
+                                        context = context,
+                                        request = request
+                                    )
+
+                                    val credential = result.credential
+
+                                    if (
+                                        credential is CustomCredential &&
+                                        credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                                    ) {
+                                        try {
+                                            val googleCredential =
+                                                GoogleIdTokenCredential.createFrom(credential.data)
+                                            onIniciarSesionGoogle(googleCredential.idToken)
+                                        } catch (e: GoogleIdTokenParsingException) {
+                                            e.printStackTrace()
+                                            onLimpiarMensaje()
+                                        }
+                                    } else {
+                                        onLimpiarMensaje()
+                                    }
+                                } catch (e: GetCredentialException) {
+                                    e.printStackTrace()
+                                    onLimpiarMensaje()
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                    onLimpiarMensaje()
+                                }
+                            }
+                        },
+                        enabled = !cargando,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Text(
+                            text = "G   Continuar con Google",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    /*
+                --------------------------------------------------------
+                | FACEBOOK
+                --------------------------------------------------------
+                */
+                    OutlinedButton(
+                        onClick = { onIniciarSesionFacebook() },
+                        enabled = !cargando,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Text(
+                            text = "f   Continuar con Facebook",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = "Sistema de Gestión Financiera Vecinal",
-                    color = GrisClaro,
-                    fontSize = 13.sp
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "SIGEFIV • Grupo Residencial 21",
-                    color = SeasonalColors.primary(
-                        SeasonalTheme.getSeason()
-                    ),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Sistema de Gestión Financiera Vecinal",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "SIGEFIV • Grupo Residencial 21",
+                color = SeasonalColors.primary(
+                    SeasonalTheme.getSeason()
+                ),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
+}
 
-    /*
+/*
 |--------------------------------------------------------------------------
 | COLORES DE CAMPOS DE LOGIN
 |--------------------------------------------------------------------------
 */
 
-    @Composable
-    private fun coloresCampoLogin() = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = SeasonalColors.primary(
-            SeasonalTheme.getSeason()
-        ),
-        unfocusedBorderColor = GrisBorde,
-        focusedLabelColor = SeasonalColors.primary(
-            SeasonalTheme.getSeason()
-        ),
-        unfocusedLabelColor = GrisClaro,
-        focusedTextColor = TextoPrincipal,
-        unfocusedTextColor = TextoPrincipal,
-        cursorColor = SeasonalColors.primary(
-            SeasonalTheme.getSeason()
-        )
+@Composable
+private fun coloresCampoLogin() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    ),
+    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+    focusedLabelColor = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
+    ),
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    cursorColor = SeasonalColors.primary(
+        SeasonalTheme.getSeason()
     )
+)
+

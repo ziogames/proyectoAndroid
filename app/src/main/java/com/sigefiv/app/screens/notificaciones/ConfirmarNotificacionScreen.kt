@@ -29,6 +29,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,7 +37,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 import androidx.compose.ui.platform.LocalContext
@@ -50,17 +50,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/*
-|--------------------------------------------------------------------------
-| PALETA DE COLORES PROFESIONAL SIGEFIV
-|--------------------------------------------------------------------------
-*/
-private val FondoPantalla = Color(0xFFF8FAFC)
-private val Blanco = Color.White
-private val VerdeSuave = Color(0xFFDCFCE7)        // Fondo del icono de éxito
-private val TextoPrincipal = Color(0xFF0F172A)
-private val GrisTexto = Color(0xFF64748B)
-private val GrisBorde = Color(0xFFE2E8F0)
 
 @Composable
 fun ConfirmarNotificacionScreen(
@@ -105,7 +94,7 @@ fun ConfirmarNotificacionScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(FondoPantalla)
+            .background(MaterialTheme.colorScheme.background)
     ) {
 
         // ============================================================
@@ -130,7 +119,7 @@ fun ConfirmarNotificacionScreen(
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Volver",
-                        tint = Blanco,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -140,13 +129,13 @@ fun ConfirmarNotificacionScreen(
                 Column {
                     Text(
                         text = "SIGEFIV",
-                        color = Blanco,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontSize = 19.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "Confirmación de Envío",
-                        color = Blanco.copy(alpha = 0.85f),
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
                         fontSize = 13.sp
                     )
                 }
@@ -168,7 +157,7 @@ fun ConfirmarNotificacionScreen(
             Box(
                 modifier = Modifier
                     .size(90.dp)
-                    .background(VerdeSuave, CircleShape),
+                    .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -183,7 +172,7 @@ fun ConfirmarNotificacionScreen(
 
             Text(
                 text = "¡Notificación enviada!",
-                color = TextoPrincipal,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -193,7 +182,7 @@ fun ConfirmarNotificacionScreen(
 
             Text(
                 text = "El mensaje se ha enviado correctamente\n$textoDestinatarios",
-                color = GrisTexto,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 textAlign = TextAlign.Center
@@ -207,7 +196,7 @@ fun ConfirmarNotificacionScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Blanco),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
@@ -226,7 +215,7 @@ fun ConfirmarNotificacionScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "Detalles del comunicado",
-                            color = TextoPrincipal,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -239,7 +228,7 @@ fun ConfirmarNotificacionScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(1.dp)
-                            .background(GrisBorde)
+                            .background(MaterialTheme.colorScheme.outlineVariant)
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -280,7 +269,7 @@ fun ConfirmarNotificacionScreen(
         // ============================================================
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Blanco,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = 8.dp
         ) {
             Column(
@@ -296,7 +285,7 @@ fun ConfirmarNotificacionScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
-                        contentColor = Blanco
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
                     Text(
@@ -325,14 +314,14 @@ private fun DatoNotificacion(
     ) {
         Text(
             text = etiqueta,
-            color = GrisTexto,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.width(100.dp)
         )
         Text(
             text = valor,
-            color = TextoPrincipal,
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = 14.sp,
             lineHeight = 20.sp,
             modifier = Modifier.weight(1f)
@@ -352,7 +341,7 @@ private fun DatoConIcono(
     ) {
         Text(
             text = etiqueta,
-            color = GrisTexto,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.width(100.dp)
@@ -369,7 +358,7 @@ private fun DatoConIcono(
 
         Text(
             text = valor,
-            color = TextoPrincipal,
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = 14.sp,
             modifier = Modifier.weight(1f)
         )

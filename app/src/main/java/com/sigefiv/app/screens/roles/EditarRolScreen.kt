@@ -36,6 +36,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -72,13 +73,6 @@ import com.sigefiv.app.ui.theme.SeasonalTheme
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val VerdeBorde = Color(0xFFBBF7D0)
 
-private val FondoSIGEFIV = Color(0xFFF8FAFC)
-private val FondoTarjeta = Color(0xFFFFFFFF)
-private val TextoPrincipal = Color(0xFF0F172A)
-private val TextoSecundario = Color(0xFF64748B)
-private val TextoMuted = Color(0xFF94A3B8)
-private val GrisBorde = Color(0xFFE2E8F0)
-private val GrisFondoChip = Color(0xFFF1F5F9)
 
 @Composable
 fun EditarRolScreen(
@@ -111,7 +105,7 @@ fun EditarRolScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(FondoSIGEFIV)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Scaffold(
             containerColor = Color.Transparent,
@@ -120,7 +114,7 @@ fun EditarRolScreen(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shadowElevation = 8.dp,
-                    color = FondoTarjeta
+                    color = MaterialTheme.colorScheme.surface
                 ) {
                     Box(
                         modifier = Modifier
@@ -259,7 +253,7 @@ fun EditarRolScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                         ) {
                             Row(
@@ -289,14 +283,14 @@ fun EditarRolScreen(
                                             text = "COBERTURA DE ACCESOS",
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = TextoSecundario,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             letterSpacing = 0.5.sp
                                         )
                                         Text(
                                             text = "$seleccionadosCount de $totalPermisos concedidos",
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.ExtraBold,
-                                            color = TextoPrincipal
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 }
@@ -324,14 +318,14 @@ fun EditarRolScreen(
                             text = "IDENTIFICACIÓN",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextoSecundario,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 0.6.sp
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
@@ -354,8 +348,8 @@ fun EditarRolScreen(
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedBorderColor = colorPrincipal,
                                         cursorColor = colorPrincipal,
-                                        focusedContainerColor = FondoTarjeta,
-                                        unfocusedContainerColor = FondoTarjeta
+                                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
                                     )
                                 )
                                 if (esAdmin) {
@@ -363,7 +357,7 @@ fun EditarRolScreen(
                                     Text(
                                         text = "El nombre del rol de Administrador está protegido por el sistema.",
                                         fontSize = 11.sp,
-                                        color = TextoMuted
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -376,7 +370,7 @@ fun EditarRolScreen(
                             text = "MÓDULOS DEL SISTEMA",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextoSecundario,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 0.6.sp
                         )
                     }
@@ -389,7 +383,7 @@ fun EditarRolScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.2.dp)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
@@ -403,7 +397,7 @@ fun EditarRolScreen(
                                         Box(
                                             modifier = Modifier
                                                 .size(34.dp)
-                                                .background(GrisFondoChip, RoundedCornerShape(8.dp)),
+                                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
@@ -419,12 +413,12 @@ fun EditarRolScreen(
                                                 text = categoria,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 16.sp,
-                                                color = TextoPrincipal
+                                                color = MaterialTheme.colorScheme.onSurface
                                             )
                                             Text(
                                                 text = "${listaPermisos.count { permisosSeleccionados[it.name] == true }} de ${listaPermisos.size} activos",
                                                 fontSize = 11.sp,
-                                                color = TextoSecundario
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
@@ -449,7 +443,7 @@ fun EditarRolScreen(
 
                                 HorizontalDivider(
                                     modifier = Modifier.padding(vertical = 12.dp),
-                                    color = GrisBorde
+                                    color = MaterialTheme.colorScheme.outlineVariant
                                 )
 
                                 // Lista estructurada de permisos con layout interactivo
@@ -457,11 +451,11 @@ fun EditarRolScreen(
                                     listaPermisos.forEach { permiso ->
                                         val isChecked = permisosSeleccionados[permiso.name] ?: false
                                         val animBorderColor by animateColorAsState(
-                                            targetValue = if (isChecked) VerdeBorde else GrisBorde,
+                                            targetValue = if (isChecked) VerdeBorde else MaterialTheme.colorScheme.outlineVariant,
                                             label = "bordePermiso"
                                         )
                                         val animFondoColor by animateColorAsState(
-                                            targetValue = if (isChecked) VerdeSuave.copy(alpha = 0.35f) else FondoTarjeta,
+                                            targetValue = if (isChecked) VerdeSuave.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface,
                                             label = "fondoPermiso"
                                         )
 
@@ -488,12 +482,12 @@ fun EditarRolScreen(
                                                         text = formatearNombrePermiso(permiso.name),
                                                         fontSize = 13.sp,
                                                         fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Medium,
-                                                        color = TextoPrincipal
+                                                        color = MaterialTheme.colorScheme.onSurface
                                                     )
                                                     Text(
                                                         text = permiso.name,
                                                         fontSize = 11.sp,
-                                                        color = TextoMuted
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 }
 
@@ -503,8 +497,8 @@ fun EditarRolScreen(
                                                     colors = SwitchDefaults.colors(
                                                         checkedThumbColor = Color.White,
                                                         checkedTrackColor = colorPrincipal,
-                                                        uncheckedThumbColor = TextoSecundario,
-                                                        uncheckedTrackColor = GrisBorde
+                                                        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        uncheckedTrackColor = MaterialTheme.colorScheme.outlineVariant
                                                     )
                                                 )
                                             }
@@ -539,3 +533,4 @@ private fun formatearNombrePermiso(permisoTecnico: String): String {
         else -> accion.replaceFirstChar { it.uppercase() }
     }
 }
+

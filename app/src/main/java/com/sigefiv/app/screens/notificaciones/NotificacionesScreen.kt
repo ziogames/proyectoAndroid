@@ -31,6 +31,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -53,14 +54,6 @@ import java.util.Locale
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 
-private val Fondo = Color(0xFFF8FAFC)
-private val Blanco = Color.White
-private val VerdeSuave = Color(0xFFDCFCE7)
-private val VerdePendiente = Color(0xFFF0FDF4)
-private val TextoPrincipal = Color(0xFF0F172A)
-private val Gris = Color(0xFF64748B)
-private val GrisFecha = Color(0xFF94A3B8)
-private val GrisBorde = Color(0xFFE2E8F0)
 private val AzulIcono = Color(0xFF334E8C)
 private val Rojo = Color(0xFFDC2626)
 
@@ -96,9 +89,9 @@ private fun PreferenciaItem(
             Text(
                 text = titulo,
                 color = if (enabled) {
-                    TextoPrincipal
+                    MaterialTheme.colorScheme.onSurface
                 } else {
-                    GrisFecha
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 },
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
@@ -111,9 +104,9 @@ private fun PreferenciaItem(
             Text(
                 text = descripcion,
                 color = if (enabled) {
-                    Gris
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 } else {
-                    GrisFecha
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 },
                 fontSize = 11.sp
             )
@@ -193,7 +186,7 @@ fun NotificacionesScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Fondo)
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding(),
         contentPadding = PaddingValues(bottom = 28.dp)
     ) {
@@ -207,7 +200,7 @@ fun NotificacionesScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Blanco)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(
                         start = 8.dp,
                         end = 16.dp,
@@ -225,7 +218,7 @@ fun NotificacionesScreen(
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Volver",
-                        tint = TextoPrincipal
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
@@ -239,7 +232,7 @@ fun NotificacionesScreen(
 
                     Text(
                         text = "Notificaciones",
-                        color = TextoPrincipal,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 21.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -256,7 +249,7 @@ fun NotificacionesScreen(
                             else ->
                                 "Tienes $noLeidas notificaciones pendientes"
                         },
-                        color = Gris,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp
                     )
                 }
@@ -265,7 +258,7 @@ fun NotificacionesScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .background(
-                            VerdeSuave,
+                            MaterialTheme.colorScheme.secondaryContainer,
                             CircleShape
                         ),
                     contentAlignment = Alignment.Center
@@ -281,7 +274,7 @@ fun NotificacionesScreen(
             }
 
             HorizontalDivider(
-                color = GrisBorde,
+                color = MaterialTheme.colorScheme.outlineVariant,
                 thickness = 1.dp
             )
 
@@ -300,11 +293,11 @@ fun NotificacionesScreen(
                     ),
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Blanco
+                    containerColor = MaterialTheme.colorScheme.surface
                 ),
                 border = androidx.compose.foundation.BorderStroke(
                     width = 1.dp,
-                    color = GrisBorde
+                    color = MaterialTheme.colorScheme.outlineVariant
                 ),
                 elevation = CardDefaults.cardElevation(
                     defaultElevation = 1.dp
@@ -334,9 +327,9 @@ fun NotificacionesScreen(
                                 .size(42.dp)
                                 .background(
                                     if (notificacionesActivadas) {
-                                        VerdeSuave
+                                        MaterialTheme.colorScheme.secondaryContainer
                                     } else {
-                                        Color(0xFFF1F5F9)
+                                        MaterialTheme.colorScheme.surfaceVariant
                                     },
                                     CircleShape
                                 ),
@@ -349,7 +342,7 @@ fun NotificacionesScreen(
                                 tint = if (notificacionesActivadas) {
                                     colorPrincipal
                                 } else {
-                                    Gris
+                                    MaterialTheme.colorScheme.onSurfaceVariant
                                 },
                                 modifier = Modifier.size(21.dp)
                             )
@@ -365,7 +358,7 @@ fun NotificacionesScreen(
 
                             Text(
                                 text = "Activar notificaciones",
-                                color = TextoPrincipal,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -380,7 +373,7 @@ fun NotificacionesScreen(
                                 } else {
                                     "Las notificaciones están desactivadas"
                                 },
-                                color = Gris,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp
                             )
                         }
@@ -397,7 +390,7 @@ fun NotificacionesScreen(
                     }
 
                     HorizontalDivider(
-                        color = GrisBorde,
+                        color = MaterialTheme.colorScheme.outlineVariant,
                         thickness = 1.dp
                     )
 
@@ -417,7 +410,7 @@ fun NotificacionesScreen(
                     )
 
                     HorizontalDivider(
-                        color = GrisBorde,
+                        color = MaterialTheme.colorScheme.outlineVariant,
                         thickness = 1.dp
                     )
 
@@ -437,7 +430,7 @@ fun NotificacionesScreen(
                     )
 
                     HorizontalDivider(
-                        color = GrisBorde,
+                        color = MaterialTheme.colorScheme.outlineVariant,
                         thickness = 1.dp
                     )
 
@@ -457,7 +450,7 @@ fun NotificacionesScreen(
                     )
 
                     HorizontalDivider(
-                        color = GrisBorde,
+                        color = MaterialTheme.colorScheme.outlineVariant,
                         thickness = 1.dp
                     )
 
@@ -497,7 +490,7 @@ fun NotificacionesScreen(
                             top = 4.dp,
                             bottom = 4.dp
                         ),
-                    color = Gris,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp
                 )
             }
@@ -561,7 +554,7 @@ fun NotificacionesScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Blanco)
+                        .background(MaterialTheme.colorScheme.surface)
                         .padding(
                             start = 16.dp,
                             end = 16.dp,
@@ -577,7 +570,7 @@ fun NotificacionesScreen(
                         },
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = VerdeSuave,
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             contentColor = colorPrincipal
                         ),
                         contentPadding = PaddingValues(
@@ -638,7 +631,7 @@ fun NotificacionesScreen(
 
                             Text(
                                 text = "Cargando notificaciones...",
-                                color = Gris,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 14.sp
                             )
                         }
@@ -718,7 +711,7 @@ fun NotificacionesScreen(
                                 modifier = Modifier
                                     .size(72.dp)
                                     .background(
-                                        VerdeSuave,
+                                        MaterialTheme.colorScheme.secondaryContainer,
                                         CircleShape
                                     ),
                                 contentAlignment = Alignment.Center
@@ -738,7 +731,7 @@ fun NotificacionesScreen(
 
                             Text(
                                 text = "No tienes notificaciones",
-                                color = TextoPrincipal,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -749,7 +742,7 @@ fun NotificacionesScreen(
 
                             Text(
                                 text = "Aquí aparecerán los avisos de SIGEFIV.",
-                                color = Gris,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 14.sp
                             )
                         }
@@ -801,6 +794,8 @@ private fun NotificacionItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            // Separación visual entre las tarjetas de notificaciones.
+            .padding(vertical = 4.dp)
             .clickable(
 
                 onClick = onClick
@@ -808,9 +803,9 @@ private fun NotificacionItem(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (pendiente) {
-                VerdePendiente
+                MaterialTheme.colorScheme.surfaceVariant
             } else {
-                Blanco
+                MaterialTheme.colorScheme.surface
             }
         ),
         border = androidx.compose.foundation.BorderStroke(
@@ -818,7 +813,7 @@ private fun NotificacionItem(
             color = if (pendiente) {
                 Color(0xFFBBF7D0)
             } else {
-                GrisBorde
+                MaterialTheme.colorScheme.outlineVariant
             }
         ),
         elevation = CardDefaults.cardElevation(
@@ -844,7 +839,7 @@ private fun NotificacionItem(
                         color = if (pendiente) {
                             AzulIcono
                         } else {
-                            Color(0xFFE2E8F0)
+                            MaterialTheme.colorScheme.surfaceVariant
                         },
                         shape = CircleShape
                     ),
@@ -855,9 +850,9 @@ private fun NotificacionItem(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = null,
                     tint = if (pendiente) {
-                        Blanco
+                        MaterialTheme.colorScheme.surface
                     } else {
-                        Gris
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     },
                     modifier = Modifier.size(22.dp)
                 )
@@ -883,7 +878,7 @@ private fun NotificacionItem(
                     Text(
                         text = notificacion.titulo,
                         modifier = Modifier.weight(1f),
-                        color = TextoPrincipal,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 15.sp,
                         fontWeight = if (pendiente) {
                             FontWeight.Bold
@@ -917,7 +912,7 @@ private fun NotificacionItem(
 
                 Text(
                     text = notificacion.mensaje,
-                    color = Gris,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp,
                     lineHeight = 18.sp
                 )
@@ -930,7 +925,7 @@ private fun NotificacionItem(
                     text = formatearFecha(
                         notificacion.created_at
                     ),
-                    color = GrisFecha,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp
                 )
             }
@@ -985,4 +980,3 @@ private fun formatearFecha(
 
     return fecha
 }
-

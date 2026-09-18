@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 
 package com.sigefiv.app.screens.periodos
 
@@ -52,6 +52,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -73,34 +74,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Movimiento
 import com.sigefiv.app.viewmodel.PeriodosViewModel
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
 
-/*
-|--------------------------------------------------------------------------
-| PALETA DE COLORES PROFESIONAL (ESTILO MODERNO CONTABLE)
-|--------------------------------------------------------------------------
-*/
-
-private val FondoSIGEFIV = Color(0xFFF1F5F9)
-private val FondoTarjeta = Color(0xFFFFFFFF)
-private val VerdeSuave = Color(0xFFCCFBF1)
-private val VerdeTexto = Color(0xFF0D9488)
-private val Blanco = Color(0xFFFFFFFF)
-private val TextoPrincipal = Color(0xFF0F172A)
-private val GrisSecundario = Color(0xFF475569)
-private val GrisClaro = Color(0xFF94A3B8)
-private val GrisBorde = Color(0xFFE2E8F0)
-
-private val RojoEgreso = Color(0xFFE11D48)
-private val RojoSuave = Color(0xFFFFE4E6)
-private val AzulSaldo = Color(0xFF2563EB)
-private val AzulSuave = Color(0xFFDBEAFE)
-private val MoradoCaja = Color(0xFF7C3AED)
-private val MoradoSuave = Color(0xFFA78BFA)
-
-private val NaranjaText = Color(0xFFD97706)
-private val NaranjaBg = Color(0xFFFEF3C7)
+/* Colores adaptados automáticamente al tema claro/oscuro de MaterialTheme */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,9 +91,8 @@ fun PeriodoDetalleScreen(
     onMiCuentaClick: () -> Unit,
     onOpenDrawer: (() -> Unit)? = null
 ) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
+    val colors = MaterialTheme.colorScheme
+    val colorPrincipal = colors.primary
 
     val periodo by periodosViewModel.periodoDetalle.collectAsState()
     val movimientos by periodosViewModel.movimientos.collectAsState()
@@ -131,14 +105,14 @@ fun PeriodoDetalleScreen(
     }
 
     Scaffold(
-        containerColor = FondoSIGEFIV,
+        containerColor = colors.background,
         topBar = {
             TopAppBar(
                 title = {
                     Column {
                         Text(
                             text = "Resumen - ${periodo?.nombre_completo ?: "Período"}",
-                            color = Blanco,
+                            color = colors.onPrimary,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -146,7 +120,7 @@ fun PeriodoDetalleScreen(
                         )
                         Text(
                             text = "Auditoría contable y balances",
-                            color = Blanco.copy(alpha = 0.8f),
+                            color = colors.onPrimary.copy(alpha = 0.8f),
                             fontSize = 12.sp
                         )
                     }
@@ -156,7 +130,7 @@ fun PeriodoDetalleScreen(
                         Icon(
                             imageVector = Icons.Outlined.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Blanco
+                            tint = colors.onPrimary
                         )
                     }
                 },
@@ -166,7 +140,7 @@ fun PeriodoDetalleScreen(
                             Icon(
                                 imageVector = Icons.Outlined.Menu,
                                 contentDescription = "Abrir menú",
-                                tint = Blanco
+                                tint = colors.onPrimary
                             )
                         }
                     }
@@ -188,7 +162,7 @@ fun PeriodoDetalleScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(FondoSIGEFIV)
+                .background(colors.background)
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
@@ -209,7 +183,7 @@ fun PeriodoDetalleScreen(
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
                                 text = "Obteniendo datos del período...",
-                                color = GrisSecundario,
+                                color = colors.onSurfaceVariant,
                                 fontSize = 13.sp
                             )
                         }
@@ -219,11 +193,11 @@ fun PeriodoDetalleScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        color = RojoSuave
+                        color = colors.errorContainer
                     ) {
                         Text(
                             text = mensaje ?: "Ocurrió un problema al cargar el período.",
-                            color = RojoEgreso,
+                            color = colors.error,
                             modifier = Modifier.padding(16.dp),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
@@ -234,11 +208,11 @@ fun PeriodoDetalleScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        color = Blanco
+                        color = colors.onPrimary
                     ) {
                         Text(
                             text = "No se encontraron datos para este período.",
-                            color = GrisSecundario,
+                            color = colors.onSurfaceVariant,
                             modifier = Modifier.padding(20.dp),
                             fontSize = 13.sp
                         )
@@ -253,7 +227,7 @@ fun PeriodoDetalleScreen(
                     // SECCIÓN RESUMEN FINANCIERO
                     Text(
                         text = "RESUMEN FINANCIERO",
-                        color = GrisSecundario,
+                        color = colors.onSurfaceVariant,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
@@ -271,14 +245,14 @@ fun PeriodoDetalleScreen(
                         SmallSummaryCard(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.ReceiptLong,
-                            iconColor = AzulSaldo,
+                            iconColor = colors.tertiary,
                             label = "Movimientos",
                             value = "${datos.total_movimientos} reg."
                         )
                         SmallSummaryCard(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.CalendarToday,
-                            iconColor = VerdeTexto,
+                            iconColor = colors.primary,
                             label = "Cierre contable",
                             value = formatFechaCierre(datos.fecha_cierre)
                         )
@@ -289,7 +263,7 @@ fun PeriodoDetalleScreen(
 
                     Text(
                         text = "MOVIMIENTOS DEL PERÍODO",
-                        color = GrisSecundario,
+                        color = colors.onSurfaceVariant,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
@@ -311,14 +285,14 @@ fun PeriodoDetalleScreen(
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            color = Blanco,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde)
+                            color = colors.onPrimary,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, colors.outlineVariant)
                         ) {
                             Column(
                                 modifier = Modifier.fillMaxWidth().padding(24.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(Icons.Outlined.ReceiptLong, contentDescription = null, tint = GrisClaro, modifier = Modifier.size(32.dp))
+                                Icon(Icons.Outlined.ReceiptLong, contentDescription = null, tint = colors.outline, modifier = Modifier.size(32.dp))
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = when (filtroMovimientos) {
@@ -326,7 +300,7 @@ fun PeriodoDetalleScreen(
                                         "Egresos" -> "No hay egresos en este período."
                                         else -> "No hay movimientos en este período."
                                     },
-                                    color = GrisSecundario, fontSize = 13.sp, fontWeight = FontWeight.Medium
+                                    color = colors.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.Medium
                                 )
                             }
                         }
@@ -353,16 +327,15 @@ fun PeriodoDetalleScreen(
 
 @Composable
 private fun HeaderPeriodoHero(datos: com.sigefiv.app.data.model.PeriodoDetalle) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
+    val colors = MaterialTheme.colorScheme
+    val colorPrincipal = colors.primary
 
     val isAbierto = datos.estado.equals("Abierto", true)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Transparent),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(
@@ -383,13 +356,13 @@ private fun HeaderPeriodoHero(datos: com.sigefiv.app.data.model.PeriodoDetalle) 
                 Box(
                     modifier = Modifier
                         .size(52.dp)
-                        .background(Blanco.copy(alpha = 0.15f), CircleShape),
+                        .background(colors.onPrimary.copy(alpha = 0.15f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Outlined.TrendingUp,
                         contentDescription = null,
-                        tint = Blanco,
+                        tint = colors.onPrimary,
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -400,15 +373,15 @@ private fun HeaderPeriodoHero(datos: com.sigefiv.app.data.model.PeriodoDetalle) 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = datos.nombre_completo,
-                            color = Blanco,
+                            color = colors.onPrimary,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        val badgeBg = if (isAbierto) VerdeSuave else NaranjaBg
-                        val badgeColor = if (isAbierto) VerdeTexto else NaranjaText
+                        val badgeBg = if (isAbierto) colors.secondaryContainer else colors.tertiaryContainer
+                        val badgeColor = if (isAbierto) colors.primary else colors.tertiary
                         val badgeIcon = if (isAbierto) Icons.Outlined.LockOpen else Icons.Outlined.Lock
 
                         Surface(
@@ -444,7 +417,7 @@ private fun HeaderPeriodoHero(datos: com.sigefiv.app.data.model.PeriodoDetalle) 
                         } else {
                             "Auditoría finalizada el ${formatFechaCierre(datos.fecha_cierre)}"
                         },
-                        color = Blanco.copy(alpha = 0.85f),
+                        color = colors.onPrimary.copy(alpha = 0.85f),
                         fontSize = 12.sp
                     )
                 }
@@ -455,41 +428,40 @@ private fun HeaderPeriodoHero(datos: com.sigefiv.app.data.model.PeriodoDetalle) 
 
 @Composable
 private fun CardResumenFinanciero(datos: com.sigefiv.app.data.model.PeriodoDetalle) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
+    val colors = MaterialTheme.colorScheme
+    val colorPrincipal = colors.primary
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-        border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, colors.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(vertical = 6.dp)) {
             SummaryRowItem(
                 icon = Icons.Outlined.AccountBalanceWallet,
-                iconColor = AzulSaldo,
+                iconColor = colors.tertiary,
                 label = "Saldo anterior",
                 value = datos.saldo_anterior,
-                valueColor = TextoPrincipal
+                valueColor = colors.onSurface
             )
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 16.dp),
-                color = FondoSIGEFIV,
+                color = colors.background,
                 thickness = 1.dp
             )
             SummaryRowItem(
                 icon = Icons.Outlined.ArrowUpward,
-                iconColor = VerdeTexto,
+                iconColor = colors.primary,
                 label = "Total de ingresos",
                 value = datos.total_ingresos,
-                valueColor = VerdeTexto,
+                valueColor = colors.primary,
                 isPositive = true
             )
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 16.dp),
-                color = FondoSIGEFIV,
+                color = colors.background,
                 thickness = 1.dp
             )
             SummaryRowItem(
@@ -503,29 +475,29 @@ private fun CardResumenFinanciero(datos: com.sigefiv.app.data.model.PeriodoDetal
             )
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 16.dp),
-                color = FondoSIGEFIV,
+                color = colors.background,
                 thickness = 1.dp
             )
             SummaryRowItem(
                 icon = Icons.Outlined.ArrowDownward,
-                iconColor = RojoEgreso,
+                iconColor = colors.error,
                 label = "Total de egresos",
                 value = datos.total_egresos,
-                valueColor = RojoEgreso,
+                valueColor = colors.error,
                 isNegative = true
             )
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 16.dp),
-                color = FondoSIGEFIV,
+                color = colors.background,
                 thickness = 1.dp
             )
             SummaryRowItem(
                 icon = Icons.Outlined.AccountBalanceWallet,
-                iconColor = MoradoCaja,
+                iconColor = colors.secondary,
                 label = "Saldo en caja",
                 subLabel = "Balance final",
                 value = datos.saldo_caja,
-                valueColor = MoradoCaja,
+                valueColor = colors.secondary,
                 isHighlight = true
             )
         }
@@ -544,6 +516,7 @@ private fun SummaryRowItem(
     isNegative: Boolean = false,
     isHighlight: Boolean = false
 ) {
+    val colors = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -570,14 +543,14 @@ private fun SummaryRowItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
-                color = TextoPrincipal,
+                color = colors.onSurface,
                 fontSize = 13.sp,
                 fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.Medium
             )
             if (subLabel != null) {
                 Text(
                     text = subLabel,
-                    color = GrisClaro,
+                    color = colors.outline,
                     fontSize = 11.sp
                 )
             }
@@ -606,11 +579,12 @@ private fun SmallSummaryCard(
     label: String,
     value: String
 ) {
+    val colors = MaterialTheme.colorScheme
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-        border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, colors.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -636,12 +610,12 @@ private fun SmallSummaryCard(
             Column {
                 Text(
                     text = label,
-                    color = GrisClaro,
+                    color = colors.outline,
                     fontSize = 11.sp
                 )
                 Text(
                     text = value,
-                    color = TextoPrincipal,
+                    color = colors.onSurface,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -655,9 +629,8 @@ private fun FiltrosMovimientosPeriodo(
     filtroSeleccionado: String,
     onFiltroSeleccionado: (String) -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
+    val colors = MaterialTheme.colorScheme
+    val colorPrincipal = colors.primary
 
     val filtros = listOf("Todos", "Ingresos", "Egresos")
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -666,14 +639,14 @@ private fun FiltrosMovimientosPeriodo(
             Surface(
                 modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { onFiltroSeleccionado(filtro) },
                 shape = RoundedCornerShape(12.dp),
-                color = if (seleccionado) colorPrincipal else Blanco,
-                border = if (seleccionado) null else androidx.compose.foundation.BorderStroke(1.dp, GrisBorde)
+                color = if (seleccionado) colorPrincipal else colors.onPrimary,
+                border = if (seleccionado) null else androidx.compose.foundation.BorderStroke(1.dp, colors.outlineVariant)
             ) {
                 Text(
                     text = filtro,
                     modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    color = if (seleccionado) Blanco else GrisSecundario,
+                    color = if (seleccionado) colors.onPrimary else colors.onSurfaceVariant,
                     fontSize = 12.sp,
                     fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Medium
                 )
@@ -687,9 +660,10 @@ private fun MovimientoCardItem(
     movimiento: Movimiento,
     onClick: () -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
     val esIngreso = movimiento.tipo.equals("Ingreso", ignoreCase = true)
-    val colorMovimiento = if (esIngreso) VerdeTexto else RojoEgreso
-    val fondoIcono = if (esIngreso) VerdeSuave else RojoSuave
+    val colorMovimiento = if (esIngreso) colors.primary else colors.error
+    val fondoIcono = if (esIngreso) colors.secondaryContainer else colors.errorContainer
 
     Card(
         modifier = Modifier
@@ -697,8 +671,8 @@ private fun MovimientoCardItem(
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-        border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, colors.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -726,7 +700,7 @@ private fun MovimientoCardItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = movimiento.concepto,
-                    color = TextoPrincipal,
+                    color = colors.onSurface,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -735,7 +709,7 @@ private fun MovimientoCardItem(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "${movimiento.fecha ?: "Sin fecha"} • ${movimiento.categoria ?: "General"}",
-                    color = GrisClaro,
+                    color = colors.outline,
                     fontSize = 11.sp
                 )
             }
@@ -767,7 +741,6 @@ private fun formatFechaCierre(fecha: String?): String {
     }
 }
 
-private val Transparent = Color(0x00000000)
 
 @Composable
 private fun BarraInferiorPeriodoDetalle(
@@ -776,9 +749,8 @@ private fun BarraInferiorPeriodoDetalle(
     onPeriodosClick: () -> Unit,
     onMiCuentaClick: () -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
+    val colors = MaterialTheme.colorScheme
+    val colorPrincipal = colors.primary
 
     NavigationBar(
         containerColor = colorPrincipal,
@@ -799,8 +771,8 @@ private fun BarraInferiorPeriodoDetalle(
                 Text("Inicio")
             },
             colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(0.75f),
-                unselectedTextColor = Blanco.copy(0.75f)
+                unselectedIconColor = colors.onPrimary.copy(alpha = 0.75f),
+                unselectedTextColor = colors.onPrimary.copy(alpha = 0.75f)
             )
         )
 
@@ -818,8 +790,8 @@ private fun BarraInferiorPeriodoDetalle(
                 Text("Asambleas")
             },
             colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(0.75f),
-                unselectedTextColor = Blanco.copy(0.75f)
+                unselectedIconColor = colors.onPrimary.copy(alpha = 0.75f),
+                unselectedTextColor = colors.onPrimary.copy(alpha = 0.75f)
             )
         )
 
@@ -838,10 +810,10 @@ private fun BarraInferiorPeriodoDetalle(
             },
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = colorPrincipal,
-                selectedTextColor = Blanco,
-                indicatorColor = Blanco,
-                unselectedIconColor = Blanco.copy(0.75f),
-                unselectedTextColor = Blanco.copy(0.75f)
+                selectedTextColor = colors.onPrimary,
+                indicatorColor = colors.onPrimary,
+                unselectedIconColor = colors.onPrimary.copy(alpha = 0.75f),
+                unselectedTextColor = colors.onPrimary.copy(alpha = 0.75f)
             )
         )
 
@@ -859,9 +831,10 @@ private fun BarraInferiorPeriodoDetalle(
                 Text("Mi cuenta")
             },
             colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(0.75f),
-                unselectedTextColor = Blanco.copy(0.75f)
+                unselectedIconColor = colors.onPrimary.copy(alpha = 0.75f),
+                unselectedTextColor = colors.onPrimary.copy(alpha = 0.75f)
             )
         )
     }
 }
+

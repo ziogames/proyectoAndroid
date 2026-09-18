@@ -46,6 +46,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -92,12 +93,8 @@ import java.net.URL
 |--------------------------------------------------------------------------
 */
 
-private val FondoSIGEFIV = Color(0xFFF8FAFC)
-private val FondoTarjeta = Color(0xFFFFFFFF)
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val Blanco = Color(0xFFFFFFFF)
-private val TextoOscuro = Color(0xFF0F172A)
-private val TextoGris = Color(0xFF64748B)
 
 private val FondoIconoVerde = Color(0xFFDCFCE7)
 private val FondoIconoAzul = Color(0xFFDBEAFE)
@@ -220,7 +217,7 @@ fun PerfilScreen(
             ?: "U"
 
     Scaffold(
-        containerColor = FondoSIGEFIV,
+        containerColor = MaterialTheme.colorScheme.background,
 
         topBar = {
 
@@ -340,7 +337,7 @@ fun PerfilScreen(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .background(FondoSIGEFIV)
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(innerPadding)
                     .verticalScroll(
                         rememberScrollState()
@@ -696,7 +693,7 @@ fun PerfilScreen(
                                                 FontWeight.SemiBold,
 
                                             color =
-                                                TextoOscuro
+                                                MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 }
@@ -773,7 +770,7 @@ fun PerfilScreen(
                     colors =
                         CardDefaults.cardColors(
                             containerColor =
-                                FondoTarjeta
+                                MaterialTheme.colorScheme.surface
                         ),
 
                     elevation =
@@ -799,7 +796,7 @@ fun PerfilScreen(
                                 FontWeight.Bold,
 
                             color =
-                                TextoOscuro
+                                MaterialTheme.colorScheme.onSurface
                         )
 
                         Spacer(
@@ -815,7 +812,7 @@ fun PerfilScreen(
                                 12.sp,
 
                             color =
-                                TextoGris
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Spacer(
@@ -877,7 +874,7 @@ fun PerfilScreen(
                                 11.sp,
 
                             color =
-                                TextoGris
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Spacer(
@@ -1004,7 +1001,7 @@ fun PerfilScreen(
                                         containerColor =
                                             Color(0xFFE2E8F0),
                                         contentColor =
-                                            TextoOscuro
+                                            MaterialTheme.colorScheme.onSurface
                                     ),
 
                                 enabled =
@@ -1228,7 +1225,7 @@ fun PerfilScreen(
                 colors =
                     CardDefaults.cardColors(
                         containerColor =
-                            FondoTarjeta
+                            MaterialTheme.colorScheme.surface
                     ),
 
                 elevation =
@@ -1411,7 +1408,7 @@ fun PerfilScreen(
                 colors =
                     CardDefaults.cardColors(
                         containerColor =
-                            FondoTarjeta
+                            MaterialTheme.colorScheme.surface
                     ),
 
                 elevation =
@@ -1471,7 +1468,7 @@ fun PerfilScreen(
                                     12.sp,
 
                                 color =
-                                    TextoGris
+                                    MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
                             Text(
@@ -1590,7 +1587,7 @@ fun PerfilScreen(
                                     12.sp,
 
                                 color =
-                                    TextoGris
+                                    MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
                             Text(
@@ -1607,7 +1604,7 @@ fun PerfilScreen(
                                     FontWeight.Bold,
 
                                 color =
-                                    TextoOscuro
+                                    MaterialTheme.colorScheme.onSurface
                             )
                         }
 
@@ -1619,7 +1616,7 @@ fun PerfilScreen(
                                 null,
 
                             tint =
-                                TextoGris,
+                                MaterialTheme.colorScheme.onSurfaceVariant,
 
                             modifier =
                                 Modifier.size(20.dp)
@@ -1698,7 +1695,7 @@ fun PerfilScreen(
                                         12.sp,
 
                                     color =
-                                        TextoGris
+                                        MaterialTheme.colorScheme.onSurfaceVariant
                                 )
 
                                 Text(
@@ -1715,7 +1712,7 @@ fun PerfilScreen(
                                         FontWeight.Bold,
 
                                     color =
-                                        TextoOscuro
+                                        MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -1853,7 +1850,7 @@ fun PerfilScreen(
                                 FontWeight.Bold,
 
                             color =
-                                TextoOscuro
+                                MaterialTheme.colorScheme.onSurface
                         )
 
                         Text(
@@ -1864,7 +1861,7 @@ fun PerfilScreen(
                                 12.sp,
 
                             color =
-                                TextoGris
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Text(
@@ -1895,7 +1892,7 @@ fun PerfilScreen(
                                 12.sp,
 
                             color =
-                                TextoGris
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Spacer(
@@ -1911,7 +1908,7 @@ fun PerfilScreen(
                                 10.sp,
 
                             color =
-                                TextoGris
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -2131,13 +2128,13 @@ private fun PerfilSeccionTitulo(
                 text = titulo,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextoOscuro
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
                 text = subtitulo,
                 fontSize = 12.sp,
-                color = TextoGris
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -2187,7 +2184,7 @@ private fun PerfilDato(
             Text(
                 text = titulo,
                 fontSize = 11.sp,
-                color = TextoGris
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(
@@ -2199,7 +2196,7 @@ private fun PerfilDato(
                 text = valor,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextoOscuro
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -2255,7 +2252,7 @@ private fun PerfilSeparador() {
             ),
 
         color =
-            Color(0xFFF1F5F9)
+            MaterialTheme.colorScheme.outlineVariant
     )
 }
 @Composable

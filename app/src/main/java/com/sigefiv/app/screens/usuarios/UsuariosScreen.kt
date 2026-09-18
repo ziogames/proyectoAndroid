@@ -43,6 +43,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -66,11 +67,9 @@ import com.sigefiv.app.viewmodel.UsuarioViewModel
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 
-// Paleta Oficial SIGEFIV (Verde Corporativo & Neutros)
+// Colores semánticos y de contraste. Los colores de superficie y texto
+// se obtienen del MaterialTheme para soportar modo claro y oscuro.
 private val VerdeClaroContraste = Color(0xFFCCFBF1)
-private val FondoSuperficie = Color(0xFFF8FAFC)
-private val TextoTitulos = Color(0xFF0F172A)
-private val TextoSecundario = Color(0xFF64748B)
 
 // Paleta Semántica de Estados
 private val ActivoBg = Color(0xFFDCFCE7)
@@ -433,7 +432,7 @@ fun UsuariosScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(FondoSuperficie)
+                        .background(MaterialTheme.colorScheme.background)
                         .padding(horizontal = 16.dp)
                 ) {
                     Spacer(modifier = Modifier.height(18.dp))
@@ -449,7 +448,7 @@ fun UsuariosScreen(
                         placeholder = {
                             Text(
                                 text = "Buscar por nombre, apellido o correo...",
-                                color = TextoSecundario,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 14.sp
                             )
                         },
@@ -463,12 +462,12 @@ fun UsuariosScreen(
                         },
                         shape = RoundedCornerShape(20.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                             focusedBorderColor = colorPrincipal,
-                            unfocusedBorderColor = Color(0xFFE2E8F0),
-                            focusedTextColor = TextoTitulos,
-                            unfocusedTextColor = TextoTitulos
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         )
                     )
 
@@ -488,7 +487,7 @@ fun UsuariosScreen(
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Text(
                                         text = "Cargando directorio...",
-                                        color = TextoSecundario,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 13.sp
                                     )
                                 }
@@ -527,13 +526,13 @@ fun UsuariosScreen(
                                     Icon(
                                         imageVector = Icons.Default.PersonSearch,
                                         contentDescription = null,
-                                        tint = TextoSecundario,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(54.dp)
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         text = "No se encontraron usuarios registrados",
-                                        color = TextoSecundario,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 14.sp
                                     )
                                 }
@@ -624,7 +623,7 @@ private fun UsuarioTarjetaProfional(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
     ) {
         Column(
@@ -659,7 +658,7 @@ private fun UsuarioTarjetaProfional(
                         modifier = Modifier
                             .size(16.dp)
                             .clip(CircleShape)
-                            .background(Color.White)
+                            .background(MaterialTheme.colorScheme.surface)
                             .padding(2.dp)
                             .align(Alignment.BottomEnd)
                     ) {
@@ -681,7 +680,7 @@ private fun UsuarioTarjetaProfional(
                         text = nombre,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextoTitulos,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -693,13 +692,13 @@ private fun UsuarioTarjetaProfional(
                             imageVector = Icons.Default.Email,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
-                            tint = TextoSecundario
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.width(5.dp))
                         Text(
                             text = usuario.email,
                             fontSize = 12.sp,
-                            color = TextoSecundario,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -721,8 +720,8 @@ private fun UsuarioTarjetaProfional(
                 Box {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFF1F5F9),
-                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
                             .clickable { menuRolAbierto = true }

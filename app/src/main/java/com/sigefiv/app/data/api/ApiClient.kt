@@ -107,4 +107,15 @@ object ApiClient {
             .create(RolApi::class.java)
     }
 
+    /**
+     * Cliente para la API de Actividad de Usuarios.
+     */
+    fun actividadApi(
+        context: Context
+    ): ActividadApi {
+
+        return createRetrofit(context)
+            .create(ActividadApi::class.java)
+    }
+
 }

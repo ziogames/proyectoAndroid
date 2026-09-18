@@ -1,6 +1,8 @@
 package com.sigefiv.app.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -43,7 +45,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.sigefiv.app.R
 /*
 |--------------------------------------------------------------------------
 | PALETA DE COLORES - SIDEBAR SIGEFIV
@@ -64,6 +68,7 @@ fun AppDrawer(
     rol: String? = null,
     permisos: List<String> = emptyList(),
     noLeidas: Int = 0,
+    darkTheme: Boolean = false,
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit
 ) {
@@ -90,7 +95,7 @@ fun AppDrawer(
 
     ModalDrawerSheet(
         modifier = Modifier.width(300.dp),
-        drawerContainerColor = VerdeFondoSidebar
+        drawerContainerColor = MaterialTheme.colorScheme.surface
     ) {
 
         Column(
@@ -103,67 +108,95 @@ fun AppDrawer(
             // CABECERA VERDE ESMERALDA
             // =========================================================
 
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(VerdePrincipal)
-                    .padding(
-                        top = 36.dp,
-                        bottom = 20.dp,
-                        start = 20.dp,
-                        end = 20.dp
-                    )
+                    .height(180.dp)
             ) {
 
-                Text(
-                    text = "SIGEFIV",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Blanco
+                Image(
+                    painter = painterResource(
+                        id = if (darkTheme) {
+                            R.drawable.sidebar_header_dark
+                        } else {
+                            R.drawable.sidebar_header_light
+                        }
+                    ),
+                    contentDescription = "Encabezado SIGEFIV",
+                    modifier = Modifier.fillMaxWidth(),
+                    contentScale = ContentScale.Crop
                 )
 
-                Spacer(
-                    modifier = Modifier.height(2.dp)
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            top = 16.dp,
+                            start = 20.dp,
+                            end = 20.dp
+                        )
+                ) {
 
-                Text(
-                    text = "Sistema de Gestión Financiera",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Blanco.copy(alpha = 0.85f)
-                )
-
-                Spacer(
-                    modifier = Modifier.height(2.dp)
-                )
-
-                Text(
-                    text = "Grupo Residencial 21",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFBBF7D0),
-                    fontWeight = FontWeight.Bold
-                )
-
-                if (!rol.isNullOrBlank()) {
-
-                    Spacer(
-                        modifier = Modifier.height(8.dp)
+                    Text(
+                        text = "SIGEFIV",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (darkTheme) {
+                            Color.White
+                        } else {
+                            Color(0xFF14532D)
+                        }
                     )
 
-                    Surface(
-                        color = Blanco.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
+                    Spacer(modifier = Modifier.height(2.dp))
 
-                        Text(
-                            text = rol,
-                            color = Blanco,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            modifier = Modifier.padding(
-                                horizontal = 8.dp,
-                                vertical = 2.dp
+                    Text(
+                        text = "Sistema de Gestión Financiera",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (darkTheme) {
+                            Color.White.copy(alpha = 0.9f)
+                        } else {
+                            Color(0xFF166534)
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Text(
+                        text = "Grupo Residencial 21",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (darkTheme) {
+                            Color.White
+                        } else {
+                            Color(0xFF166534)
+                        },
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    if (!rol.isNullOrBlank()) {
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Surface(
+                            color = if (darkTheme) {
+                                Color.White.copy(alpha = 0.2f)
+                            } else {
+                                Color(0xFF15803D)
+                            },
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+
+                            Text(
+                                text = rol,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(
+                                    horizontal = 8.dp,
+                                    vertical = 2.dp
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }
@@ -185,6 +218,7 @@ fun AppDrawer(
                     icon = Icons.Default.Home,
                     route = "dashboard",
                     currentScreen = currentScreen,
+                    darkTheme = darkTheme,
                     onNavigate = onNavigate
                 )
             }
@@ -200,6 +234,7 @@ fun AppDrawer(
                 icon = Icons.Default.Chat,
                 route = "chat",
                 currentScreen = currentScreen,
+                darkTheme = darkTheme,
                 onNavigate = onNavigate
             )
 
@@ -260,18 +295,27 @@ fun AppDrawer(
                     vertical = 2.dp
                 ),
                 colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor =
-                        VerdeSeleccionadoContainer,
-                    selectedTextColor =
-                        VerdeTextoSeleccionado,
-                    selectedIconColor =
-                        VerdeTextoSeleccionado,
+                    selectedContainerColor = if (darkTheme) {
+                        Color(0xFF065F46)
+                    } else {
+                        Color(0xFFD1FAE5)
+                    },
+                    selectedTextColor = if (darkTheme) {
+                        Color(0xFFA7F3D0)
+                    } else {
+                        Color(0xFF166534)
+                    },
+                    selectedIconColor = if (darkTheme) {
+                        Color(0xFFA7F3D0)
+                    } else {
+                        Color(0xFF166534)
+                    },
                     unselectedContainerColor =
                         Color.Transparent,
                     unselectedTextColor =
-                        TextoInactivo,
+                        MaterialTheme.colorScheme.onSurface,
                     unselectedIconColor =
-                        VerdePrincipal
+                        MaterialTheme.colorScheme.primary
                 )
             )
 
@@ -282,6 +326,7 @@ fun AppDrawer(
                     icon = Icons.Default.Campaign,
                     route = "asambleas",
                     currentScreen = currentScreen,
+                    darkTheme = darkTheme,
                     onNavigate = onNavigate
                 )
             }
@@ -322,18 +367,27 @@ fun AppDrawer(
                     vertical = 2.dp
                 ),
                 colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor =
-                        VerdeSeleccionadoContainer,
-                    selectedTextColor =
-                        VerdeTextoSeleccionado,
-                    selectedIconColor =
-                        VerdeTextoSeleccionado,
+                    selectedContainerColor = if (darkTheme) {
+                        Color(0xFF065F46)
+                    } else {
+                        Color(0xFFD1FAE5)
+                    },
+                    selectedTextColor = if (darkTheme) {
+                        Color(0xFFA7F3D0)
+                    } else {
+                        Color(0xFF166534)
+                    },
+                    selectedIconColor = if (darkTheme) {
+                        Color(0xFFA7F3D0)
+                    } else {
+                        Color(0xFF166534)
+                    },
                     unselectedContainerColor =
                         Color.Transparent,
                     unselectedTextColor =
-                        TextoInactivo,
+                        MaterialTheme.colorScheme.onSurface,
                     unselectedIconColor =
-                        VerdePrincipal
+                        MaterialTheme.colorScheme.primary
                 )
             )
 
@@ -359,6 +413,7 @@ fun AppDrawer(
                         icon = Icons.Default.Assessment,
                         route = "reportes",
                         currentScreen = currentScreen,
+                        darkTheme = darkTheme,
                         onNavigate = onNavigate,
                         disponible = false
                     )
@@ -371,6 +426,7 @@ fun AppDrawer(
                         icon = Icons.Default.SwapHoriz,
                         route = "movimientos",
                         currentScreen = currentScreen,
+                        darkTheme = darkTheme,
                         onNavigate = onNavigate
                     )
                 }
@@ -380,6 +436,7 @@ fun AppDrawer(
                     icon = Icons.Default.Timeline,
                     route = "periodos",
                     currentScreen = currentScreen,
+                    darkTheme = darkTheme,
                     onNavigate = onNavigate
                 )
 
@@ -390,6 +447,7 @@ fun AppDrawer(
                         icon = Icons.Default.AccountBalanceWallet,
                         route = "caja",
                         currentScreen = currentScreen,
+                        darkTheme = darkTheme,
                         onNavigate = onNavigate,
                         disponible = true
                     )
@@ -421,6 +479,7 @@ fun AppDrawer(
                         icon = Icons.Default.People,
                         route = "usuarios",
                         currentScreen = currentScreen,
+                        darkTheme = darkTheme,
                         onNavigate = onNavigate,
                         disponible = true
                     )
@@ -433,6 +492,7 @@ fun AppDrawer(
                         icon = Icons.Default.Security,
                         route = "roles",
                         currentScreen = currentScreen,
+                        darkTheme = darkTheme,
                         onNavigate = onNavigate,
                         disponible = true
                     )
@@ -445,6 +505,7 @@ fun AppDrawer(
                         icon = Icons.Default.Settings,
                         route = "configuracion",
                         currentScreen = currentScreen,
+                        darkTheme = darkTheme,
                         onNavigate = onNavigate,
                         disponible = false
                     )
@@ -457,6 +518,7 @@ fun AppDrawer(
                         icon = Icons.Default.Folder,
                         route = "categorias",
                         currentScreen = currentScreen,
+                        darkTheme = darkTheme,
                         onNavigate = onNavigate,
                         disponible = false
                     )
@@ -469,6 +531,7 @@ fun AppDrawer(
                         icon = Icons.Default.MenuBook,
                         route = "bitacora",
                         currentScreen = currentScreen,
+                        darkTheme = darkTheme,
                         onNavigate = onNavigate,
                         disponible = false
                     )
@@ -481,8 +544,9 @@ fun AppDrawer(
                         icon = Icons.Default.Timeline,
                         route = "actividad",
                         currentScreen = currentScreen,
+                        darkTheme = darkTheme,
                         onNavigate = onNavigate,
-                        disponible = false
+                        disponible = true
                     )
                 }
             }
@@ -509,6 +573,7 @@ fun AppDrawer(
                 icon = Icons.Default.AccountCircle,
                 route = "perfil",
                 currentScreen = currentScreen,
+                darkTheme = darkTheme,
                 onNavigate = onNavigate,
                 disponible = true
             )
@@ -565,7 +630,7 @@ private fun DrawerSectionTitle(
         text = title,
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Bold,
-        color = TextoSeccion,
+        color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(
             start = 24.dp,
             top = 14.dp,
@@ -580,6 +645,7 @@ private fun DrawerItem(
     icon: ImageVector,
     route: String,
     currentScreen: String,
+    darkTheme: Boolean,
     onNavigate: (String) -> Unit,
     disponible: Boolean = true
 ) {
@@ -616,25 +682,34 @@ private fun DrawerItem(
             vertical = 2.dp
         ),
         colors = NavigationDrawerItemDefaults.colors(
-            selectedContainerColor =
-                VerdeSeleccionadoContainer,
-            selectedTextColor =
-                VerdeTextoSeleccionado,
-            selectedIconColor =
-                VerdeTextoSeleccionado,
+            selectedContainerColor = if (darkTheme) {
+                Color(0xFF065F46)
+            } else {
+                Color(0xFFD1FAE5)
+            },
+            selectedTextColor = if (darkTheme) {
+                Color(0xFFA7F3D0)
+            } else {
+                Color(0xFF166534)
+            },
+            selectedIconColor = if (darkTheme) {
+                Color(0xFFA7F3D0)
+            } else {
+                Color(0xFF166534)
+            },
             unselectedContainerColor =
                 Color.Transparent,
             unselectedTextColor =
                 if (disponible) {
-                    TextoInactivo
+                    MaterialTheme.colorScheme.onSurface
                 } else {
-                    TextoDeshabilitado
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 },
             unselectedIconColor =
                 if (disponible) {
-                    VerdePrincipal
+                    MaterialTheme.colorScheme.primary
                 } else {
-                    TextoDeshabilitado
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 }
         )
     )

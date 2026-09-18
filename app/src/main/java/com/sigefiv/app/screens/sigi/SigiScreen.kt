@@ -42,6 +42,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -60,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -81,11 +83,6 @@ import com.sigefiv.app.ui.theme.SeasonalTheme
 private val VerdeSuaveAvatar = Color(0xFFDCFCE7)
 private val VerdeOnline = Color(0xFF22C55E)
 private val VerdeBurbujaUsuario = Color(0xFFDCF8C6)
-private val FondoChat = Color(0xFFF1F5F9)
-private val Blanco = Color(0xFFFFFFFF)
-private val TextoPrincipal = Color(0xFF0F172A)
-private val TextoSecundario = Color(0xFF64748B)
-private val BordeSutil = Color(0xFFE2E8F0)
 private val AzulCheck = Color(0xFF0284C7)
 
 @Composable
@@ -128,7 +125,7 @@ fun SigiScreen(
     }
 
     Scaffold(
-        containerColor = FondoChat,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
@@ -154,7 +151,7 @@ fun SigiScreen(
                         Column {
                             Text(
                                 text = "ZOE Asistente",
-                                color = Blanco,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
                             )
@@ -167,7 +164,7 @@ fun SigiScreen(
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Text(
                                     text = if (cargando) "Escribiendo..." else "En línea",
-                                    color = Blanco.copy(alpha = 0.85f),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
                                     fontSize = 11.sp
                                 )
                             }
@@ -179,7 +176,7 @@ fun SigiScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Regresar",
-                            tint = Blanco
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },
@@ -253,6 +250,18 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
         SeasonalTheme.getSeason()
     )
 
+    val temaOscuro = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+    val colorBurbujaUsuario =
+        if (temaOscuro) Color(0xFF075E3B) else Color(0xFFDCF8C6)
+
+    val colorTextoUsuario =
+        if (temaOscuro) Color.White else Color(0xFF14532D)
+
+    val colorHoraUsuario =
+        if (temaOscuro) Color.White.copy(alpha = 0.70f)
+        else Color(0xFF45634D)
+
     if (mensaje.esUsuario) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -265,7 +274,9 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
                     bottomStart = 16.dp,
                     bottomEnd = 3.dp
                 ),
-                colors = CardDefaults.cardColors(containerColor = VerdeBurbujaUsuario),
+                colors = CardDefaults.cardColors(
+                    containerColor = colorBurbujaUsuario
+                ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier.widthIn(min = 50.dp, max = 290.dp)
             ) {
@@ -275,7 +286,7 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
                 ) {
                     Text(
                         text = mensaje.texto,
-                        color = TextoPrincipal,
+                        color = colorTextoUsuario,
                         fontSize = 14.5.sp,
                         lineHeight = 19.sp,
                         modifier = Modifier.weight(1f, fill = false)
@@ -286,13 +297,13 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
                     ) {
                         Text(
                             text = "1:35 PM",
-                            color = TextoSecundario,
+                            color = colorHoraUsuario,
                             fontSize = 10.sp
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = "✓✓",
-                            color = AzulCheck,
+                            color = if (temaOscuro) Color(0xFF86EFAC) else AzulCheck,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -329,7 +340,7 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
                     bottomStart = 3.dp,
                     bottomEnd = 16.dp
                 ),
-                colors = CardDefaults.cardColors(containerColor = Blanco),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier.widthIn(min = 50.dp, max = 290.dp)
             ) {
@@ -339,7 +350,7 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
                 ) {
                     Text(
                         text = mensaje.texto,
-                        color = TextoPrincipal,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 14.5.sp,
                         lineHeight = 19.sp,
                         modifier = Modifier.weight(1f, fill = false)
@@ -347,7 +358,7 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "1:35 PM",
-                        color = TextoSecundario,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 10.sp
                     )
                 }
@@ -369,7 +380,7 @@ private fun SugerenciasChipsBar(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Blanco)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(vertical = 8.dp),
         contentPadding = PaddingValues(horizontal = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -413,8 +424,8 @@ private fun SugerenciaChip(
             .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
-        color = FondoChat,
-        border = androidx.compose.foundation.BorderStroke(1.dp, BordeSutil)
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -429,7 +440,7 @@ private fun SugerenciaChip(
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = texto,
-                color = TextoPrincipal,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -469,7 +480,7 @@ private fun IndicadorCargaMensaje() {
         Spacer(modifier = Modifier.width(8.dp))
         Card(
             shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = Blanco),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Row(
@@ -484,7 +495,7 @@ private fun IndicadorCargaMensaje() {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "ZOE está redactando...",
-                    color = TextoSecundario,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp
                 )
             }
@@ -516,7 +527,7 @@ private fun BarraEntradaModerna(
             .fillMaxWidth()
             .navigationBarsPadding()
             .imePadding(),
-        color = Blanco,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = 8.dp
     ) {
         Row(
@@ -533,7 +544,7 @@ private fun BarraEntradaModerna(
                 placeholder = {
                     Text(
                         text = "Pregúntale a ZOE...",
-                        color = TextoSecundario,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                 },
@@ -543,9 +554,13 @@ private fun BarraEntradaModerna(
                 keyboardActions = KeyboardActions(onSend = { onEnviar() }),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = colorPrincipal,
-                    unfocusedBorderColor = BordeSutil,
-                    focusedTextColor = TextoPrincipal,
-                    unfocusedTextColor = TextoPrincipal,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     cursorColor = colorPrincipal
                 )
             )
@@ -558,14 +573,14 @@ private fun BarraEntradaModerna(
                 modifier = Modifier
                     .size(44.dp)
                     .background(
-                        color = if (puedeEnviar) colorPrincipal else Color(0xFFE2E8F0),
+                        color = if (puedeEnviar) colorPrincipal else MaterialTheme.colorScheme.surfaceVariant,
                         shape = CircleShape
                     )
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = "Enviar",
-                    tint = if (puedeEnviar) Blanco else TextoSecundario,
+                    tint = if (puedeEnviar) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(19.dp)
                 )
             }

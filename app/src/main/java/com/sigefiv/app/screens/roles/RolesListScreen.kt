@@ -43,6 +43,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -78,13 +79,6 @@ import com.sigefiv.app.ui.theme.SeasonalTheme
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val VerdeBorde = Color(0xFFBBF7D0)
 
-private val FondoSIGEFIV = Color(0xFFF8FAFC)
-private val FondoTarjeta = Color(0xFFFFFFFF)
-private val TextoPrincipal = Color(0xFF0F172A)
-private val TextoSecundario = Color(0xFF64748B)
-private val TextoMuted = Color(0xFF94A3B8)
-private val GrisBorde = Color(0xFFE2E8F0)
-private val GrisFondoChips = Color(0xFFF1F5F9)
 
 private val RojoPeligro = Color(0xFFEF4444)
 private val RojoPeligroFondo = Color(0xFFFEF2F2)
@@ -124,7 +118,7 @@ fun RolesListScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(FondoSIGEFIV)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Scaffold(
             containerColor = Color.Transparent,
@@ -236,7 +230,7 @@ fun RolesListScreen(
                                 Text(
                                     text = "Sincronizando roles...",
                                     fontSize = 14.sp,
-                                    color = TextoSecundario
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -251,7 +245,7 @@ fun RolesListScreen(
                         ) {
                             Card(
                                 shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -277,12 +271,12 @@ fun RolesListScreen(
                                         text = "No se pudieron obtener los roles",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 16.sp,
-                                        color = TextoPrincipal
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
                                         text = uiState.error ?: "Error inesperado",
-                                        color = TextoSecundario,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 13.sp
                                     )
                                     Spacer(modifier = Modifier.height(20.dp))
@@ -317,7 +311,7 @@ fun RolesListScreen(
                                 OutlinedTextField(
                                     value = textoBusqueda,
                                     onValueChange = { textoBusqueda = it },
-                                    placeholder = { Text("Buscar rol por nombre...", fontSize = 14.sp, color = TextoMuted) },
+                                    placeholder = { Text("Buscar rol por nombre...", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                     leadingIcon = {
                                         Icon(
                                             imageVector = Icons.Default.Search,
@@ -336,7 +330,7 @@ fun RolesListScreen(
                                                 Icon(
                                                     imageVector = Icons.Default.Clear,
                                                     contentDescription = "Limpiar",
-                                                    tint = TextoMuted,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.size(18.dp)
                                                 )
                                             }
@@ -347,10 +341,10 @@ fun RolesListScreen(
                                         .height(52.dp),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = FondoTarjeta,
-                                        unfocusedContainerColor = FondoTarjeta,
+                                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                                         focusedBorderColor = colorPrincipal,
-                                        unfocusedBorderColor = GrisBorde,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                                         cursorColor = colorPrincipal
                                     ),
                                     singleLine = true
@@ -370,19 +364,19 @@ fun RolesListScreen(
                                             Icon(
                                                 imageVector = Icons.Default.Shield,
                                                 contentDescription = null,
-                                                tint = TextoMuted,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(48.dp)
                                             )
                                             Spacer(modifier = Modifier.height(10.dp))
                                             Text(
                                                 text = "No se encontraron roles",
-                                                color = TextoPrincipal,
+                                                color = MaterialTheme.colorScheme.onSurface,
                                                 fontWeight = FontWeight.SemiBold,
                                                 fontSize = 15.sp
                                             )
                                             Text(
                                                 text = "Intenta con otro término de búsqueda",
-                                                color = TextoSecundario,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 fontSize = 13.sp
                                             )
                                         }
@@ -417,7 +411,7 @@ private fun ResumenMetricasCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -432,7 +426,7 @@ private fun ResumenMetricasCard(
                     text = "ESTRUCTURA DE ACCESOS",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextoSecundario,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 0.6.sp
                 )
                 Spacer(modifier = Modifier.height(2.dp))
@@ -440,7 +434,7 @@ private fun ResumenMetricasCard(
                     text = "$totalRoles roles registrados",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = TextoPrincipal
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -489,7 +483,7 @@ private fun RolItemCardProfesional(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
     ) {
         Column(
@@ -511,13 +505,13 @@ private fun RolItemCardProfesional(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(if (esAdmin) VerdeSuave else GrisFondoChips),
+                            .background(if (esAdmin) VerdeSuave else MaterialTheme.colorScheme.surfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (esAdmin) Icons.Default.AdminPanelSettings else Icons.Default.Security,
                             contentDescription = null,
-                            tint = if (esAdmin) colorPrincipal else TextoSecundario,
+                            tint = if (esAdmin) colorPrincipal else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -529,12 +523,12 @@ private fun RolItemCardProfesional(
                             text = rol.name,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextoPrincipal
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = if (esAdmin) "Acceso total al sistema" else "Permisos configurados",
                             fontSize = 12.sp,
-                            color = TextoSecundario
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -646,7 +640,7 @@ private fun MetricaChip(
 ) {
     Surface(
         modifier = modifier,
-        color = GrisFondoChips,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(10.dp)
     ) {
         Row(
@@ -656,7 +650,7 @@ private fun MetricaChip(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = TextoSecundario,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -664,14 +658,14 @@ private fun MetricaChip(
                 Text(
                     text = titulo,
                     fontSize = 11.sp,
-                    color = TextoSecundario,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = valor,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = TextoPrincipal
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }

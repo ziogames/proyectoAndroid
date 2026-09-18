@@ -60,7 +60,7 @@ import com.sigefiv.app.screens.movimientos.MovimientosScreen
 import com.sigefiv.app.screens.movimientos.NuevoEgresoScreen
 import com.sigefiv.app.screens.movimientos.NuevoIngresoScreen
 import com.sigefiv.app.screens.movimientos.NuevoMovimientoScreen
-
+import com.sigefiv.app.screens.actividad.ActividadScreen
 
 import com.sigefiv.app.screens.notificaciones.EnviarNotificacionScreen
 import com.sigefiv.app.screens.notificaciones.NotificacionesScreen
@@ -88,6 +88,7 @@ import com.sigefiv.app.viewmodel.PeriodosViewModel
 import com.sigefiv.app.viewmodel.PerfilViewModel
 import com.sigefiv.app.viewmodel.RolViewModel
 import com.sigefiv.app.viewmodel.UsuarioViewModel
+import com.sigefiv.app.viewmodel.ActividadViewModel
 import kotlinx.coroutines.launch
 import com.sigefiv.app.screens.notificaciones.EnviarNotificacionScreen
 import com.sigefiv.app.screens.notificaciones.NotificacionesScreen
@@ -118,7 +119,7 @@ enum class AppScreen(val drawerRoute: String) {
     ROLES("roles"),
     EDITAR_ROL("roles"),
     CAJA("caja"),
-
+    ACTIVIDAD("actividad"),
     NOTIFICACIONES("notificaciones"),
     ENVIAR_NOTIFICACION("notificaciones"),
     CONFIRMAR_NOTIFICACION("notificaciones")
@@ -131,7 +132,9 @@ fun AppNavigation(
     movimientosViewModel: MovimientosViewModel,
     loginViewModel: LoginViewModel,
     asambleaIdNotificacion: Int? = null,
-    notificacionIdNotificacion: Int? = null
+    notificacionIdNotificacion: Int? = null,
+    darkTheme: Boolean = false,
+    onThemeToggle: () -> Unit = {}
 ) {
     val sessionManager = remember { SessionManager(context) }
     val categoriasViewModel = remember { CategoriasViewModel(context) }
@@ -141,6 +144,12 @@ fun AppNavigation(
     val asambleasViewModel = remember { AsambleasViewModel(context.applicationContext as Application) }
     val usuarioViewModel = remember { UsuarioViewModel(UsuarioRepository(ApiClient.usuarioApi(context))) }
     val cajaViewModel = remember { CajaViewModel(CajaRepository(ApiClient.cajaApi(context))) }
+    val actividadViewModel = remember {
+        ActividadViewModel(
+            context.applicationContext as Application
+        )
+    }
+
     val rolViewModel = remember { RolViewModel(RolRepository(ApiClient.rolApi(context))) }
     val chatViewModel = remember { ChatViewModel(ChatRepository(ApiClient.chatApi(context))) }
     val notificacionViewModel =
@@ -289,6 +298,7 @@ fun AppNavigation(
                 rol = usuarioPerfil?.rol,
                 permisos = usuarioPerfil?.permisos ?: emptyList(),
                 noLeidas = notificacionesNoLeidas,
+                darkTheme = darkTheme,
                 onNavigate = { route ->
                     when (route) {
                         "dashboard" -> navegarA(AppScreen.DASHBOARD, limpiarPila = true)
@@ -316,6 +326,10 @@ fun AppNavigation(
                         }
                         "caja" -> navegarA(AppScreen.CAJA)
                         "notificaciones" -> navegarA(AppScreen.NOTIFICACIONES)
+                        "actividad" -> {
+                            actividadViewModel.cargarActividades()
+                            navegarA(AppScreen.ACTIVIDAD)
+                        }
                     }
                     scope.launch { drawerState.close() }
                 },
@@ -358,7 +372,9 @@ fun AppNavigation(
                                 navegarA(AppScreen.PERFIL)
                             },
                             onSigiClick = { navegarA(AppScreen.SIGI) },
-                            onOpenDrawer = { scope.launch { drawerState.open() } }
+                            onOpenDrawer = { scope.launch { drawerState.open() } },
+                            darkTheme = darkTheme,
+                            onThemeToggle = onThemeToggle
                         )
                     }
 
@@ -783,6 +799,11 @@ fun AppNavigation(
                             viewModel = cajaViewModel,
                             onBackClick = { retroceder() },
                             onOpenDrawer = { scope.launch { drawerState.open() } }
+                        )
+                    }
+                    AppScreen.ACTIVIDAD -> {
+                        ActividadScreen(
+                            viewModel = actividadViewModel
                         )
                     }
                     AppScreen.NOTIFICACIONES -> {

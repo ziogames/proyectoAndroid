@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,6 +36,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -50,21 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Movimiento
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
 
-private val VerdeIngreso = Color(0xFF0B9F5A)
-private val VerdeIngresoOscuro = Color(0xFF087A46)
-private val VerdeSuave = Color(0xFFE7F7EF)
-private val FondoSIGEFIV = Color(0xFFF7F9FA)
-private val Blanco = Color.White
-private val TextoPrincipal = Color(0xFF1F2937)
-private val GrisTexto = Color(0xFF64748B)
-private val GrisBorde = Color(0xFFE2E8F0)
-private val Rojo = Color(0xFFE63946)
-private val RojoSuave = Color(0xFFFFECEE)
-private val AzulSuave = Color(0xFFEAF3FF)
-private val Azul = Color(0xFF2563EB)
 
 @Composable
 fun DetalleMovimientoScreen(
@@ -81,17 +67,16 @@ fun DetalleMovimientoScreen(
     onPeriodosClick: () -> Unit = {},
     onMiCuentaClick: () -> Unit = {}
 ) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
+
+    val colorPrincipal = MaterialTheme.colorScheme.primary
 
     val esIngreso = movimiento.tipo.equals(
         "Ingreso",
         ignoreCase = true
     )
 
-    val colorMovimiento = if (esIngreso) VerdeIngreso else Rojo
-    val fondoMovimiento = if (esIngreso) VerdeSuave else RojoSuave
+    val colorMovimiento = if (esIngreso) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+    val fondoMovimiento = if (esIngreso) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer
 
     val nombrePeriodo = periodoNombre
         ?: "Período actual"
@@ -100,21 +85,21 @@ fun DetalleMovimientoScreen(
         ?: "Abierto"
 
     Scaffold(
-        containerColor = FondoSIGEFIV,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
                     Column {
                         Text(
                             text = "Detalle del movimiento",
-                            color = Blanco,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 19.sp
                         )
 
                         Text(
                             text = nombrePeriodo,
-                            color = Color(0xFFE8F5E9),
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
                             fontSize = 13.sp
                         )
                     }
@@ -126,14 +111,14 @@ fun DetalleMovimientoScreen(
                         Icon(
                             imageVector = Icons.Outlined.ArrowBack,
                             contentDescription = "Regresar",
-                            tint = Blanco
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = colorPrincipal,
-                    titleContentColor = Blanco,
-                    navigationIconContentColor = Blanco
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         },
@@ -150,7 +135,7 @@ fun DetalleMovimientoScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(FondoSIGEFIV)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .padding(
                     horizontal = 16.dp,
@@ -229,7 +214,7 @@ private fun ResumenMovimientoCard(
                 shape = RoundedCornerShape(20.dp)
             )
             .background(
-                color = Blanco,
+                color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(20.dp)
             )
             .padding(20.dp),
@@ -280,7 +265,7 @@ private fun ResumenMovimientoCard(
             // Concepto
             Text(
                 text = movimiento.concepto,
-                color = TextoPrincipal,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 19.sp,
                 fontWeight = FontWeight.Bold,
                 lineHeight = 23.sp,
@@ -295,7 +280,7 @@ private fun ResumenMovimientoCard(
             Text(
                 text = movimiento.categoria
                     ?: "Sin categoría",
-                color = GrisTexto,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 14.sp
             )
 
@@ -333,7 +318,7 @@ private fun InformacionGeneralCard(
                 shape = RoundedCornerShape(20.dp)
             )
             .background(
-                color = Blanco,
+                color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(20.dp)
             )
             .padding(
@@ -348,7 +333,7 @@ private fun InformacionGeneralCard(
             Icon(
                 imageVector = Icons.Outlined.Info,
                 contentDescription = null,
-                tint = VerdeIngreso,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(23.dp)
             )
 
@@ -358,7 +343,7 @@ private fun InformacionGeneralCard(
 
             Text(
                 text = "Información general",
-                color = TextoPrincipal,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -478,7 +463,7 @@ private fun DetalleFila(
     icono: androidx.compose.ui.graphics.vector.ImageVector,
     titulo: String,
     valor: String,
-    valorColor: Color = TextoPrincipal
+    valorColor: Color? = null
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -488,7 +473,7 @@ private fun DetalleFila(
         Icon(
             imageVector = icono,
             contentDescription = null,
-            tint = GrisTexto,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(21.dp)
         )
 
@@ -498,7 +483,7 @@ private fun DetalleFila(
 
         Text(
             text = titulo,
-            color = GrisTexto,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 14.sp,
             modifier = Modifier.width(104.dp)
         )
@@ -509,7 +494,7 @@ private fun DetalleFila(
 
         Text(
             text = valor,
-            color = valorColor,
+            color = valorColor ?: MaterialTheme.colorScheme.onSurface,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f)
@@ -524,7 +509,7 @@ private fun DetalleSeparador() {
             .fillMaxWidth()
             .padding(vertical = 9.dp)
             .height(1.dp)
-            .background(GrisBorde)
+            .background(MaterialTheme.colorScheme.outlineVariant)
     )
 }
 
@@ -536,10 +521,8 @@ private fun ResumenPeriodoCard(
     disponible: Double,
     saldoCaja: Double
 ) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
 
+    val colorPrincipal = MaterialTheme.colorScheme.primary
     val disponiblePositivo = disponible >= 0
     val saldoPositivo = saldoCaja >= 0
 
@@ -547,7 +530,7 @@ private fun ResumenPeriodoCard(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = VerdeSuave,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
                 shape = RoundedCornerShape(20.dp)
             )
             .padding(18.dp)
@@ -577,7 +560,7 @@ private fun ResumenPeriodoCard(
 
                 Text(
                     text = periodoNombre,
-                    color = GrisTexto,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 13.sp
                 )
             }
@@ -594,13 +577,13 @@ private fun ResumenPeriodoCard(
             ResumenDato(
                 titulo = "Ingresos",
                 valor = "S/ %.2f".format(ingresos),
-                color = VerdeIngreso
+                color = MaterialTheme.colorScheme.primary
             )
 
             ResumenDato(
                 titulo = "Egresos",
                 valor = "S/ %.2f".format(egresos),
-                color = Rojo
+                color = MaterialTheme.colorScheme.error
             )
         }
 
@@ -616,9 +599,9 @@ private fun ResumenPeriodoCard(
                 titulo = "Disponible",
                 valor = "S/ %.2f".format(disponible),
                 color = if (disponiblePositivo) {
-                    VerdeIngreso
+                    MaterialTheme.colorScheme.primary
                 } else {
-                    Rojo
+                    MaterialTheme.colorScheme.error
                 }
             )
 
@@ -626,9 +609,9 @@ private fun ResumenPeriodoCard(
                 titulo = "Saldo caja",
                 valor = "S/ %.2f".format(saldoCaja),
                 color = if (saldoPositivo) {
-                    VerdeIngreso
+                    MaterialTheme.colorScheme.primary
                 } else {
-                    Rojo
+                    MaterialTheme.colorScheme.error
                 }
             )
         }
@@ -646,7 +629,7 @@ private fun ResumenDato(
     ) {
         Text(
             text = titulo,
-            color = GrisTexto,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 12.sp
         )
 
@@ -668,8 +651,8 @@ private fun EstadoPeriodoCard(
     estado: String,
     abierto: Boolean
 ) {
-    val color = if (abierto) Azul else GrisTexto
-    val fondo = if (abierto) AzulSuave else Color(0xFFF1F5F9)
+    val color = if (abierto) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
+    val fondo = if (abierto) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
 
     Row(
         modifier = Modifier
@@ -714,7 +697,7 @@ private fun EstadoPeriodoCard(
                 } else {
                     "Período cerrado"
                 },
-                color = TextoPrincipal,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -729,7 +712,7 @@ private fun EstadoPeriodoCard(
                 } else {
                     "Este movimiento pertenece a un período cerrado."
                 },
-                color = GrisTexto,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp
             )
 
@@ -750,9 +733,8 @@ private fun DetalleBottomBar(
     onPeriodosClick: () -> Unit,
     onMiCuentaClick: () -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
+
+    val colorPrincipal = MaterialTheme.colorScheme.primary
 
     NavigationBar(
         modifier = Modifier.fillMaxWidth(),
@@ -775,9 +757,9 @@ private fun DetalleBottomBar(
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = colorPrincipal,
                 selectedTextColor = colorPrincipal,
-                unselectedIconColor = Blanco,
-                unselectedTextColor = Blanco,
-                indicatorColor = Blanco
+                unselectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                unselectedTextColor = MaterialTheme.colorScheme.onPrimary,
+                indicatorColor = MaterialTheme.colorScheme.onPrimary
             )
         )
 
@@ -796,9 +778,9 @@ private fun DetalleBottomBar(
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = colorPrincipal,
                 selectedTextColor = colorPrincipal,
-                unselectedIconColor = Blanco,
-                unselectedTextColor = Blanco,
-                indicatorColor = Blanco
+                unselectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                unselectedTextColor = MaterialTheme.colorScheme.onPrimary,
+                indicatorColor = MaterialTheme.colorScheme.onPrimary
             )
         )
 
@@ -817,9 +799,9 @@ private fun DetalleBottomBar(
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = colorPrincipal,
                 selectedTextColor = colorPrincipal,
-                unselectedIconColor = Blanco,
-                unselectedTextColor = Blanco,
-                indicatorColor = Blanco
+                unselectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                unselectedTextColor = MaterialTheme.colorScheme.onPrimary,
+                indicatorColor = MaterialTheme.colorScheme.onPrimary
             )
         )
 
@@ -838,9 +820,9 @@ private fun DetalleBottomBar(
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = colorPrincipal,
                 selectedTextColor = colorPrincipal,
-                unselectedIconColor = Blanco,
-                unselectedTextColor = Blanco,
-                indicatorColor = Blanco
+                unselectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                unselectedTextColor = MaterialTheme.colorScheme.onPrimary,
+                indicatorColor = MaterialTheme.colorScheme.onPrimary
             )
         )
     }
