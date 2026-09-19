@@ -28,6 +28,7 @@ data class ChatMessage(
     val created_at: String? = null,
     val updated_at: String? = null,
     val editado: Boolean = false,
+    val tipo: String? = null,
     val usuario: ChatUser? = null,
     val reply_to: ChatReplyInfo? = null,
 
@@ -92,7 +93,8 @@ data class ChatReplyInfo(
 data class ChatUser(
     val id: Int,
     val name: String? = null,
-    val email: String? = null
+    val email: String? = null,
+    val avatar: String? = null
 )
 
 data class ChatTypingUser(

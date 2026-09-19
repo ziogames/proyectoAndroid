@@ -1,3 +1,4 @@
+
 package com.sigefiv.app.data.api
 
 import com.sigefiv.app.data.SessionManager
@@ -5,6 +6,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
+import java.io.IOException
 
 class AuthInterceptor(
     private val sessionManager: SessionManager
@@ -85,8 +87,26 @@ class AuthInterceptor(
 
         /*
          * Enviar la petición al servidor.
+         *
+         * Detectar errores de conexión.
          */
-        val response = chain.proceed(request)
+        val response: Response
+
+        try {
+
+            response =
+                chain.proceed(request)
+
+        } catch (e: IOException) {
+
+            println(
+                "SIGEFIV ERROR DE CONEXION: ${e.message}"
+            )
+
+            NetworkErrorManager.mostrarErrorConexion()
+
+            throw e
+        }
 
         /*
          * DIAGNÓSTICO
@@ -104,14 +124,29 @@ class AuthInterceptor(
         )
 
         /*
-         * Leer el cuerpo únicamente para diagnóstico.
+         * Manejo de errores HTTP del servidor.
          *
-         * response.peekBody() NO consume el cuerpo original,
-         * por lo que Retrofit podrá seguir procesándolo normalmente.
+         * No mostramos mensajes técnicos al usuario.
+         */
+        when (response.code) {
+
+            500, 502, 503, 504 -> {
+
+                println(
+                    "SIGEFIV ERROR DEL SERVIDOR: ${response.code}"
+                )
+
+                NetworkErrorManager.mostrarErrorServidor()
+            }
+        }
+
+        /*
+         * Leer el cuerpo únicamente para diagnóstico.
          */
         if (esLoginGoogle || response.code >= 400) {
 
             try {
+
                 val responseBody =
                     response.peekBody(1024 * 1024)
 

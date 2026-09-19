@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.sigefiv.app.ui.components.AvatarUsuario
 import com.sigefiv.app.data.model.ChatArchivoPayload
 import com.sigefiv.app.data.model.ChatMessage
 import com.sigefiv.app.viewmodel.ChatViewModel
@@ -90,7 +91,15 @@ import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.material.icons.filled.SmartToy
 
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.HelpOutline
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 @Composable
 private fun colorPrincipal(): Color {
     return SeasonalColors.primary(
@@ -296,22 +305,11 @@ fun ChatVecinalScreen(
 
                 } ?: -1
 
-            if (indiceNoLeido >= 0) {
-
-                listState.scrollToItem(
-                    indiceNoLeido
-                )
-
-            } else {
-
-                // Vamos al final real de la lista.
-                // El último elemento es el Spacer inferior.
-
-                listState.scrollToItem(
-                    uiState.mensajes.size,
-                    scrollOffset = 10000
-                )
-            }
+            // Siempre abrir el chat mostrando los mensajes más recientes.
+            listState.scrollToItem(
+                uiState.mensajes.size,
+                scrollOffset = 10000
+            )
 
             posicionInicialAplicada = true
         }
@@ -388,6 +386,13 @@ fun ChatVecinalScreen(
 
     var texto by remember {
         mutableStateOf("")
+    }
+    var mostrarMenuChat by remember {
+        mutableStateOf(false)
+    }
+
+    var mostrarAyudaZoe by remember {
+        mutableStateOf(false)
     }
 
     // 💬 Estados para el resaltado temporal del mensaje original citado
@@ -478,7 +483,49 @@ fun ChatVecinalScreen(
                     containerColor = SeasonalColors.primary(
                         SeasonalTheme.getSeason()
                     )
-                )
+                ),
+                actions = {
+
+                    Box {
+
+                        IconButton(
+                            onClick = {
+                                mostrarMenuChat = true
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.MoreVert,
+                                contentDescription = "Opciones del chat",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = mostrarMenuChat,
+                            onDismissRequest = {
+                                mostrarMenuChat = false
+                            }
+                        ) {
+
+                            DropdownMenuItem(
+                                text = {
+                                    Text("Ayuda de ZOE")
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.HelpOutline,
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    mostrarMenuChat = false
+                                    mostrarAyudaZoe = true
+                                }
+                            )
+                        }
+                    }
+                }
+
             )
         },
 
@@ -935,6 +982,56 @@ fun ChatVecinalScreen(
             }
         }
     }
+    if (mostrarAyudaZoe) {
+
+        AlertDialog(
+            onDismissRequest = {
+                mostrarAyudaZoe = false
+            },
+            title = {
+                Text("🤖 Ayuda de ZOE")
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+
+                    Text(
+                        "Hola, soy ZOE, la asistente virtual " +
+                                "de SIGEFIV."
+                    )
+
+                    Text(
+                        "Puedes mencionarme en el chat utilizando @zoe."
+                    )
+
+                    Text("Ejemplos de preguntas:")
+
+                    Text("• @zoe ¿Qué puedes hacer?")
+
+                    Text("• @zoe ¿Quién eres?")
+
+                    Text("• @zoe ¿Qué funciones tendrás?")
+
+                    Text(
+                        "Actualmente puedo ayudarte con las " +
+                                "funciones disponibles en SIGEFIV. " +
+                                "Nuevas capacidades se incorporarán " +
+                                "en futuras actualizaciones."
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        mostrarAyudaZoe = false
+                    }
+                ) {
+                    Text("Cerrar")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -1115,6 +1212,24 @@ private fun ChatInput(
                     )
             )
         }
+        // 🤖 Indicador de ZOE escribiendo
+
+        if (enviando) {
+
+            Text(
+                text = "🤖 ZOE está escribiendo...",
+                color = MaterialTheme.colorScheme.onPrimary.copy(
+                    alpha = 0.85f
+                ),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(
+                    start = 12.dp,
+                    bottom = 3.dp
+                )
+            )
+        }
+
 
         // 🟢 Barra compacta tipo WhatsApp
 
@@ -1543,505 +1658,297 @@ private fun ChatMessageItem(
 
     ) {
 
-        Surface(
-
-            shape =
-                RoundedCornerShape(
-
-                    topStart = 14.dp,
-
-                    topEnd = 14.dp,
-
-                    bottomStart =
-                        if (esPropio) {
-                            14.dp
-                        } else {
-                            2.dp
-                        },
-
-                    bottomEnd =
-                        if (esPropio) {
-                            2.dp
-                        } else {
-                            14.dp
-                        }
-                ),
-
-            color =
-                colorBurbujaFinal,
-
-            shadowElevation =
-                if (esResaltado) {
-                    6.dp
-                } else {
-                    1.dp
-                },
+        Row(
 
             modifier =
-                Modifier
-                    .widthIn(
-                        max =
-                            maxBurbujaWidth
-                    )
-                    .offset {
-                        IntOffset(
-                            offsetX.toInt(),
-                            0
-                        )
-                    }
-                    .pointerInput(Unit) {
+                Modifier.fillMaxWidth(),
 
-                        detectHorizontalDragGestures(
+            horizontalArrangement =
+                if (esPropio) {
+                    Arrangement.End
+                } else {
+                    Arrangement.Start
+                },
 
-                            onDragEnd = {
+            verticalAlignment =
+                Alignment.Top
 
-                                if (
-                                    offsetX >
-                                    thresholdPx
-                                ) {
-
-                                    onResponder()
-                                }
-
-                                offsetX = 0f
-                            },
-
-                            onHorizontalDrag = {
-                                    _, dragAmount ->
-
-                                offsetX =
-                                    (
-                                            offsetX +
-                                                    dragAmount
-                                            )
-                                        .coerceIn(
-                                            0f,
-                                            thresholdPx * 1.5f
-                                        )
-                            }
-                        )
-                    }
-                    .combinedClickable(
-
-                        onClick = {},
-
-                        onLongClick =
-                            onMostrarReacciones
-                    )
         ) {
 
-            Column(
+            if (!esPropio) {
+
+                if (mensaje.tipo == "sigi") {
+
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(c.nombreEmisor),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.SmartToy,
+                            contentDescription = "Avatar de ZOE",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                } else {
+
+                    AvatarUsuario(
+                        usuario = mensaje.usuario,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier.width(6.dp)
+                )
+            }
+
+            Surface(
+
+                shape =
+                    RoundedCornerShape(
+
+                        topStart = 14.dp,
+
+                        topEnd = 14.dp,
+
+                        bottomStart =
+                            if (esPropio) {
+                                14.dp
+                            } else {
+                                2.dp
+                            },
+
+                        bottomEnd =
+                            if (esPropio) {
+                                2.dp
+                            } else {
+                                14.dp
+                            }
+                    ),
+
+                color =
+                    colorBurbujaFinal,
+
+                shadowElevation =
+                    if (esResaltado) {
+                        6.dp
+                    } else {
+                        1.dp
+                    },
 
                 modifier =
                     Modifier
-                        .wrapContentWidth()
-                        .padding(
-                            start = 9.dp,
-                            end = 9.dp,
-                            top = 6.dp,
-                            bottom = 4.dp
+                        .widthIn(
+                            max =
+                                maxBurbujaWidth
                         )
+                        .offset {
+                            IntOffset(
+                                offsetX.toInt(),
+                                0
+                            )
+                        }
+                        .pointerInput(Unit) {
 
+                            detectHorizontalDragGestures(
+
+                                onDragEnd = {
+
+                                    if (
+                                        offsetX >
+                                        thresholdPx
+                                    ) {
+
+                                        onResponder()
+                                    }
+
+                                    offsetX = 0f
+                                },
+
+                                onHorizontalDrag = {
+                                        _, dragAmount ->
+
+                                    offsetX =
+                                        (
+                                                offsetX +
+                                                        dragAmount
+                                                )
+                                            .coerceIn(
+                                                0f,
+                                                thresholdPx * 1.5f
+                                            )
+                                }
+                            )
+                        }
+                        .combinedClickable(
+
+                            onClick = {},
+
+                            onLongClick =
+                                onMostrarReacciones
+                        )
             ) {
 
-                // 💬 Tarjeta miniatura del mensaje citado
+                Column(
 
-                if (
-                    mensaje.reply_to != null
+                    modifier =
+                        Modifier
+                            .wrapContentWidth()
+                            .padding(
+                                start = 9.dp,
+                                end = 9.dp,
+                                top = 6.dp,
+                                bottom = 4.dp
+                            )
+
                 ) {
 
-                    Surface(
+                    // 💬 Tarjeta miniatura del mensaje citado
 
-                        shape =
-                            RoundedCornerShape(6.dp),
-
-                        color =
-                            c.fondoTarjeta.copy(
-                                alpha = 0.7f
-                            ),
-
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    bottom = 4.dp
-                                )
-                                .combinedClickable(
-
-                                    onClick = {
-
-                                        onIrAlMensajeOriginal(
-                                            mensaje.reply_to.id
-                                        )
-                                    }
-                                )
-
+                    if (
+                        mensaje.reply_to != null
                     ) {
 
-                        Row(
+                        Surface(
+
+                            shape =
+                                RoundedCornerShape(6.dp),
+
+                            color =
+                                c.fondoTarjeta.copy(
+                                    alpha = 0.7f
+                                ),
 
                             modifier =
-                                Modifier.padding(6.dp),
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        bottom = 4.dp
+                                    )
+                                    .combinedClickable(
 
-                            verticalAlignment =
-                                Alignment.CenterVertically
+                                        onClick = {
+
+                                            onIrAlMensajeOriginal(
+                                                mensaje.reply_to.id
+                                            )
+                                        }
+                                    )
 
                         ) {
 
-                            Box(
+                            Row(
 
                                 modifier =
-                                    Modifier
-                                        .width(2.5.dp)
-                                        .height(26.dp)
-                                        .background(
-                                            c.nombreEmisor
-                                        )
-                            )
+                                    Modifier.padding(6.dp),
 
-                            Spacer(
-                                modifier =
-                                    Modifier.width(6.dp)
-                            )
+                                verticalAlignment =
+                                    Alignment.CenterVertically
 
-                            Column(
-                                modifier =
-                                    Modifier.weight(1f)
                             ) {
 
-                                Text(
+                                Box(
 
-                                    text =
-                                        mensaje.reply_to.usuario?.name
-                                            ?: "Vecino",
-
-                                    color =
-                                        c.nombreEmisor,
-
-                                    fontSize = 11.sp,
-
-                                    fontWeight =
-                                        FontWeight.Bold
+                                    modifier =
+                                        Modifier
+                                            .width(2.5.dp)
+                                            .height(26.dp)
+                                            .background(
+                                                c.nombreEmisor
+                                            )
                                 )
 
-                                Text(
-
-                                    text =
-                                        mensaje.reply_to.mensaje
-                                            ?: "Mensaje",
-
-                                    color =
-                                        c.textoSecundario,
-
-                                    fontSize = 11.sp,
-
-                                    maxLines = 1
+                                Spacer(
+                                    modifier =
+                                        Modifier.width(6.dp)
                                 )
+
+                                Column(
+                                    modifier =
+                                        Modifier.weight(1f)
+                                ) {
+
+                                    Text(
+
+                                        text =
+                                            mensaje.reply_to.usuario?.name
+                                                ?: "Vecino",
+
+                                        color =
+                                            c.nombreEmisor,
+
+                                        fontSize = 11.sp,
+
+                                        fontWeight =
+                                            FontWeight.Bold
+                                    )
+
+                                    Text(
+
+                                        text =
+                                            mensaje.reply_to.mensaje
+                                                ?: "Mensaje",
+
+                                        color =
+                                            c.textoSecundario,
+
+                                        fontSize = 11.sp,
+
+                                        maxLines = 1
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                if (
-                    !esPropio
-                ) {
+                    if (!esPropio) {
 
-                    Text(
-
-                        text =
-                            mensaje.usuario?.name
-                                ?: "Vecino",
-
-                        color =
-                            c.nombreEmisor,
-
-                        fontSize = 12.sp,
-
-                        lineHeight = 11.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        maxLines = 1
-                    )
-                }
-
-                // 📁 DETECCIÓN DE ARCHIVO ADJUNTO
-
-                val archivoAdjunto =
-                    mensaje.obtenerArchivoAdjunto()
-
-                if (
-                    archivoAdjunto != null
-                ) {
-
-                    TarjetaArchivoMensaje(
-                        archivo =
-                            archivoAdjunto
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(2.dp)
-                    )
-
-                    Text(
-
-                        text =
-                            formatearHoraChat(
-                                mensaje.created_at
-                            ),
-
-                        color =
-                            c.textoSecundario,
-
-                        fontSize = 10.sp,
-
-                        modifier =
-                            Modifier.align(
-                                Alignment.End
-                            )
-                    )
-
-                } else {
-
-                    val lineas =
-                        texto
-                            .lines()
-                            .map {
-                                it.trim()
-                            }
-                            .filter {
-                                it.isNotBlank()
-                            }
-
-                    val tieneListado =
-                        !esPropio &&
-                                lineas.any {
-                                    it.startsWith("•")
-                                }
-
-                    if (
-                        tieneListado
-                    ) {
-
-                        var introduccionMostrada =
-                            false
-
-                        var sumaTotalAcumulada =
-                            0.0
-
-                        var hayCalculoTotal =
-                            false
-
-                        var textoLineaTotal =
-                            ""
-
-                        lineas.forEach { linea ->
-
-                            val lineaLimpia =
-                                linea.replace(
-                                    "**",
-                                    ""
-                                )
-
-                            val esLineaTotal =
-                                lineaLimpia.contains(
-                                    "total",
-                                    ignoreCase = true
-                                )
-
-                            if (
-                                linea.startsWith("•") &&
-                                !esLineaTotal
-                            ) {
-
-                                val partes =
-                                    lineaLimpia
-                                        .removePrefix("•")
-                                        .split("|")
-                                        .map {
-                                            it.trim()
-                                        }
-
-                                val fecha =
-                                    partes.getOrNull(0)
-                                        ?: ""
-
-                                val tipo =
-                                    partes.getOrNull(1)
-                                        ?: ""
-
-                                val concepto =
-                                    partes.getOrNull(2)
-                                        ?: ""
-
-                                val categoria =
-                                    partes.getOrNull(3)
-                                        ?: ""
-
-                                val montoStr =
-                                    partes.getOrNull(4)
-                                        ?: ""
-
-                                val montoLimpio =
-                                    montoStr
-                                        .replace(
-                                            "S/",
-                                            ""
-                                        )
-                                        .replace(
-                                            "s/",
-                                            ""
-                                        )
-                                        .replace(
-                                            ",",
-                                            ""
-                                        )
-                                        .trim()
-
-                                val valMonto =
-                                    montoLimpio.toDoubleOrNull()
-
-                                if (
-                                    valMonto != null
-                                ) {
-
-                                    hayCalculoTotal =
-                                        true
-
-                                    val esEgreso =
-                                        tipo.contains(
-                                            "egreso",
-                                            ignoreCase = true
-                                        ) ||
-                                                tipo.contains(
-                                                    "salida",
-                                                    ignoreCase = true
-                                                ) ||
-                                                montoStr.startsWith(
-                                                    "-"
-                                                )
-
-                                    if (
-                                        esEgreso &&
-                                        valMonto > 0
-                                    ) {
-
-                                        sumaTotalAcumulada -=
-                                            valMonto
-
-                                    } else {
-
-                                        sumaTotalAcumulada +=
-                                            valMonto
-                                    }
-                                }
-
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(4.dp)
-                                )
-
-                                TarjetaMovimientoInteligente(
-
-                                    fecha =
-                                        fecha,
-
-                                    tipo =
-                                        tipo,
-
-                                    concepto =
-                                        concepto,
-
-                                    categoria =
-                                        categoria,
-
-                                    monto =
-                                        montoStr
-                                )
-
-                            } else if (
-                                !introduccionMostrada &&
-                                !esLineaTotal
-                            ) {
-
-                                Text(
-
-                                    text =
-                                        lineaLimpia,
-
-                                    color =
-                                        c.textoPrincipal,
-
-                                    fontSize = 14.sp,
-
-                                    lineHeight = 19.sp,
-
-                                    textAlign =
-                                        TextAlign.Start
-                                )
-
-                                introduccionMostrada =
-                                    true
-
-                            } else if (
-                                esLineaTotal
-                            ) {
-
-                                textoLineaTotal =
-                                    lineaLimpia
-
-                            } else if (
-                                lineaLimpia.isNotBlank()
-                            ) {
-
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(4.dp)
-                                )
-
-                                Text(
-
-                                    text =
-                                        lineaLimpia,
-
-                                    color =
-                                        colorPrincipal(),
-
-                                    fontSize = 13.sp,
-
-                                    fontWeight =
-                                        FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        if (
-                            hayCalculoTotal ||
-                            textoLineaTotal.isNotBlank()
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(bottom = 4.dp)
                         ) {
 
+
+
                             Spacer(
-                                modifier =
-                                    Modifier.height(4.dp)
+                                modifier = Modifier.width(6.dp)
                             )
 
-                            TarjetaTotalInteligente(
-
-                                totalSuma =
-                                    if (
-                                        hayCalculoTotal
-                                    ) {
-                                        sumaTotalAcumulada
+                            Text(
+                                text =
+                                    if (mensaje.tipo == "sigi") {
+                                        "ZOE"
                                     } else {
-                                        null
+                                        mensaje.usuario?.name
+                                            ?: "Vecino"
                                     },
-
-                                lineaOriginal =
-                                    textoLineaTotal
+                                color = c.nombreEmisor,
+                                fontSize = 12.sp,
+                                lineHeight = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
                             )
                         }
+                    }
+
+                    // 📁 DETECCIÓN DE ARCHIVO ADJUNTO
+
+                    val archivoAdjunto =
+                        mensaje.obtenerArchivoAdjunto()
+
+                    if (
+                        archivoAdjunto != null
+                    ) {
+
+                        TarjetaArchivoMensaje(
+                            archivo =
+                                archivoAdjunto
+                        )
 
                         Spacer(
                             modifier =
@@ -2068,37 +1975,223 @@ private fun ChatMessageItem(
 
                     } else {
 
-                        Row(
+                        val lineas =
+                            texto
+                                .lines()
+                                .map {
+                                    it.trim()
+                                }
+                                .filter {
+                                    it.isNotBlank()
+                                }
 
-                            modifier =
-                                Modifier.wrapContentWidth(),
+                        val tieneListado =
+                            !esPropio &&
+                                    lineas.any {
+                                        it.startsWith("•")
+                                    }
 
-                            verticalAlignment =
-                                Alignment.Bottom
-
+                        if (
+                            tieneListado
                         ) {
 
-                            Text(
+                            var introduccionMostrada =
+                                false
 
-                                text =
-                                    texto,
+                            var sumaTotalAcumulada =
+                                0.0
 
-                                color =
-                                    c.textoPrincipal,
+                            var hayCalculoTotal =
+                                false
 
-                                fontSize = 14.sp,
+                            var textoLineaTotal =
+                                ""
 
-                                lineHeight = 19.sp,
+                            lineas.forEach { linea ->
 
+                                val lineaLimpia =
+                                    linea.replace(
+                                        "**",
+                                        ""
+                                    )
+
+                                val esLineaTotal =
+                                    lineaLimpia.contains(
+                                        "total",
+                                        ignoreCase = true
+                                    )
+
+                                if (
+                                    linea.startsWith("•") &&
+                                    !esLineaTotal
+                                ) {
+
+                                    val partes =
+                                        lineaLimpia
+                                            .removePrefix("•")
+                                            .split("|")
+                                            .map {
+                                                it.trim()
+                                            }
+
+                                    val fecha =
+                                        partes.getOrNull(0)
+                                            ?: ""
+
+                                    val tipo =
+                                        partes.getOrNull(1)
+                                            ?: ""
+
+                                    val concepto =
+                                        partes.getOrNull(2)
+                                            ?: ""
+
+                                    val categoria =
+                                        partes.getOrNull(3)
+                                            ?: ""
+
+                                    val montoStr =
+                                        partes.getOrNull(4)
+                                            ?: ""
+
+                                    val montoLimpio =
+                                        montoStr
+                                            .replace(
+                                                "S/",
+                                                ""
+                                            )
+                                            .replace(
+                                                "s/",
+                                                ""
+                                            )
+                                            .replace(
+                                                ",",
+                                                ""
+                                            )
+                                            .trim()
+
+                                    val valMonto =
+                                        montoLimpio.toDoubleOrNull()
+
+                                    if (
+                                        valMonto != null
+                                    ) {
+
+                                        hayCalculoTotal =
+                                            true
+
+                                        val esEgreso =
+                                            tipo.contains(
+                                                "egreso",
+                                                ignoreCase = true
+                                            ) ||
+                                                    tipo.contains(
+                                                        "salida",
+                                                        ignoreCase = true
+                                                    ) ||
+                                                    montoStr.startsWith(
+                                                        "-"
+                                                    )
+
+                                        if (
+                                            esEgreso &&
+                                            valMonto > 0
+                                        ) {
+
+                                            sumaTotalAcumulada -=
+                                                valMonto
+
+                                        } else {
+
+                                            sumaTotalAcumulada +=
+                                                valMonto
+                                        }
+                                    }
+
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(4.dp)
+                                    )
+
+                                    TarjetaMovimientoInteligente(
+
+                                        fecha =
+                                            fecha,
+
+                                        tipo =
+                                            tipo,
+
+                                        concepto =
+                                            concepto,
+
+                                        categoria =
+                                            categoria,
+
+                                        monto =
+                                            montoStr
+                                    )
+
+                                } else if (
+                                    !introduccionMostrada &&
+                                    !esLineaTotal
+                                ) {
+
+                                    Text(
+
+                                        text =
+                                            lineaLimpia,
+
+                                        color =
+                                            c.textoPrincipal,
+
+                                        fontSize = 14.sp,
+
+                                        lineHeight = 19.sp,
+
+                                        textAlign =
+                                            TextAlign.Start
+                                    )
+
+                                    introduccionMostrada =
+                                        true
+
+                                } else if (
+                                    esLineaTotal
+                                ) {
+
+                                    textoLineaTotal =
+                                        lineaLimpia
+
+                                } else if (
+                                    lineaLimpia.isNotBlank()
+                                ) {
+
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(4.dp)
+                                    )
+
+                                    Text(
+
+                                        text =
+                                            lineaLimpia,
+
+                                        color =
+                                            colorPrincipal(),
+
+                                        fontSize = 13.sp,
+
+                                        fontWeight =
+                                            FontWeight.Bold
+                                    )
+                                }
+                            }
+
+
+
+                            Spacer(
                                 modifier =
-                                    Modifier
-                                        .weight(
-                                            1f,
-                                            fill = false
-                                        )
-                                        .padding(
-                                            end = 8.dp
-                                        )
+                                    Modifier.height(2.dp)
                             )
 
                             Text(
@@ -2114,15 +2207,70 @@ private fun ChatMessageItem(
                                 fontSize = 10.sp,
 
                                 modifier =
-                                    Modifier.padding(
-                                        bottom = 1.dp
+                                    Modifier.align(
+                                        Alignment.End
                                     )
                             )
+
+                        } else {
+
+                            Row(
+
+                                modifier =
+                                    Modifier.wrapContentWidth(),
+
+                                verticalAlignment =
+                                    Alignment.Bottom
+
+                            ) {
+
+                                Text(
+
+                                    text =
+                                        texto,
+
+                                    color =
+                                        c.textoPrincipal,
+
+                                    fontSize = 14.sp,
+
+                                    lineHeight = 19.sp,
+
+                                    modifier =
+                                        Modifier
+                                            .weight(
+                                                1f,
+                                                fill = false
+                                            )
+                                            .padding(
+                                                end = 8.dp
+                                            )
+                                )
+
+                                Text(
+
+                                    text =
+                                        formatearHoraChat(
+                                            mensaje.created_at
+                                        ),
+
+                                    color =
+                                        c.textoSecundario,
+
+                                    fontSize = 10.sp,
+
+                                    modifier =
+                                        Modifier.padding(
+                                            bottom = 1.dp
+                                        )
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
+
+        } // Row: avatar + burbuja
 
         if (
             !mensaje.reacciones.isNullOrEmpty()
@@ -2513,6 +2661,7 @@ private fun TarjetaArchivoMensaje(
         }
     }
 }
+
 @Composable
 private fun TarjetaMovimientoInteligente(
     fecha: String,
@@ -2521,26 +2670,15 @@ private fun TarjetaMovimientoInteligente(
     categoria: String,
     monto: String
 ) {
-
     val c = coloresChat()
 
     val esEgreso =
-        tipo.contains(
-            "egreso",
-            ignoreCase = true
-        ) ||
-                tipo.contains(
-                    "salida",
-                    ignoreCase = true
-                ) ||
+        tipo.contains("egreso", ignoreCase = true) ||
+                tipo.contains("salida", ignoreCase = true) ||
                 monto.startsWith("-")
 
     val colorMovimiento =
-        if (esEgreso) {
-            RojoMonto
-        } else {
-            VerdeMonto
-        }
+        if (esEgreso) RojoMonto else VerdeMonto
 
     val iconoMovimiento =
         if (esEgreso) {
@@ -2550,170 +2688,85 @@ private fun TarjetaMovimientoInteligente(
         }
 
     Surface(
-
-        shape =
-            RoundedCornerShape(10.dp),
-
-        color =
-            c.fondoTarjeta,
-
-        border =
-            BorderStroke(
-                1.dp,
-                c.bordeTarjeta
-            ),
-
-        modifier =
-            Modifier.fillMaxWidth()
-
+        shape = RoundedCornerShape(8.dp),
+        color = c.fondoTarjeta,
+        border = BorderStroke(
+            1.dp,
+            c.bordeTarjeta
+        ),
+        modifier = Modifier.fillMaxWidth()
     ) {
 
-        Column(
-            modifier =
-                Modifier.padding(10.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 9.dp,
+                    vertical = 7.dp
+                ),
+            verticalAlignment = Alignment.CenterVertically
         ) {
 
-            Row(
+            Icon(
+                imageVector = iconoMovimiento,
+                contentDescription = null,
+                tint = colorMovimiento,
+                modifier = Modifier.size(17.dp)
+            )
 
-                modifier =
-                    Modifier.fillMaxWidth(),
+            Spacer(
+                modifier = Modifier.width(8.dp)
+            )
 
-                horizontalArrangement =
-                    Arrangement.SpaceBetween,
-
-                verticalAlignment =
-                    Alignment.CenterVertically
-
+            Column(
+                modifier = Modifier.weight(1f)
             ) {
 
-                Text(
-
-                    text =
-                        fecha,
-
-                    color =
-                        c.textoSecundario,
-
-                    fontSize = 11.sp,
-
-                    fontWeight =
-                        FontWeight.Medium
-                )
-
-                if (
-                    monto.isNotBlank()
-                ) {
-
+                if (concepto.isNotBlank()) {
                     Text(
-
-                        text =
-                            monto,
-
-                        color =
-                            colorMovimiento,
-
-                        fontSize = 13.sp,
-
-                        fontWeight =
-                            FontWeight.Bold
+                        text = concepto,
+                        color = c.textoPrincipal,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1
                     )
                 }
+
+                Text(
+                    text = buildString {
+                        append(fecha)
+
+                        if (tipo.isNotBlank()) {
+                            append(" · ")
+                            append(tipo.replaceFirstChar {
+                                it.uppercase()
+                            })
+                        }
+
+                        if (
+                            categoria.isNotBlank() &&
+                            categoria != "Sin categoría"
+                        ) {
+                            append(" · ")
+                            append(categoria)
+                        }
+                    },
+                    color = c.textoSecundario,
+                    fontSize = 10.sp,
+                    maxLines = 1
+                )
             }
 
             Spacer(
-                modifier =
-                    Modifier.height(3.dp)
+                modifier = Modifier.width(6.dp)
             )
 
-            if (
-                tipo.isNotBlank()
-            ) {
-
-                Row(
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
-
-                    Icon(
-
-                        imageVector =
-                            iconoMovimiento,
-
-                        contentDescription =
-                            null,
-
-                        tint =
-                            colorMovimiento,
-
-                        modifier =
-                            Modifier.size(12.dp)
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.width(4.dp)
-                    )
-
-                    Text(
-
-                        text =
-                            tipo.uppercase(),
-
-                        color =
-                            colorMovimiento,
-
-                        fontSize = 10.sp,
-
-                        fontWeight =
-                            FontWeight.Bold
-                    )
-                }
-
-                Spacer(
-                    modifier =
-                        Modifier.height(2.dp)
-                )
-            }
-
-            if (
-                concepto.isNotBlank()
-            ) {
-
+            if (monto.isNotBlank()) {
                 Text(
-
-                    text =
-                        concepto,
-
-                    color =
-                        c.textoPrincipal,
-
-                    fontSize = 13.sp,
-
-                    fontWeight =
-                        FontWeight.SemiBold,
-
-                    lineHeight = 17.sp
-                )
-            }
-
-            if (
-                categoria.isNotBlank()
-            ) {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(2.dp)
-                )
-
-                Text(
-
-                    text =
-                        "Categoría: $categoria",
-
-                    color =
-                        c.textoSecundario,
-
-                    fontSize = 11.sp
+                    text = monto,
+                    color = colorMovimiento,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }

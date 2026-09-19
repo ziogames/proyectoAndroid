@@ -48,6 +48,8 @@ class ChatViewModel(
     private var actualizacionJob: Job? = null
 
     private var ultimoMensajeId: Int = 0
+    // Evita que el polling comience antes de cargar el chat.
+    private var chatCargado = false
 
     // 📖 ID de lectura pendiente de confirmación en Laravel.
     // Evita que una respuesta del polling con el estado anterior
@@ -57,9 +59,13 @@ class ChatViewModel(
     fun cargarChat() {
         viewModelScope.launch {
 
+            chatCargado = false
+            ultimoMensajeId = 0
+
             _uiState.value =
                 _uiState.value.copy(
                     cargando = true,
+                    mensajes = emptyList(),
                     error = null
                 )
 
@@ -68,6 +74,7 @@ class ChatViewModel(
 
                     val mensajes =
                         respuesta.mensajes
+                    chatCargado = true
 
                     ultimoMensajeId =
                         mensajes
@@ -212,6 +219,9 @@ class ChatViewModel(
     }
 
     private suspend fun obtenerMensajesNuevos() {
+        if (!chatCargado) {
+            return
+        }
 
         repository.obtenerMensajesNuevos(
             afterId = ultimoMensajeId

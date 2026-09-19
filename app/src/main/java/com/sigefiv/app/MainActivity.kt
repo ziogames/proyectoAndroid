@@ -119,7 +119,13 @@ import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.AlertDialog
 import android.content.Context
-
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
+import com.sigefiv.app.data.api.NetworkErrorManager
 
 /*
 |--------------------------------------------------------------------------
@@ -394,7 +400,8 @@ fun AppSIGEFIV(
     val bienvenidaVista by loginViewModel.bienvenidaVista.collectAsStateWithLifecycle()
     val mensaje by loginViewModel.mensaje.collectAsStateWithLifecycle()
     val cargando by loginViewModel.cargando.collectAsStateWithLifecycle()
-
+    val errorConexion by
+    NetworkErrorManager.error.collectAsState()
     // Sincroniza cambios de estado de login y onboarding
     LaunchedEffect(loginCorrecto, bienvenidaVista) {
         if (loginCorrecto) {
@@ -677,6 +684,36 @@ fun AppSIGEFIV(
                     }
                 ) {
                     Text("Ahora no")
+                }
+            }
+        )
+    }
+    // ============================================================
+// DIÁLOGO GLOBAL DE ERROR DE CONEXIÓN
+// ============================================================
+
+    if (errorConexion != null) {
+        AlertDialog(
+            onDismissRequest = {
+                NetworkErrorManager.limpiarError()
+            },
+            title = {
+                Text(
+                    text = "Problema de conexión"
+                )
+            },
+            text = {
+                Text(
+                    text = errorConexion ?: ""
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        NetworkErrorManager.limpiarError()
+                    }
+                ) {
+                    Text("Entendido")
                 }
             }
         )
