@@ -94,7 +94,16 @@ import com.sigefiv.app.screens.notificaciones.EnviarNotificacionScreen
 import com.sigefiv.app.screens.notificaciones.NotificacionesScreen
 import com.sigefiv.app.screens.notificaciones.ConfirmarNotificacionScreen
 import android.util.Log
-
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.window.Dialog
+import androidx.compose.material3.Surface
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.layout.fillMaxHeight
 
 
 enum class AppScreen(val drawerRoute: String) {
@@ -141,8 +150,10 @@ fun AppNavigation(
     val periodoViewModel = remember { PeriodoViewModel(context) }
     val periodosViewModel = remember { PeriodosViewModel(context) }
     val perfilViewModel = remember { PerfilViewModel(context) }
-    val asambleasViewModel = remember { AsambleasViewModel(context.applicationContext as Application) }
-    val usuarioViewModel = remember { UsuarioViewModel(UsuarioRepository(ApiClient.usuarioApi(context))) }
+    val asambleasViewModel =
+        remember { AsambleasViewModel(context.applicationContext as Application) }
+    val usuarioViewModel =
+        remember { UsuarioViewModel(UsuarioRepository(ApiClient.usuarioApi(context))) }
     val cajaViewModel = remember { CajaViewModel(CajaRepository(ApiClient.cajaApi(context))) }
     val actividadViewModel = remember {
         ActividadViewModel(
@@ -199,6 +210,9 @@ fun AppNavigation(
 
     val backStack = remember { mutableStateListOf(AppScreen.DASHBOARD) }
     val pantallaActual = backStack.lastOrNull() ?: AppScreen.DASHBOARD
+    var mostrarZoeModal by remember {
+        mutableStateOf(false)
+    }
 
     fun navegarA(pantalla: AppScreen, limpiarPila: Boolean = false) {
         if (limpiarPila) {
@@ -272,7 +286,7 @@ fun AppNavigation(
                             pantallaActual == AppScreen.NUEVO_INGRESO ||
                             pantallaActual == AppScreen.NUEVO_EGRESO
                     )
-        ){
+        ) {
             backStack.clear()
             backStack.add(AppScreen.DASHBOARD)
         }
@@ -307,23 +321,27 @@ fun AppNavigation(
                                 navegarA(AppScreen.MOVIMIENTOS)
                             }
                         }
+
                         "chat" -> navegarA(AppScreen.CHAT)
 
                         "asambleas" -> {
                             asambleaSeleccionada = null
                             navegarA(AppScreen.ASAMBLEAS)
                         }
+
                         "periodos" -> navegarA(AppScreen.PERIODOS)
                         "sigi" -> navegarA(AppScreen.SIGI)
                         "perfil" -> {
                             perfilViewModel.cargarPerfil()
                             navegarA(AppScreen.PERFIL)
                         }
+
                         "usuarios" -> navegarA(AppScreen.USUARIOS)
                         "roles" -> {
                             rolViewModel.cargarRoles()
                             navegarA(AppScreen.ROLES)
                         }
+
                         "caja" -> navegarA(AppScreen.CAJA)
                         "notificaciones" -> navegarA(AppScreen.NOTIFICACIONES)
                         "actividad" -> {
@@ -343,7 +361,11 @@ fun AppNavigation(
             AnimatedContent(
                 targetState = pantallaActual,
                 transitionSpec = {
-                    fadeIn(animationSpec = tween(140)) togetherWith fadeOut(animationSpec = tween(140))
+                    fadeIn(animationSpec = tween(140)) togetherWith fadeOut(
+                        animationSpec = tween(
+                            140
+                        )
+                    )
                 },
                 label = "ScreenTransition"
             ) { targetScreen ->
@@ -371,7 +393,9 @@ fun AppNavigation(
                                 perfilViewModel.cargarPerfil()
                                 navegarA(AppScreen.PERFIL)
                             },
-                            onSigiClick = { navegarA(AppScreen.SIGI) },
+                            onSigiClick = {
+                                mostrarZoeModal = true
+                            },
                             onOpenDrawer = { scope.launch { drawerState.open() } },
                             darkTheme = darkTheme,
                             onThemeToggle = onThemeToggle
@@ -565,7 +589,12 @@ fun AppNavigation(
                             DetalleAsambleaScreen(
                                 asamblea = asamblea,
                                 onBackClick = { retroceder() },
-                                onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
+                                onInicioClick = {
+                                    navegarA(
+                                        AppScreen.DASHBOARD,
+                                        limpiarPila = true
+                                    )
+                                },
                                 onMovimientosClick = { navegarA(AppScreen.PERIODOS) },
                                 onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
                                 onPeriodosClick = {
@@ -683,7 +712,7 @@ fun AppNavigation(
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
                             onMovimientosPrincipalClick = { navegarA(AppScreen.ASAMBLEAS) },
                             onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
-                            onMiCuentaClick  = {
+                            onMiCuentaClick = {
                                 perfilViewModel.cargarPerfil()
                                 navegarA(AppScreen.PERFIL)
                             }
@@ -755,6 +784,7 @@ fun AppNavigation(
                                     CircularProgressIndicator(color = Color(0xFF15803D))
                                 }
                             }
+
                             rolUiState.error != null -> {
                                 Box(
                                     modifier = Modifier
@@ -764,7 +794,8 @@ fun AppNavigation(
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(
-                                            text = rolUiState.error ?: "Error al cargar detalle del rol",
+                                            text = rolUiState.error
+                                                ?: "Error al cargar detalle del rol",
                                             color = Color(0xFFDC2626),
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Medium
@@ -772,20 +803,29 @@ fun AppNavigation(
                                         Spacer(modifier = Modifier.height(16.dp))
                                         Button(
                                             onClick = { retroceder() },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF15803D))
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = Color(
+                                                    0xFF15803D
+                                                )
+                                            )
                                         ) {
                                             Text("Volver a Roles", color = Color.White)
                                         }
                                     }
                                 }
                             }
+
                             rol != null -> {
                                 EditarRolScreen(
                                     rol = rol,
                                     guardando = rolUiState.guardando,
                                     onBackClick = { retroceder() },
                                     onGuardar = { nuevoNombre, permisosSeleccionados ->
-                                        rolViewModel.guardarRol(rol.id, nuevoNombre, permisosSeleccionados) { exito ->
+                                        rolViewModel.guardarRol(
+                                            rol.id,
+                                            nuevoNombre,
+                                            permisosSeleccionados
+                                        ) { exito ->
                                             if (exito) retroceder()
                                         }
                                     }
@@ -801,6 +841,7 @@ fun AppNavigation(
                             onOpenDrawer = { scope.launch { drawerState.open() } }
                         )
                     }
+
                     AppScreen.ACTIVIDAD -> {
                         ActividadScreen(
                             viewModel = actividadViewModel,
@@ -809,6 +850,7 @@ fun AppNavigation(
                             }
                         )
                     }
+
                     AppScreen.NOTIFICACIONES -> {
                         NotificacionesScreen(
                             viewModel = notificacionViewModel,
@@ -836,6 +878,7 @@ fun AppNavigation(
                                             )
                                         }
                                     }
+
                                     "ingreso" -> {
 
                                         val movimientoId =
@@ -863,6 +906,7 @@ fun AppNavigation(
                                             }
                                         }
                                     }
+
                                     "egreso" -> {
                                         val movimientoId =
                                             notificacion.data
@@ -893,6 +937,7 @@ fun AppNavigation(
                             onBackClick = { retroceder() }
                         )
                     }
+
                     AppScreen.ENVIAR_NOTIFICACION -> {
                         EnviarNotificacionScreen(
                             viewModel = enviarNotificacionViewModel,
@@ -900,12 +945,11 @@ fun AppNavigation(
                             onBackClick = {
                                 retroceder()
                             },
-                            onEnvioExitoso = {
-                                    titulo,
-                                    mensaje,
-                                    tipo,
-                                    destinatario,
-                                    cantidad ->
+                            onEnvioExitoso = { titulo,
+                                               mensaje,
+                                               tipo,
+                                               destinatario,
+                                               cantidad ->
 
                                 notificacionTitulo = titulo
                                 notificacionMensaje = mensaje
@@ -919,6 +963,7 @@ fun AppNavigation(
                             }
                         )
                     }
+
                     AppScreen.CONFIRMAR_NOTIFICACION -> {
                         ConfirmarNotificacionScreen(
                             titulo = notificacionTitulo,
@@ -944,7 +989,34 @@ fun AppNavigation(
                     }
 
 
+                }
+            }
+        }
 
+        // MODAL DE ZOE INTELIGENTE
+        if (mostrarZoeModal) {
+            Dialog(
+                onDismissRequest = {
+                    mostrarZoeModal = false
+                },
+                properties = DialogProperties(
+                    usePlatformDefaultWidth = false
+                )
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(20.dp)),
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    SigiScreen(
+                        onBackClick = {
+                            mostrarZoeModal = false
+                        },
+                        onOpenDrawer = {}
+                    )
                 }
             }
         }

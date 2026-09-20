@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Payments
@@ -64,7 +65,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -73,7 +73,7 @@ import com.sigefiv.app.viewmodel.ZoeMensaje
 import com.sigefiv.app.viewmodel.ZoeViewModel
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
-
+import androidx.compose.material.icons.outlined.History
 /*
 |--------------------------------------------------------------------------
 | PALETA DE COLORES PROFESIONAL SIGEFIV
@@ -92,11 +92,29 @@ fun SigiScreen(
     onAsambleasClick: () -> Unit = {},
     onMasClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
-    onOpenDrawer: () -> Unit = {}
+    onOpenDrawer: () -> Unit = {},
+    onOpenHistory: () -> Unit = {}
 ) {
     val colorPrincipal = SeasonalColors.primary(
         SeasonalTheme.getSeason()
     )
+
+    val temaOscuro =
+        MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+    val colorBarraTitulo =
+        if (temaOscuro) {
+            MaterialTheme.colorScheme.surface
+        } else {
+            Color.White
+        }
+
+    val colorContenidoBarra =
+        if (temaOscuro) {
+            MaterialTheme.colorScheme.onSurface
+        } else {
+            Color(0xFF1F2937)
+        }
 
     val context = LocalContext.current
     val viewModel = remember(context) {
@@ -108,14 +126,14 @@ fun SigiScreen(
 
     var consulta by remember { mutableStateOf("") }
     val listaEstado = rememberLazyListState()
-    val focusManager = LocalFocusManager.current
 
     fun enviarConsulta() {
         val texto = consulta.trim()
         if (texto.isEmpty() || cargando) return
         viewModel.enviarConsulta(texto)
+        // Limpiamos únicamente el texto.
+        // Conservamos el foco para mantener el teclado visible.
         consulta = ""
-        focusManager.clearFocus()
     }
 
     LaunchedEffect(mensajes.size) {
@@ -176,12 +194,27 @@ fun SigiScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Regresar",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = colorContenidoBarra
+                        )
+                    }
+                },
+                actions = {
+
+                    IconButton(
+                        onClick = onOpenHistory
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.History,
+                            contentDescription = "Historial de conversaciones",
+                            tint = colorContenidoBarra
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorPrincipal
+                    containerColor = colorBarraTitulo,
+                    titleContentColor = colorContenidoBarra,
+                    navigationIconContentColor = colorContenidoBarra,
+                    actionIconContentColor = colorContenidoBarra
                 )
             )
         }
@@ -539,8 +572,21 @@ private fun BarraEntradaModerna(
             OutlinedTextField(
                 value = consulta,
                 onValueChange = onConsultaChange,
-                modifier = Modifier.weight(1f),
-                enabled = !cargando,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp),
+                // El campo permanece habilitado para seguir escribiendo
+                // mientras ZOE procesa la consulta.
+                enabled = true,
+                singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.AttachFile,
+                        contentDescription = "Adjuntar archivo",
+                        tint = colorPrincipal,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
                 placeholder = {
                     Text(
                         text = "Pregúntale a ZOE...",
@@ -548,7 +594,7 @@ private fun BarraEntradaModerna(
                         fontSize = 14.sp
                     )
                 },
-                maxLines = 3,
+                maxLines = 1,
                 shape = RoundedCornerShape(24.dp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { onEnviar() }),

@@ -235,13 +235,19 @@ fun DashboardScreen(
                         |--------------------------------------------------------------------------
                         */
 
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | ZOE INTELIGENTE
+                        |--------------------------------------------------------------------------
+                        */
+
                         IconButton(
                             onClick = onSigiClick
                         ) {
-
                             Icon(
                                 imageVector = Icons.Outlined.SmartToy,
-                                contentDescription = "SIGI",
+                                contentDescription = "ZOE inteligente",
                                 tint = Blanco
                             )
                         }
