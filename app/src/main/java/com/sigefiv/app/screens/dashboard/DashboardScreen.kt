@@ -78,7 +78,7 @@ import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 import com.sigefiv.app.viewmodel.DashboardViewModel
 import com.sigefiv.app.viewmodel.MovimientosViewModel
-
+import java.util.Calendar
 /*
 |--------------------------------------------------------------------------
 | COLORES SIGEFIV
@@ -453,23 +453,62 @@ private fun DashboardContenido(
             |--------------------------------------------------------------------------
             */
 
+            val saludo = remember(nombreUsuario) {
+
+                val hora = Calendar.getInstance()
+                    .get(Calendar.HOUR_OF_DAY)
+
+                val saludos = when {
+
+                    hora < 12 -> listOf(
+                        "¡Buenos días, $nombreUsuario! ☀️",
+                        "¡Muy buenos días, $nombreUsuario! 🌅",
+                        "¡Qué gusto verte esta mañana, $nombreUsuario! 😊",
+                        "¡Hola, $nombreUsuario! Que tengas un excelente día. ☀️"
+                    )
+
+                    hora < 18 -> listOf(
+                        "¡Buenas tardes, $nombreUsuario! 😊",
+                        "¡Qué gusto verte, $nombreUsuario! 👋",
+                        "¡Hola, $nombreUsuario! Espero que estés teniendo un buen día. 🌤️",
+                        "¡Qué tal, $nombreUsuario! 😄"
+                    )
+
+                    else -> listOf(
+                        "¡Buenas noches, $nombreUsuario! 🌙",
+                        "¡Qué gusto verte esta noche, $nombreUsuario! 😊",
+                        "¡Hola, $nombreUsuario! 🌙",
+                        "¡Buenas noches, $nombreUsuario! Espero que hayas tenido un buen día. ✨"
+                    )
+                }
+
+                saludos.random()
+            }
+
+            val subtitulo = remember(nombreUsuario) {
+
+                listOf(
+                    "Todo listo en SIGEFIV para hoy.",
+                    "Tu información está lista.",
+                    "Aquí tienes la información de SIGEFIV.",
+                    "Todo preparado para continuar.",
+                    "Revisa rápidamente el estado de tu comunidad.",
+                    "SIGEFIV está listo para ayudarte."
+                ).random()
+            }
+
             Column {
 
                 Text(
-                    text = "Hola, $nombreUsuario",
-
+                    text = saludo,
                     color = MaterialTheme.colorScheme.onBackground,
-
                     fontSize = 20.sp,
-
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
-                    text = "Bienvenido nuevamente a SIGEFIV",
-
+                    text = subtitulo,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-
                     fontSize = 13.sp
                 )
             }

@@ -74,6 +74,8 @@ import com.sigefiv.app.viewmodel.ZoeViewModel
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.ui.text.style.TextAlign
+
 /*
 |--------------------------------------------------------------------------
 | PALETA DE COLORES PROFESIONAL SIGEFIV
@@ -348,7 +350,7 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.Bottom
+            verticalAlignment = Alignment.Top
         ) {
             Box(
                 modifier = Modifier
@@ -373,32 +375,361 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
                     bottomStart = 3.dp,
                     bottomEnd = 16.dp
                 ),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                modifier = Modifier.widthIn(min = 50.dp, max = 290.dp)
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.Transparent
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 0.dp
+                ),
+                modifier = Modifier.weight(1f)
             ) {
-                Row(
-                    modifier = Modifier.padding(start = 12.dp, end = 10.dp, top = 8.dp, bottom = 6.dp),
-                    verticalAlignment = Alignment.Bottom
+                Column(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = mensaje.texto,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 14.5.sp,
-                        lineHeight = 19.sp,
-                        modifier = Modifier.weight(1f, fill = false)
+                    ZoeRespuestaFormateada(
+                        texto = mensaje.texto,
+                        tipoMovimiento = mensaje.tipoMovimiento,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+
                     Text(
                         text = "1:35 PM",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 10.sp
+                        fontSize = 10.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                end = 8.dp,
+                                top = 3.dp
+                            ),
+                        textAlign = TextAlign.End
                     )
                 }
             }
         }
     }
 }
+
+/*
+|--------------------------------------------------------------------------
+| RESPUESTA FORMATEADA DE ZOE
+|--------------------------------------------------------------------------
+|
+| Las respuestas normales se muestran como texto.
+| Las listas de ingresos/egresos se presentan visualmente
+| como tarjetas compactas, sin modificar la respuesta del backend.
+|
+*/
+
+@Composable
+private fun ZoeRespuestaFormateada(
+    texto: String,
+    tipoMovimiento: String? = null,
+    modifier: Modifier = Modifier
+){
+
+    /*
+     * ZOE actualmente devuelve los movimientos en texto plano, por ejemplo:
+     *
+     * • 2025-01-31 — S/ 12.00 — reflectores — usuario — Efectivo
+     *
+     * Por eso no debemos depender de un título como "📈 INGRESOS".
+     * Detectamos directamente las líneas que contienen:
+     * fecha + S/ monto + datos separados por "—".
+     */
+
+    val lineas = texto.lines()
+
+    val regexMovimiento = Regex(
+        """^\s*(?:•|-|\d+\.)\s*(\d{2}-\d{2}-\d{4})\s*—\s*S/\s*([\d,]+(?:\.\d{1,2})?)\s*(?:—\s*(.*))?$"""
+    )
+
+    val movimientos = mutableListOf<MovimientoVisual>()
+
+    for (linea in lineas) {
+
+        val match = regexMovimiento.find(linea)
+
+        if (match != null) {
+
+            val fecha = match.groupValues[1]
+            val monto = match.groupValues[2]
+            val resto = match.groupValues
+                .getOrNull(3)
+                ?.trim()
+                .orEmpty()
+
+            val partes = resto
+                .split(" — ")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+
+            /*
+             * Formato actual observado:
+             * fecha — monto — categoría — usuario — forma de pago
+             *
+             * Mostramos todos los datos sin inventar etiquetas.
+             */
+            val categoria = partes.getOrNull(0).orEmpty()
+            val usuario = partes.getOrNull(1).orEmpty()
+            val formaPago = partes.drop(2).joinToString(" — ")
+
+            movimientos.add(
+                MovimientoVisual(
+                    fecha = fecha,
+                    monto = "S/ $monto",
+                    categoria = categoria,
+                    usuario = usuario,
+                    formaPago = formaPago
+                )
+            )
+        }
+    }
+
+    /*
+     * Si no hay líneas de movimientos, ZOE conserva exactamente
+     * su presentación de texto normal.
+     */
+    if (movimientos.isEmpty()) {
+
+        Text(
+            text = texto,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 14.5.sp,
+            lineHeight = 19.sp,
+            modifier = modifier
+        )
+
+        return
+    }
+    val esEgreso =
+        tipoMovimiento == "Egreso"
+
+    val esIngreso =
+        tipoMovimiento == "Ingreso"
+    val colorTipo =
+        when {
+            esEgreso -> Color(0xFFDC2626)
+            esIngreso -> Color(0xFF16A34A)
+            else -> MaterialTheme.colorScheme.primary
+        }
+
+    val fechaReferencia = movimientos.firstOrNull()?.fecha.orEmpty()
+
+    val tituloBase =
+        when {
+            esIngreso -> "📈 INGRESOS"
+            esEgreso -> "📉 EGRESOS"
+            else -> "📋 MOVIMIENTOS"
+        }
+
+    val titulo =
+        if (fechaReferencia.length >= 10) {
+            val anio = fechaReferencia.substring(6, 10)
+            val mes = fechaReferencia.substring(3, 5)
+            "$tituloBase — ${nombreMesZoe(mes)} $anio"
+        } else {
+            tituloBase
+        }
+
+    val icono =
+        when {
+            esIngreso -> "🟢"
+            esEgreso -> "🔴"
+            else -> "🔹"
+        }
+
+    val resumen = lineas.firstOrNull {
+        it.startsWith("Encontré ", ignoreCase = true)
+    }
+
+    val totalTexto = lineas.lastOrNull {
+        it.trim().startsWith("💰 Total:", ignoreCase = true)
+    }
+
+    val totalCalculado =
+        movimientos.sumOf { movimiento ->
+            movimiento.monto
+                .removePrefix("S/")
+                .replace(",", "")
+                .trim()
+                .toDoubleOrNull() ?: 0.0
+        }
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+
+        Text(
+            text = titulo,
+            color = colorTipo,
+            fontSize = 14.5.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        if (resumen != null) {
+
+            Text(
+                text = resumen,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp
+            )
+        }
+
+        movimientos.forEach { movimiento ->
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 0.dp
+                )
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(
+                        horizontal = 11.dp,
+                        vertical = 9.dp
+                    )
+                ) {
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Text(
+                            text = "$icono ${movimiento.fecha}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.5.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Text(
+                            text = movimiento.monto,
+                            color = colorTipo,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.End
+                        )
+                    }
+
+                    if (movimiento.categoria.isNotBlank()) {
+
+                        Spacer(
+                            modifier = Modifier.height(3.dp)
+                        )
+
+                        Text(
+                            text = movimiento.categoria,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    if (movimiento.usuario.isNotBlank()) {
+
+                        Text(
+                            text = "👤 ${movimiento.usuario}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.5.sp
+                        )
+                    }
+
+                    if (movimiento.formaPago.isNotBlank()) {
+
+                        Text(
+                            text = "💳 ${movimiento.formaPago}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.5.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = colorTipo.copy(alpha = 0.10f)
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 0.dp
+            )
+        ) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 14.dp,
+                        vertical = 10.dp
+                    ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Total",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp
+                    )
+
+                    Text(
+                        text = "💰 ${if (totalTexto != null) {
+                            totalTexto.substringAfter(":").trim()
+                        } else {
+                            "S/ %.2f".format(totalCalculado)
+                        }}",
+                        color = colorTipo,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Text(
+                    text = "${movimientos.size} movimientos",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.5.sp
+                )
+            }
+        }
+    }
+}
+
+private fun nombreMesZoe(mes: String): String {
+    return when (mes) {
+        "01" -> "ENERO"
+        "02" -> "FEBRERO"
+        "03" -> "MARZO"
+        "04" -> "ABRIL"
+        "05" -> "MAYO"
+        "06" -> "JUNIO"
+        "07" -> "JULIO"
+        "08" -> "AGOSTO"
+        "09" -> "SEPTIEMBRE"
+        "10" -> "OCTUBRE"
+        "11" -> "NOVIEMBRE"
+        "12" -> "DICIEMBRE"
+        else -> ""
+    }
+}
+
+private data class MovimientoVisual(
+    val fecha: String,
+    val monto: String,
+    val categoria: String,
+    val usuario: String,
+    val formaPago: String
+)
 
 /*
 |--------------------------------------------------------------------------
@@ -429,14 +760,20 @@ private fun SugerenciasChipsBar(
             SugerenciaChip(
                 icon = Icons.Outlined.Payments,
                 texto = "¿Saldo disponible?",
-                onClick = { onPregunta("¿Cuánto dinero hay disponible?") }
+                onClick = {
+                    onPregunta("¿Cuál es el saldo disponible del período actual?")
+                }
             )
         }
         item {
             SugerenciaChip(
                 icon = Icons.Outlined.BarChart,
                 texto = "Resumen del mes",
-                onClick = { onPregunta("Mostrar resumen del mes") }
+                onClick = {
+                    onPregunta(
+                        "RESUMEN_PERIODO_ACTIVO"
+                    )
+                }
             )
         }
     }

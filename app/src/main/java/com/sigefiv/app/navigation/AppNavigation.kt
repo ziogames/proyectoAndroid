@@ -104,7 +104,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.fillMaxHeight
-
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 
 enum class AppScreen(val drawerRoute: String) {
     DASHBOARD("dashboard"),
@@ -213,6 +214,9 @@ fun AppNavigation(
     var mostrarZoeModal by remember {
         mutableStateOf(false)
     }
+    val zoeSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
 
     fun navegarA(pantalla: AppScreen, limpiarPila: Boolean = false) {
         if (limpiarPila) {
@@ -993,24 +997,27 @@ fun AppNavigation(
             }
         }
 
-        // MODAL DE ZOE INTELIGENTE
+// MODAL DE ZOE INTELIGENTE
         if (mostrarZoeModal) {
-            Dialog(
-                onDismissRequest = {
-                    mostrarZoeModal = false
-                },
-                properties = DialogProperties(
-                    usePlatformDefaultWidth = false
-                )
+
+            ModalBottomSheet(
+                onDismissRequest = { mostrarZoeModal = false },
+                sheetState = zoeSheetState,
+                sheetGesturesEnabled = false,
+                containerColor = MaterialTheme.colorScheme.background,
+                shape = RoundedCornerShape(
+                    topStart = 20.dp,
+                    topEnd = 20.dp
+                ),
+                dragHandle = null
             ) {
-                Surface(
+
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(20.dp)),
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.background
+                        .fillMaxHeight(0.95f)
                 ) {
+
                     SigiScreen(
                         onBackClick = {
                             mostrarZoeModal = false

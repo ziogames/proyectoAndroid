@@ -12,7 +12,8 @@ import kotlinx.coroutines.launch
 
 data class ZoeMensaje(
     val texto: String,
-    val esUsuario: Boolean
+    val esUsuario: Boolean,
+    val tipoMovimiento: String? = null
 )
 
 class ZoeViewModel(
@@ -29,22 +30,61 @@ class ZoeViewModel(
             )
         )
     )
-    val mensajes: StateFlow<List<ZoeMensaje>> = _mensajes.asStateFlow()
+
+    val mensajes: StateFlow<List<ZoeMensaje>> =
+        _mensajes.asStateFlow()
 
     private val _cargando = MutableStateFlow(false)
-    val cargando: StateFlow<Boolean> = _cargando.asStateFlow()
+    val cargando: StateFlow<Boolean> =
+        _cargando.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    val error: StateFlow<String?> =
+        _error.asStateFlow()
+
 
     fun enviarConsulta(texto: String) {
 
         val consulta = texto.trim()
 
-        if (consulta.isEmpty() || _cargando.value) return
+        if (consulta.isEmpty() || _cargando.value) {
+            return
+        }
+
+        /*
+         * Determinamos el tipo de consulta.
+         *
+         * Esto permitirá que SigiScreen sepa si debe
+         * mostrar los montos en verde o rojo.
+         */
+        val tipoMovimiento = when {
+
+            consulta.contains(
+                "egreso",
+                ignoreCase = true
+            ) ||
+                    consulta.contains(
+                        "egresos",
+                        ignoreCase = true
+                    ) -> "Egreso"
+
+            consulta.contains(
+                "ingreso",
+                ignoreCase = true
+            ) ||
+                    consulta.contains(
+                        "ingresos",
+                        ignoreCase = true
+                    ) -> "Ingreso"
+
+            else -> null
+        }
 
         _error.value = null
 
+        /*
+         * Agregamos la pregunta del usuario.
+         */
         _mensajes.value = _mensajes.value +
                 ZoeMensaje(
                     texto = consulta,
@@ -57,8 +97,9 @@ class ZoeViewModel(
 
             try {
 
-                // Nuevo endpoint:
-                // POST /api/zoe
+                /*
+                 * Enviamos la consulta a ZOE.
+                 */
                 val respuesta = api.consultarZoeN8n(
                     ZoeConsultaRequest(
                         mensaje = consulta
@@ -67,41 +108,58 @@ class ZoeViewModel(
 
                 if (respuesta.success) {
 
-                    val mensaje = respuesta.respuesta
-                        ?.trim()
-                        ?.replace("**", "")
-                        ?.replace("__", "")
-                        ?.takeIf { it.isNotEmpty() }
-                        ?: "ZOE recibió la consulta, pero no devolvió un mensaje."
+                    /*
+                     * Obtenemos la respuesta de ZOE.
+                     */
+                    val respuestaTexto =
+                        respuesta.respuesta
+                            ?.trim()
+                            ?.replace("**", "")
+                            ?.replace("__", "")
+                            ?.takeIf {
+                                it.isNotEmpty()
+                            }
+                            ?: "ZOE recibió la consulta, pero no devolvió un mensaje."
 
+                    /*
+                     * Agregamos la respuesta de ZOE
+                     * junto con el tipo de movimiento.
+                     */
                     _mensajes.value = _mensajes.value +
                             ZoeMensaje(
-                                texto = mensaje,
-                                esUsuario = false
+                                texto = respuestaTexto,
+                                esUsuario = false,
+                                tipoMovimiento = tipoMovimiento
                             )
 
                 } else {
 
-                    val mensaje = respuesta.message
-                        ?.trim()
-                        ?.takeIf { it.isNotEmpty() }
-                        ?: respuesta.mensaje
+                    val mensajeError =
+                        respuesta.message
                             ?.trim()
-                            ?.takeIf { it.isNotEmpty() }
-                        ?: "No fue posible procesar la consulta."
+                            ?.takeIf {
+                                it.isNotEmpty()
+                            }
+                            ?: respuesta.mensaje
+                                ?.trim()
+                                ?.takeIf {
+                                    it.isNotEmpty()
+                                }
+                            ?: "No fue posible procesar la consulta."
 
-                    _error.value = mensaje
+                    _error.value = mensajeError
 
                     _mensajes.value = _mensajes.value +
                             ZoeMensaje(
-                                texto = mensaje,
-                                esUsuario = false
+                                texto = mensajeError,
+                                esUsuario = false,
+                                tipoMovimiento = tipoMovimiento
                             )
                 }
 
             } catch (e: Exception) {
 
-                val mensaje = when {
+                val mensajeError = when {
 
                     e.message?.contains("401") == true ->
                         "La sesión no es válida. Inicia sesión nuevamente."
@@ -116,12 +174,13 @@ class ZoeViewModel(
                         "No se pudo conectar con ZOE. Verifica que el servidor SIGEFIV esté funcionando."
                 }
 
-                _error.value = mensaje
+                _error.value = mensajeError
 
                 _mensajes.value = _mensajes.value +
                         ZoeMensaje(
-                            texto = mensaje,
-                            esUsuario = false
+                            texto = mensajeError,
+                            esUsuario = false,
+                            tipoMovimiento = tipoMovimiento
                         )
             } finally {
 
@@ -129,6 +188,7 @@ class ZoeViewModel(
             }
         }
     }
+
 
     fun limpiarError() {
         _error.value = null

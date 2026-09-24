@@ -340,8 +340,8 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                 .setPriority(
                     NotificationCompat.PRIORITY_HIGH
                 )
-                .setAutoCancel(false)
-                .setOngoing(true)
+                .setAutoCancel(true)
+                .setOngoing(false)
                 .setContentIntent(
                     pendingIntent
                 )
