@@ -106,9 +106,18 @@ interface AuthApi {
         @Path("id") id: Int
     ): MovimientoResponse
 
+    @Multipart
     @POST("movimientos")
     suspend fun crearMovimiento(
-        @Body request: MovimientoRequest
+        @Part("fecha") fecha: okhttp3.RequestBody,
+        @Part("categoria_id") categoriaId: okhttp3.RequestBody,
+        @Part("concepto") concepto: okhttp3.RequestBody,
+        @Part("persona") persona: okhttp3.RequestBody?,
+        @Part("forma_pago") formaPago: okhttp3.RequestBody,
+        @Part("monto") monto: okhttp3.RequestBody,
+        @Part("referencia") referencia: okhttp3.RequestBody?,
+        @Part("observaciones") observaciones: okhttp3.RequestBody?,
+        @Part comprobante: MultipartBody.Part?
     ): MovimientoResponse
 
     @PUT("movimientos/{movimiento}")

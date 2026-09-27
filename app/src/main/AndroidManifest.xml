@@ -4,6 +4,7 @@
 
     <!-- Conexión con Laravel -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <!-- Notificaciones en Android 13 o superior -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -49,6 +50,19 @@
 
                 <category
                     android:name="android.intent.category.LAUNCHER" />
+
+            </intent-filter>
+            <!-- Recibir imágenes mediante Compartir -->
+            <intent-filter>
+
+                <action
+                    android:name="android.intent.action.SEND" />
+
+                <category
+                    android:name="android.intent.category.DEFAULT" />
+
+                <data
+                    android:mimeType="image/*" />
 
             </intent-filter>
 

@@ -5,9 +5,16 @@ import com.sigefiv.app.data.model.MovimientoRequest
 import com.sigefiv.app.data.model.MovimientoResponse
 import com.sigefiv.app.data.model.MovimientosResponse
 import retrofit2.Response
+import android.net.Uri
+import android.content.Context
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+
 
 class MovimientosRepository(
-    private val authApi: AuthApi
+    private val authApi: AuthApi,
+    private val context: Context
 ) {
 
     suspend fun obtenerMovimientos(
@@ -22,9 +29,70 @@ class MovimientosRepository(
     }
 
     suspend fun crearMovimiento(
-        request: MovimientoRequest
+        request: MovimientoRequest,
+        comprobanteUri: Uri?
     ): MovimientoResponse {
-        return authApi.crearMovimiento(request)
+
+        val texto = "text/plain".toMediaType()
+
+        val fecha = request.fecha
+            .toRequestBody(texto)
+
+        val categoriaId = request.categoria_id
+            .toString()
+            .toRequestBody(texto)
+
+        val concepto = request.concepto
+            .toRequestBody(texto)
+
+        val persona = request.persona
+            ?.toRequestBody(texto)
+
+        val formaPago = request.forma_pago
+            .toRequestBody(texto)
+
+        val monto = request.monto
+            .toString()
+            .toRequestBody(texto)
+
+        val referencia = request.referencia
+            ?.toRequestBody(texto)
+
+        val observaciones = request.observaciones
+            ?.toRequestBody(texto)
+
+        val comprobante = comprobanteUri?.let { uri ->
+
+            val resolver = context.contentResolver
+
+            val bytes = resolver
+                .openInputStream(uri)
+                ?.use { it.readBytes() }
+
+            bytes?.let {
+                val body = it.toRequestBody(
+                    "image/*".toMediaType()
+                )
+
+                MultipartBody.Part.createFormData(
+                    "comprobante",
+                    "comprobante.jpg",
+                    body
+                )
+            }
+        }
+
+        return authApi.crearMovimiento(
+            fecha = fecha,
+            categoriaId = categoriaId,
+            concepto = concepto,
+            persona = persona,
+            formaPago = formaPago,
+            monto = monto,
+            referencia = referencia,
+            observaciones = observaciones,
+            comprobante = comprobante
+        )
     }
 
     suspend fun actualizarMovimiento(

@@ -86,6 +86,7 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.graphics.path)
 
 // Firebase
     implementation(platform(libs.firebase.bom))
@@ -97,6 +98,9 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
+    //imagenes
     implementation("io.coil-kt:coil-compose:2.6.0")
+    //OCR
+    implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
 }

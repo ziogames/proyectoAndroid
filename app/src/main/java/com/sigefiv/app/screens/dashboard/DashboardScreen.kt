@@ -126,6 +126,7 @@ fun DashboardScreen(
         seudonimo?.trim()?.takeIf { it.isNotEmpty() }
             ?: (nombreUsuario?.trim()?.takeIf { it.isNotEmpty() } ?: "Usuario")
 
+
     /*
     |--------------------------------------------------------------------------
     | PERMISOS
@@ -137,6 +138,7 @@ fun DashboardScreen(
 
     val periodo by dashboardViewModel.periodo.collectAsState()
     val movimientos by movimientosViewModel.movimientos.collectAsState()
+    val cargandoMovimientos by movimientosViewModel.cargando.collectAsState()
 
     /*
     |--------------------------------------------------------------------------
@@ -335,17 +337,12 @@ fun DashboardScreen(
         ) { innerPadding ->
 
             DashboardContenido(
-
                 modifier = Modifier.padding(innerPadding),
-
                 nombreUsuario = nombreMostrar,
-
                 periodo = periodo,
-
                 movimientos = movimientos,
-
+                cargandoMovimientos = cargandoMovimientos,
                 puedeVerMovimientos = puedeVerMovimientos,
-
                 onMovimientosClick = onMovimientosClick
             )
         }
@@ -364,9 +361,10 @@ private fun DashboardContenido(
     nombreUsuario: String,
     periodo: PeriodoDashboard?,
     movimientos: List<Movimiento>,
+    cargandoMovimientos: Boolean,
     puedeVerMovimientos: Boolean,
     onMovimientosClick: () -> Unit
-) {
+){
 
     val scrollState = rememberScrollState()
 
@@ -448,12 +446,19 @@ private fun DashboardContenido(
         ) {
 
             /*
-            |--------------------------------------------------------------------------
-            | SALUDO
-            |--------------------------------------------------------------------------
-            */
+  |--------------------------------------------------------------------------
+  | SALUDO
+  |--------------------------------------------------------------------------
+  */
 
-            val saludo = remember(nombreUsuario) {
+            val primerNombre = nombreUsuario
+                .trim()
+                .split("\\s+".toRegex())
+                .firstOrNull()
+                ?.takeIf { it.isNotBlank() }
+                ?: "Usuario"
+
+            val saludo = remember(primerNombre) {
 
                 val hora = Calendar.getInstance()
                     .get(Calendar.HOUR_OF_DAY)
@@ -461,30 +466,29 @@ private fun DashboardContenido(
                 val saludos = when {
 
                     hora < 12 -> listOf(
-                        "¡Buenos días, $nombreUsuario! ☀️",
-                        "¡Muy buenos días, $nombreUsuario! 🌅",
-                        "¡Qué gusto verte esta mañana, $nombreUsuario! 😊",
-                        "¡Hola, $nombreUsuario! Que tengas un excelente día. ☀️"
+                        "¡Buenos días, $primerNombre! ☀️",
+                        "¡Muy buenos días, $primerNombre! 🌅",
+                        "¡Qué gusto verte esta mañana, $primerNombre! 😊",
+                        "¡Hola, $primerNombre! Que tengas un excelente día. ☀️"
                     )
 
                     hora < 18 -> listOf(
-                        "¡Buenas tardes, $nombreUsuario! 😊",
-                        "¡Qué gusto verte, $nombreUsuario! 👋",
-                        "¡Hola, $nombreUsuario! Espero que estés teniendo un buen día. 🌤️",
-                        "¡Qué tal, $nombreUsuario! 😄"
+                        "¡Buenas tardes, $primerNombre! 😊",
+                        "¡Qué gusto verte, $primerNombre! 👋",
+                        "¡Hola, $primerNombre! Espero que estés teniendo un buen día. 🌤️",
+                        "¡Qué tal, $primerNombre! 😄"
                     )
 
                     else -> listOf(
-                        "¡Buenas noches, $nombreUsuario! 🌙",
-                        "¡Qué gusto verte esta noche, $nombreUsuario! 😊",
-                        "¡Hola, $nombreUsuario! 🌙",
-                        "¡Buenas noches, $nombreUsuario! Espero que hayas tenido un buen día. ✨"
+                        "¡Buenas noches, $primerNombre! 🌙",
+                        "¡Qué gusto verte esta noche, $primerNombre! 😊",
+                        "¡Hola, $primerNombre! 🌙",
+                        "¡Buenas noches, $primerNombre! Espero que hayas tenido un buen día. ✨"
                     )
                 }
 
                 saludos.random()
             }
-
             val subtitulo = remember(nombreUsuario) {
 
                 listOf(
@@ -542,7 +546,7 @@ private fun DashboardContenido(
 
                     titulo = "Ingresos",
 
-                    monto = "S/ %.2f".format(
+                    monto = "S/ %,.2f".format(
                         periodo?.ingresos ?: 0.0
                     ),
 
@@ -557,7 +561,7 @@ private fun DashboardContenido(
 
                     titulo = "Egresos",
 
-                    monto = "S/ %.2f".format(
+                    monto = "S/ %,.2f".format(
                         periodo?.egresos ?: 0.0
                     ),
 
@@ -643,19 +647,19 @@ private fun DashboardContenido(
                     )
                 }
 
-                if (movimientos.isEmpty()) {
-
+                if (cargandoMovimientos) {
                     Text(
-
                         text = "Cargando movimientos...",
-
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-
+                        color = Color(0xFF64748B),
                         fontSize = 13.sp,
-
-                        modifier = Modifier.padding(
-                            vertical = 8.dp
-                        )
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                } else if (movimientos.isEmpty()) {
+                    Text(
+                        text = "No hay movimientos para mostrar.",
+                        color = Color(0xFF64748B),
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
             }
@@ -726,7 +730,7 @@ private fun SaldoCard(
 
                 Text(
 
-                    text = "S/ %.2f".format(
+                    text = "S/ %,.2f".format(
                         periodo?.saldo_final ?: 0.0
                     ),
 
@@ -1109,11 +1113,11 @@ private fun MovimientoItem(
 
                 text = if (ingreso) {
 
-                    "+ S/ %.2f".format(movimiento.monto)
+                    "+ S/ %,.2f".format(movimiento.monto)
 
                 } else {
 
-                    "- S/ %.2f".format(movimiento.monto)
+                    "- S/ %,.2f".format(movimiento.monto)
                 },
 
                 color = if (ingreso) Verde else Rojo,

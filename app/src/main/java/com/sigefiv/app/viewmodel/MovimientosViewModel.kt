@@ -12,6 +12,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import android.net.Uri
+import com.sigefiv.app.notifications.NotificacionEventBus
 
 class MovimientosViewModel(
     context: Context
@@ -19,7 +21,8 @@ class MovimientosViewModel(
 
     private val repository =
         MovimientosRepository(
-            ApiClient.create(context)
+            ApiClient.create(context),
+            context
         )
 
     // ------------------------------------------------------------
@@ -158,6 +161,7 @@ class MovimientosViewModel(
         monto: Double,
         referencia: String?,
         observaciones: String?,
+        comprobanteUri: Uri?,
         onResultado: (Boolean) -> Unit = {}
     ) {
 
@@ -181,7 +185,10 @@ class MovimientosViewModel(
                     )
 
                 val respuesta =
-                    repository.crearMovimiento(request)
+                    repository.crearMovimiento(
+                        request,
+                        comprobanteUri
+                    )
 
                 if (respuesta.success) {
 
@@ -267,6 +274,10 @@ class MovimientosViewModel(
                     )
 
                     cargarMovimientos()
+
+                    NotificacionEventBus.publicarMovimientoActualizado(
+                        movimientoId = id
+                    )
 
                     onResultado(true)
 

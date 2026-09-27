@@ -50,7 +50,30 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Movimiento
+import androidx.compose.foundation.clickable
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import coil.compose.AsyncImage
 
+import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.graphicsLayer
 
 @Composable
 fun DetalleMovimientoScreen(
@@ -310,6 +333,12 @@ private fun InformacionGeneralCard(
     esIngreso: Boolean,
     colorMovimiento: Color
 ) {
+    var mostrarComprobante by remember {
+        mutableStateOf(false)
+    }
+    val urlComprobante = movimiento.comprobante?.let {
+        "http://192.168.1.34:8080/storage/$it"
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -419,17 +448,56 @@ private fun InformacionGeneralCard(
 
         DetalleSeparador()
 
-        DetalleFila(
-            icono = Icons.Outlined.Visibility,
-            titulo = "Comprobante",
-            valor = if (
-                movimiento.comprobante.isNullOrBlank()
+        if (movimiento.comprobante.isNullOrBlank()) {
+
+            DetalleFila(
+                icono = Icons.Outlined.Visibility,
+                titulo = "Comprobante",
+                valor = "Sin comprobante"
+            )
+
+        } else {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        mostrarComprobante = true
+                    },
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                "Sin comprobante"
-            } else {
-                "Comprobante registrado"
+
+                Icon(
+                    imageVector = Icons.Outlined.Visibility,
+                    contentDescription = "Ver comprobante",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(21.dp)
+                )
+
+                Spacer(
+                    modifier = Modifier.width(12.dp)
+                )
+
+                Text(
+                    text = "Comprobante",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 14.sp,
+                    modifier = Modifier.width(104.dp)
+                )
+
+                Spacer(
+                    modifier = Modifier.width(8.dp)
+                )
+
+                Text(
+                    text = "Ver comprobante",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
             }
-        )
+        }
 
         DetalleSeparador()
 
@@ -455,6 +523,62 @@ private fun InformacionGeneralCard(
             titulo = "Estado",
             valor = movimiento.estado
         )
+    }
+
+    if (mostrarComprobante && !movimiento.comprobante.isNullOrBlank()) {
+        Dialog(
+            onDismissRequest = {
+                mostrarComprobante = false
+            },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    .clickable {
+                        mostrarComprobante = false
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                var escala by remember {
+                    mutableFloatStateOf(1f)
+                }
+
+                var desplazamientoX by remember {
+                    mutableFloatStateOf(0f)
+                }
+
+                var desplazamientoY by remember {
+                    mutableFloatStateOf(0f)
+                }
+                val estadoTransformacion = rememberTransformableState { zoom, pan, _ ->
+                    escala = (escala * zoom).coerceIn(1f, 5f)
+
+                    desplazamientoX += pan.x
+                    desplazamientoY += pan.y
+                }
+                AsyncImage(
+                    model = urlComprobante,
+                    contentDescription = "Comprobante",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .graphicsLayer {
+                            scaleX = escala
+                            scaleY = escala
+                            translationX = desplazamientoX
+                            translationY = desplazamientoY
+                        }
+                        .transformable(estadoTransformacion),
+                    contentScale = ContentScale.Fit
+                )
+
+
+            }
+        }
     }
 }
 

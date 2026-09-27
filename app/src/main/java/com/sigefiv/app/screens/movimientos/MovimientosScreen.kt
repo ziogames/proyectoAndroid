@@ -494,9 +494,14 @@ fun MovimientosScreen(
                                 onMovimientoClick(movimiento)
                             },
                             onEditar = {
-                                movimientoEditar = movimiento
-                                mostrarFormulario = true
-                                movimientosViewModel.limpiarMensaje()
+                                movimientosViewModel.obtenerMovimientoPorId(movimiento.id) { movimientoActualizado ->
+
+                                    if (movimientoActualizado != null) {
+                                        movimientoEditar = movimientoActualizado
+                                        mostrarFormulario = true
+                                        movimientosViewModel.limpiarMensaje()
+                                    }
+                                }
                             },
                             onEliminar = {
                                 movimientoEliminar = movimiento
@@ -554,7 +559,8 @@ fun MovimientosScreen(
                         formaPago = formaPago,
                         monto = monto,
                         referencia = referencia,
-                        observaciones = observaciones
+                        observaciones = observaciones,
+                        comprobanteUri = null
                     )
 
                 } else {

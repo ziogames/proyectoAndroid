@@ -126,6 +126,18 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import com.sigefiv.app.data.api.NetworkErrorManager
+import android.net.Uri
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.navigationBarsPadding
+import coil.compose.AsyncImage
+import android.graphics.BitmapFactory
+import androidx.compose.ui.graphics.asImageBitmap
+
+
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -175,13 +187,31 @@ class MainActivity : ComponentActivity() {
     private var asambleaIdNotificacion = mutableStateOf<Int?>(null)
     private var notificacionIdNotificacion =
         mutableStateOf<Int?>(null)
-
+    private var comprobanteCompartido =
+        mutableStateOf<Uri?>(null)
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
+        if (
+            intent?.action == Intent.ACTION_SEND &&
+            intent.type?.startsWith("image/") == true
+        ) {
+            comprobanteCompartido.value =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(
+                        Intent.EXTRA_STREAM,
+                        Uri::class.java
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra<Uri>(
+                        Intent.EXTRA_STREAM
+                    )
+                }
+        }
 
 
         FirebaseTokenTest.obtenerToken()
@@ -259,6 +289,7 @@ class MainActivity : ComponentActivity() {
                         asambleaIdNotificacion = asambleaIdNotificacion.value,
                         notificacionIdNotificacion = notificacionIdNotificacion.value,
                         solicitarPermisoNotificaciones = solicitarPermisoNotificaciones,
+                        comprobanteCompartido = comprobanteCompartido.value,
                         darkTheme = darkTheme,
                         onThemeToggle = {
                             darkTheme = !darkTheme
@@ -275,6 +306,23 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        if (
+            intent.action == Intent.ACTION_SEND &&
+            intent.type?.startsWith("image/") == true
+        ) {
+            comprobanteCompartido.value =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(
+                        Intent.EXTRA_STREAM,
+                        Uri::class.java
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra<Uri>(
+                        Intent.EXTRA_STREAM
+                    )
+                }
+        }
 
         Log.d(
             "SIGEFIV_NOTIF",
@@ -370,6 +418,7 @@ fun AppSIGEFIV(
     asambleaIdNotificacion: Int? = null,
     notificacionIdNotificacion: Int? = null,
     solicitarPermisoNotificaciones: androidx.activity.result.ActivityResultLauncher<String>,
+    comprobanteCompartido: Uri? = null,
     darkTheme: Boolean,
     onThemeToggle: () -> Unit
 ) {
@@ -417,6 +466,28 @@ fun AppSIGEFIV(
         }
     }
     val context = LocalContext.current
+    val ocrService = remember {
+        OcrService(context)
+    }
+
+    var textoOcr by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var comprobanteResultado by remember {
+        mutableStateOf<ComprobanteInterpretado?>(null)
+    }
+
+    var comprobanteConfirmado by remember {
+        mutableStateOf<ComprobanteInterpretado?>(null)
+    }
+    var comprobanteUriConfirmado by remember {
+        mutableStateOf<Uri?>(null)
+    }
+
+    var procesandoOcr by remember {
+        mutableStateOf(false)
+    }
     LaunchedEffect(loginCorrecto) {
         if (loginCorrecto && esDispositivoXiaomi()) {
 
@@ -471,7 +542,310 @@ fun AppSIGEFIV(
             pantalla = PantallaInicial.LOGIN
         }
     }
+    var mostrarComprobante by remember {
+        mutableStateOf(comprobanteCompartido != null)
+    }
 
+    LaunchedEffect(comprobanteCompartido) {
+        mostrarComprobante = comprobanteCompartido != null
+    }
+
+    if (mostrarComprobante && comprobanteCompartido != null) {
+        AlertDialog(
+            onDismissRequest = {
+                mostrarComprobante = false
+            },
+            title = {
+                Text("Comprobante recibido")
+            },
+            text = {
+                val bitmap = remember(comprobanteCompartido) {
+                    comprobanteCompartido?.let { uri ->
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            BitmapFactory.decodeStream(input)
+                        }
+                    }
+                }
+
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Comprobante recibido",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val uri = comprobanteCompartido
+
+                        if (uri != null) {
+                            procesandoOcr = true
+
+                            ocrService.reconocerTexto(
+                                uri = uri,
+                                onSuccess = { texto ->
+
+                                    val resultado =
+                                        ComprobanteInterpreter.interpretar(texto)
+                                    comprobanteResultado = resultado
+
+                                    Log.d(
+                                        "SIGEFIV_COMPROBANTE",
+                                        "Tipo: ${resultado.tipo}"
+                                    )
+
+                                    Log.d(
+                                        "SIGEFIV_COMPROBANTE",
+                                        "Monto: ${resultado.monto}"
+                                    )
+
+                                    Log.d(
+                                        "SIGEFIV_COMPROBANTE",
+                                        "Texto: ${resultado.textoOriginal}"
+                                    )
+
+                                    textoOcr =
+                                        """
+    Tipo detectado: ${resultado.tipo}
+
+    Monto: ${
+                                            resultado.monto?.let {
+                                                "S/ %.2f".format(it)
+                                            } ?: "No detectado"
+                                        }
+
+    Persona: ${resultado.persona ?: "No detectada"}
+
+    Fecha: ${resultado.fecha ?: "No detectada"}
+
+    Texto OCR:
+    ${resultado.textoOriginal}
+    """.trimIndent()
+
+                                    procesandoOcr = false
+                                    mostrarComprobante = false
+                                },
+                                onError = { error ->
+                                    Log.e(
+                                        "SIGEFIV_OCR",
+                                        "ERROR OCR",
+                                        error
+                                    )
+
+                                    textoOcr = "Error OCR: ${error.message}"
+                                    procesandoOcr = false
+                                    mostrarComprobante = false
+                                }
+                            )
+                        }
+                    },
+                    enabled = !procesandoOcr
+                ) {
+                    Text(
+                        if (procesandoOcr) {
+                            "Leyendo..."
+                        } else {
+                            "Continuar"
+                        }
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        mostrarComprobante = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+// ============================================================
+// DIÁLOGO: REVISAR COMPROBANTE
+// ============================================================
+
+    if (comprobanteResultado != null) {
+
+        val resultado = comprobanteResultado!!
+
+        AlertDialog(
+            onDismissRequest = {
+                comprobanteResultado = null
+            },
+
+            title = {
+                Text("Revisar comprobante")
+            },
+
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+
+                    // ------------------------------------------------
+                    // TIPO
+                    // ------------------------------------------------
+
+                    Text(
+                        text = "Tipo",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+
+                    Text(
+                        text = when (resultado.tipo) {
+                            TipoMovimientoDetectado.INGRESO ->
+                                "Ingreso"
+
+                            TipoMovimientoDetectado.EGRESO ->
+                                "Egreso"
+
+                            TipoMovimientoDetectado.INDETERMINADO ->
+                                "No determinado"
+                        },
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    // ------------------------------------------------
+                    // MONTO
+                    // ------------------------------------------------
+
+                    Text(
+                        text = "Monto",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+
+                    Text(
+                        text = resultado.monto?.let {
+                            "S/ %.2f".format(it)
+                        } ?: "No detectado",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    // ------------------------------------------------
+                    // MEDIO DE PAGO
+                    // ------------------------------------------------
+
+                    Text(
+                        text = "Medio de pago",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+
+                    Text(
+                        text = resultado.medioPago ?: "No detectado",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    // ------------------------------------------------
+                    // NÚMERO DE OPERACIÓN
+                    // ------------------------------------------------
+
+                    Text(
+                        text = "N.º de operación",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+
+                    Text(
+                        text = resultado.numeroOperacion ?: "No detectado",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    // ------------------------------------------------
+                    // PERSONA
+                    // ------------------------------------------------
+
+                    Text(
+                        text = "Persona",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+
+                    Text(
+                        text = resultado.persona ?: "No detectada",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    // ------------------------------------------------
+                    // FECHA
+                    // ------------------------------------------------
+
+                    Text(
+                        text = "Fecha",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+
+                    Text(
+                        text = resultado.fecha ?: "No detectada",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(16.dp)
+                    )
+
+                    // ------------------------------------------------
+                    // CONFIRMACIÓN
+                    // ------------------------------------------------
+
+                    Text(
+                        text = "¿Los datos son correctos?",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            },
+
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (
+                            resultado.tipo !=
+                            TipoMovimientoDetectado.INDETERMINADO
+                        ) {
+                            comprobanteUriConfirmado = comprobanteCompartido
+                            comprobanteConfirmado = resultado
+                            comprobanteResultado = null
+                        }
+                    }
+                ) {
+                    Text("Confirmar")
+                }
+            },
+
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        comprobanteResultado = null
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
     when (pantalla) {
         PantallaInicial.SPLASH -> {
             PantallaSplash()
@@ -531,6 +905,15 @@ fun AppSIGEFIV(
                     loginViewModel = loginViewModel,
                     asambleaIdNotificacion = asambleaIdNotificacion,
                     notificacionIdNotificacion = notificacionIdNotificacion,
+
+                    comprobanteConfirmado = comprobanteConfirmado,
+
+                    comprobanteUri = comprobanteUriConfirmado,
+
+                    onComprobanteProcesado = {
+                        comprobanteConfirmado = null
+                    },
+
                     darkTheme = darkTheme,
                     onThemeToggle = onThemeToggle
                 )

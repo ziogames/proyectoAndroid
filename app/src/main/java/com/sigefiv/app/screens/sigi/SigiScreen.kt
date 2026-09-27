@@ -759,9 +759,9 @@ private fun SugerenciasChipsBar(
         item {
             SugerenciaChip(
                 icon = Icons.Outlined.Payments,
-                texto = "¿Saldo disponible?",
+                texto = "¿Saldo en caja?",
                 onClick = {
-                    onPregunta("¿Cuál es el saldo disponible del período actual?")
+                    onPregunta("¿Cuál es el saldo en caja del período actual?")
                 }
             )
         }

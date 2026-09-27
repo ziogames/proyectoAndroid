@@ -106,7 +106,9 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
-
+import com.sigefiv.app.ComprobanteInterpretado
+import com.sigefiv.app.TipoMovimientoDetectado
+import com.sigefiv.app.notifications.NotificacionEventBus
 enum class AppScreen(val drawerRoute: String) {
     DASHBOARD("dashboard"),
     MOVIMIENTOS("movimientos"),
@@ -144,7 +146,10 @@ fun AppNavigation(
     asambleaIdNotificacion: Int? = null,
     notificacionIdNotificacion: Int? = null,
     darkTheme: Boolean = false,
-    onThemeToggle: () -> Unit = {}
+    onThemeToggle: () -> Unit = {},
+    comprobanteConfirmado: ComprobanteInterpretado? = null,
+    comprobanteUri: Uri? = null,
+    onComprobanteProcesado: () -> Unit = {}
 ) {
     val sessionManager = remember { SessionManager(context) }
     val categoriasViewModel = remember { CategoriasViewModel(context) }
@@ -246,6 +251,12 @@ fun AppNavigation(
     var movimientoSeleccionado by remember { mutableStateOf<Movimiento?>(null) }
     var asambleaSeleccionada by remember { mutableStateOf<Asamblea?>(null) }
     var asambleaConvocatoria by remember { mutableStateOf<Asamblea?>(null) }
+    var comprobanteParaFormulario by remember {
+        mutableStateOf<ComprobanteInterpretado?>(null)
+    }
+    var comprobanteUriParaFormulario by remember {
+        mutableStateOf<Uri?>(null)
+    }
 
     LaunchedEffect(asambleaIdNotificacion) {
         asambleaIdNotificacion?.let { id ->
@@ -293,6 +304,31 @@ fun AppNavigation(
         ) {
             backStack.clear()
             backStack.add(AppScreen.DASHBOARD)
+        }
+    }
+    LaunchedEffect(comprobanteConfirmado) {
+
+        comprobanteConfirmado?.let { resultado ->
+
+            comprobanteParaFormulario = resultado
+
+            when (resultado.tipo) {
+
+                TipoMovimientoDetectado.INGRESO -> {
+                    navegarA(AppScreen.NUEVO_INGRESO)
+                }
+
+                TipoMovimientoDetectado.EGRESO -> {
+                    navegarA(AppScreen.NUEVO_EGRESO)
+                }
+
+                TipoMovimientoDetectado.INDETERMINADO -> {
+                    // No navegamos.
+                    // El usuario debe determinar el tipo.
+                }
+            }
+
+            onComprobanteProcesado()
         }
     }
 
@@ -521,8 +557,16 @@ fun AppNavigation(
                             cargandoPeriodo = cargandoPeriodo,
                             guardando = guardandoMovimiento,
                             mensaje = mensajeMovimiento,
+                            fechaInicial = comprobanteParaFormulario?.fecha?.let {
+                                convertirFechaComprobante(it)
+                            },
+                            personaInicial = comprobanteParaFormulario?.persona,
+                            formaPagoInicial = comprobanteParaFormulario?.medioPago,
+                            montoInicial = comprobanteParaFormulario?.monto,
+                            referenciaInicial = comprobanteParaFormulario?.numeroOperacion,
+                            comprobanteUri = comprobanteUri,
                             onCerrarClick = { retroceder() },
-                            onGuardar = { fecha, categoriaId, concepto, persona, formaPago, monto, referencia, observaciones ->
+                            onGuardar = { fecha, categoriaId, concepto, persona, formaPago, monto, referencia, observaciones, comprobanteUri ->
                                 movimientosViewModel.crearMovimiento(
                                     fecha = fecha,
                                     categoriaId = categoriaId,
@@ -531,9 +575,14 @@ fun AppNavigation(
                                     formaPago = formaPago,
                                     monto = monto,
                                     referencia = referencia,
-                                    observaciones = observaciones
+                                    observaciones = observaciones,
+                                    comprobanteUri = comprobanteUri
                                 ) { exito ->
-                                    if (exito) retroceder()
+                                    if (exito) {
+                                        dashboardViewModel.cargarDashboard()
+                                        movimientosViewModel.cargarMovimientos()
+                                        retroceder()
+                                    }
                                 }
                             }
                         )
@@ -548,8 +597,16 @@ fun AppNavigation(
                             cargandoPeriodo = cargandoPeriodo,
                             guardando = guardandoMovimiento,
                             mensaje = mensajeMovimiento,
+                            fechaInicial = comprobanteParaFormulario?.fecha?.let {
+                                convertirFechaComprobante(it)
+                            },
+                            personaInicial = comprobanteParaFormulario?.persona,
+                            formaPagoInicial = comprobanteParaFormulario?.medioPago,
+                            montoInicial = comprobanteParaFormulario?.monto,
+                            referenciaInicial = comprobanteParaFormulario?.numeroOperacion,
+                            comprobanteUri = comprobanteUri,
                             onCerrarClick = { retroceder() },
-                            onGuardar = { fecha, categoriaId, concepto, persona, formaPago, monto, referencia, observaciones ->
+                            onGuardar = { fecha, categoriaId, concepto, persona, formaPago, monto, referencia, observaciones, comprobanteUri ->
                                 movimientosViewModel.crearMovimiento(
                                     fecha = fecha,
                                     categoriaId = categoriaId,
@@ -558,9 +615,14 @@ fun AppNavigation(
                                     formaPago = formaPago,
                                     monto = monto,
                                     referencia = referencia,
-                                    observaciones = observaciones
+                                    observaciones = observaciones,
+                                            comprobanteUri = comprobanteUri
                                 ) { exito ->
-                                    if (exito) retroceder()
+                                    if (exito) {
+                                        dashboardViewModel.cargarDashboard()
+                                        movimientosViewModel.cargarMovimientos()
+                                        retroceder()
+                                    }
                                 }
                             }
                         )
@@ -1028,4 +1090,20 @@ fun AppNavigation(
             }
         }
     }
+}
+private fun convertirFechaComprobante(
+    fecha: String
+): String? {
+
+    val partes = fecha.split("/")
+
+    if (partes.size != 3) {
+        return null
+    }
+
+    val dia = partes[0]
+    val mes = partes[1]
+    val anio = partes[2]
+
+    return "$anio-$mes-$dia"
 }

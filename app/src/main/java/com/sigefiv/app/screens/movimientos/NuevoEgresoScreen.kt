@@ -67,6 +67,16 @@ import com.sigefiv.app.ui.theme.SeasonalTheme
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import android.net.Uri
+import coil.compose.AsyncImage
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.content.ContentValues
+import android.os.Environment
+import android.provider.MediaStore
+
 
 /*
 |--------------------------------------------------------------------------
@@ -93,6 +103,13 @@ fun NuevoEgresoScreen(
     cargandoPeriodo: Boolean,
     guardando: Boolean,
     mensaje: String?,
+    fechaInicial: String? = null,
+    personaInicial: String? = null,
+    comprobanteUri: Uri? = null,
+    formaPagoInicial: String? = null,
+    montoInicial: Double? = null,
+    referenciaInicial: String? = null,
+
     onCerrarClick: () -> Unit,
     onGuardar: (
         fecha: String,
@@ -102,10 +119,71 @@ fun NuevoEgresoScreen(
         formaPago: String,
         monto: Double,
         referencia: String?,
-        observaciones: String?
+        observaciones: String?,
+        comprobanteUri: Uri?
     ) -> Unit
 ) {
     val context = LocalContext.current
+
+    var comprobanteSeleccionado by remember {
+        mutableStateOf(comprobanteUri)
+    }
+    val selectorImagen = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            comprobanteSeleccionado = uri
+        }
+    }
+    var uriCamara by remember {
+        mutableStateOf<Uri?>(null)
+    }
+
+    val camaraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { exito ->
+        if (exito) {
+            uriCamara?.let {
+                comprobanteSeleccionado = it
+            }
+        }
+    }
+    fun abrirCamara() {
+        val valores = ContentValues().apply {
+            put(
+                MediaStore.Images.Media.DISPLAY_NAME,
+                "comprobante_${System.currentTimeMillis()}.jpg"
+            )
+            put(
+                MediaStore.Images.Media.MIME_TYPE,
+                "image/jpeg"
+            )
+            put(
+                MediaStore.Images.Media.RELATIVE_PATH,
+                "${Environment.DIRECTORY_PICTURES}/SIGEFIV"
+            )
+        }
+
+        val uri = context.contentResolver.insert(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            valores
+        )
+
+        if (uri != null) {
+            uriCamara = uri
+            camaraLauncher.launch(uri)
+        }
+    }
+
+    val permisoCamaraLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { concedido ->
+            if (concedido) {
+                abrirCamara()
+            }
+        }
+
     val colorPrincipal = SeasonalColors.primary(
         SeasonalTheme.getSeason()
     )
@@ -158,15 +236,39 @@ fun NuevoEgresoScreen(
         periodoInicio.withDayOfMonth(periodoInicio.lengthOfMonth())
     }
 
-    var fecha by remember(periodoInicio) {
-        mutableStateOf(periodoInicio.toString())
+    var fecha by remember(periodoInicio, fechaInicial) {
+        mutableStateOf(
+            fechaInicial ?: periodoInicio.toString()
+        )
     }
 
-    var concepto by remember { mutableStateOf("") }
-    var persona by remember { mutableStateOf("") }
-    var formaPago by remember { mutableStateOf("Efectivo") }
-    var monto by remember { mutableStateOf("") }
-    var referencia by remember { mutableStateOf("") }
+    var concepto by remember {
+        mutableStateOf("")
+    }
+
+    var persona by remember(personaInicial) {
+        mutableStateOf(
+            personaInicial ?: ""
+        )
+    }
+
+    var formaPago by remember(formaPagoInicial) {
+        mutableStateOf(
+            formaPagoInicial ?: "Efectivo"
+        )
+    }
+
+    var monto by remember(montoInicial) {
+        mutableStateOf(
+            montoInicial?.let { "%.2f".format(it) } ?: ""
+        )
+    }
+
+    var referencia by remember(referenciaInicial) {
+        mutableStateOf(
+            referenciaInicial ?: ""
+        )
+    }
     var observaciones by remember { mutableStateOf("") }
     var categoriaSeleccionada by remember { mutableStateOf<Categoria?>(null) }
     var mostrarCategorias by remember { mutableStateOf(false) }
@@ -544,6 +646,105 @@ fun NuevoEgresoScreen(
                 singleLine = true,
                 colors = coloresCampoEgreso()
             )
+            // COMPROBANTE
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = {
+                        selectorImagen.launch("image/*")
+                    },
+                    enabled = !guardando,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Rojo,
+                        contentColor = Blanco
+                    )
+                ) {
+                    Text(
+                        text = "🖼️ Imagen",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        permisoCamaraLauncher.launch(
+                            android.Manifest.permission.CAMERA
+                        )
+                    },
+                    enabled = !guardando,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Rojo,
+                        contentColor = Blanco
+                    )
+                ) {
+                    Text(
+                        text = "📷 Cámara",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            if (comprobanteSeleccionado != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = FondoTarjeta
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Comprobante",
+                                color = TextoPrincipal,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            TextButton(
+                                onClick = {
+                                    comprobanteSeleccionado = null
+                                },
+                                enabled = !guardando
+                            ) {
+                                Text(
+                                    text = "✕",
+                                    color = Rojo,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        AsyncImage(
+                            model = comprobanteSeleccionado,
+                            contentDescription = "Comprobante",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp)
+                                .clip(RoundedCornerShape(10.dp)),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+            }
 
             // OBSERVACIONES
             OutlinedTextField(
@@ -596,7 +797,8 @@ fun NuevoEgresoScreen(
                                 formaPago,
                                 montoNumerico,
                                 referencia.trim().ifBlank { null },
-                                observaciones.trim().ifBlank { null }
+                                observaciones.trim().ifBlank { null },
+                                comprobanteSeleccionado
                             )
                         }
                     },
