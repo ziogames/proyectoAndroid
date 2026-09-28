@@ -5,15 +5,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sigefiv.app.data.api.ApiClient
 import com.sigefiv.app.data.model.ZoeConsultaRequest
+import com.sigefiv.app.data.model.ZoeEstadistica
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 data class ZoeMensaje(
     val texto: String,
     val esUsuario: Boolean,
-    val tipoMovimiento: String? = null
+    val tipoMovimiento: String? = null,
+    val estadistica: ZoeEstadistica? = null,
+    val hora: String = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
 )
 
 class ZoeViewModel(
@@ -35,10 +40,12 @@ class ZoeViewModel(
         _mensajes.asStateFlow()
 
     private val _cargando = MutableStateFlow(false)
+
     val cargando: StateFlow<Boolean> =
         _cargando.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
+
     val error: StateFlow<String?> =
         _error.asStateFlow()
 
@@ -52,10 +59,7 @@ class ZoeViewModel(
         }
 
         /*
-         * Determinamos el tipo de consulta.
-         *
-         * Esto permitirá que SigiScreen sepa si debe
-         * mostrar los montos en verde o rojo.
+         * Determinamos el tipo de movimiento.
          */
         val tipoMovimiento = when {
 
@@ -83,7 +87,7 @@ class ZoeViewModel(
         _error.value = null
 
         /*
-         * Agregamos la pregunta del usuario.
+         * Pregunta del usuario.
          */
         _mensajes.value = _mensajes.value +
                 ZoeMensaje(
@@ -98,7 +102,9 @@ class ZoeViewModel(
             try {
 
                 /*
-                 * Enviamos la consulta a ZOE.
+                 * Primero usamos el flujo actual de ZOE.
+                 *
+                 * NO modificamos la comunicación existente.
                  */
                 val respuesta = api.consultarZoeN8n(
                     ZoeConsultaRequest(
@@ -108,9 +114,6 @@ class ZoeViewModel(
 
                 if (respuesta.success) {
 
-                    /*
-                     * Obtenemos la respuesta de ZOE.
-                     */
                     val respuestaTexto =
                         respuesta.respuesta
                             ?.trim()
@@ -122,14 +125,15 @@ class ZoeViewModel(
                             ?: "ZOE recibió la consulta, pero no devolvió un mensaje."
 
                     /*
-                     * Agregamos la respuesta de ZOE
-                     * junto con el tipo de movimiento.
+                     * Si ZOE devuelve una estadística,
+                     * la guardamos dentro del mensaje.
                      */
                     _mensajes.value = _mensajes.value +
                             ZoeMensaje(
                                 texto = respuestaTexto,
                                 esUsuario = false,
-                                tipoMovimiento = tipoMovimiento
+                                tipoMovimiento = tipoMovimiento,
+                                estadistica = respuesta.estadistica
                             )
 
                 } else {
@@ -182,6 +186,7 @@ class ZoeViewModel(
                             esUsuario = false,
                             tipoMovimiento = tipoMovimiento
                         )
+
             } finally {
 
                 _cargando.value = false

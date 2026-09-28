@@ -31,11 +31,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -331,7 +333,7 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "1:35 PM",
+                            text = mensaje.hora,
                             color = colorHoraUsuario,
                             fontSize = 10.sp
                         )
@@ -391,9 +393,17 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
                         tipoMovimiento = mensaje.tipoMovimiento,
                         modifier = Modifier.fillMaxWidth()
                     )
+                    mensaje.estadistica?.let { estadistica ->
+                        ZoeEstadisticaChart(
+                            estadistica = estadistica,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+
 
                     Text(
-                        text = "1:35 PM",
+                        text = mensaje.hora,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 10.sp,
                         modifier = Modifier
@@ -892,6 +902,14 @@ private fun BarraEntradaModerna(
 
     val puedeEnviar = consulta.trim().isNotEmpty() && !cargando
 
+    /*
+     * Barra inferior tipo mensajería:
+     *
+     *  [+]  Escribe un mensaje...   [🎤] [📎] [➤]
+     *
+     * Todos los colores salen de MaterialTheme/SeasonalColors
+     * para respetar automáticamente el tema claro y oscuro.
+     */
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -903,41 +921,52 @@ private fun BarraEntradaModerna(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
+            // Botón "+" para futuras acciones (adjuntos, cámara, etc.).
+            IconButton(
+                onClick = { },
+                modifier = Modifier.size(42.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Add,
+                    contentDescription = "Más opciones",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(25.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // Campo principal de escritura.
             OutlinedTextField(
                 value = consulta,
                 onValueChange = onConsultaChange,
                 modifier = Modifier
                     .weight(1f)
                     .height(50.dp),
-                // El campo permanece habilitado para seguir escribiendo
-                // mientras ZOE procesa la consulta.
                 enabled = true,
                 singleLine = true,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Outlined.AttachFile,
-                        contentDescription = "Adjuntar archivo",
-                        tint = colorPrincipal,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
                 placeholder = {
                     Text(
-                        text = "Pregúntale a ZOE...",
+                        text = "Escribe un mensaje...",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                 },
                 maxLines = 1,
                 shape = RoundedCornerShape(24.dp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(onSend = { onEnviar() }),
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Send
+                ),
+                keyboardActions = KeyboardActions(
+                    onSend = { onEnviar() }
+                ),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = colorPrincipal,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -948,25 +977,61 @@ private fun BarraEntradaModerna(
                 )
             )
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(4.dp))
 
+            // Micrófono: queda preparado para integrar la entrada por voz.
+            IconButton(
+                onClick = { },
+                modifier = Modifier.size(42.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Mic,
+                    contentDescription = "Hablar con ZOE",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(23.dp)
+                )
+            }
+
+            // Adjuntar archivo.
+            IconButton(
+                onClick = { },
+                modifier = Modifier.size(42.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.AttachFile,
+                    contentDescription = "Adjuntar archivo",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(23.dp)
+                )
+            }
+
+            // Enviar.
             IconButton(
                 onClick = onEnviar,
                 enabled = puedeEnviar,
                 modifier = Modifier
                     .size(44.dp)
                     .background(
-                        color = if (puedeEnviar) colorPrincipal else MaterialTheme.colorScheme.surfaceVariant,
+                        color = if (puedeEnviar) {
+                            colorPrincipal
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        },
                         shape = CircleShape
                     )
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = "Enviar",
-                    tint = if (puedeEnviar) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (puedeEnviar) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     modifier = Modifier.size(19.dp)
                 )
             }
         }
     }
 }
+

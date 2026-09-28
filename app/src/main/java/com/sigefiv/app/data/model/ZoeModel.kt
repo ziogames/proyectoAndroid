@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 data class ZoeConsultaRequest(
     val mensaje: String
 )
+
 data class ZoeConsultaResponse(
     val success: Boolean = false,
     val respuesta: String? = null,
@@ -14,5 +15,6 @@ data class ZoeConsultaResponse(
     val resultado: JsonElement? = null,
     val tipo: String? = null,
     val mensaje: String? = null,
-    val message: String? = null
+    val message: String? = null,
+    val estadistica: ZoeEstadistica? = null
 )
