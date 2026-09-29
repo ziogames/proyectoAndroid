@@ -34,6 +34,7 @@ import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
+import com.sigefiv.app.data.model.ZoeVozResponse
 
 interface AuthApi {
 
@@ -178,7 +179,11 @@ interface AuthApi {
     suspend fun consultarZoeN8n(
         @Body request: ZoeConsultaRequest
     ): ZoeConsultaResponse
-
+    @Multipart
+    @POST("zoe-voz")
+    suspend fun enviarVoz(
+        @Part audio: MultipartBody.Part
+    ): ZoeVozResponse
 
     // =========================================================
     // FCM

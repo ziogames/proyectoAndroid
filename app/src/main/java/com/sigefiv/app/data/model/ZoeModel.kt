@@ -18,3 +18,8 @@ data class ZoeConsultaResponse(
     val message: String? = null,
     val estadistica: ZoeEstadistica? = null
 )
+data class ZoeVozResponse(
+    val success: Boolean = false,
+    val texto: String? = null,
+    val message: String? = null
+)

@@ -2,6 +2,9 @@
 
 package com.sigefiv.app.screens.sigi
 
+import android.Manifest
+import android.content.pm.PackageManager
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,6 +41,7 @@ import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -53,7 +57,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -67,6 +79,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -77,6 +90,15 @@ import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.ui.text.style.TextAlign
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
+import android.media.AudioRecord.ERROR_INVALID_OPERATION
+import java.io.File
+import java.io.FileOutputStream
+import kotlinx.coroutines.delay
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 
 /*
 |--------------------------------------------------------------------------
@@ -127,9 +149,54 @@ fun SigiScreen(
 
     val mensajes by viewModel.mensajes.collectAsState()
     val cargando by viewModel.cargando.collectAsState()
+    val hablando by viewModel.hablando.collectAsState()
 
     var consulta by remember { mutableStateOf("") }
+    var grabandoVoz by remember { mutableStateOf(false) }
+    var grabadora by remember { mutableStateOf<GrabadorWav?>(null) }
+    var archivoVoz by remember { mutableStateOf<File?>(null) }
+    var segundosGrabacion by remember { mutableStateOf(0) }
+
     val listaEstado = rememberLazyListState()
+
+    val permisoMicrofono = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) {
+            iniciarGrabacionVoz(
+                context = context,
+                onGrabando = { grabandoVoz = it },
+                onGrabadora = { grabadora = it },
+                onArchivo = { archivoVoz = it }
+            )
+        }
+    }
+
+    LaunchedEffect(grabandoVoz) {
+        if (grabandoVoz) {
+            segundosGrabacion = 0
+            while (grabandoVoz) {
+                delay(1000)
+                if (grabandoVoz) {
+                    segundosGrabacion++
+                }
+            }
+        } else {
+            segundosGrabacion = 0
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            grabadora?.let { grabador ->
+                try {
+                    grabador.detener()
+                } catch (_: Exception) {
+                }
+            }
+            archivoVoz?.delete()
+        }
+    }
 
     fun enviarConsulta() {
         val texto = consulta.trim()
@@ -138,6 +205,45 @@ fun SigiScreen(
         // Limpiamos únicamente el texto.
         // Conservamos el foco para mantener el teclado visible.
         consulta = ""
+    }
+
+    fun activarMicrofono() {
+        if (cargando) return
+
+        if (grabandoVoz) {
+            grabadora?.let { grabador ->
+                val archivo = grabador.detener()
+                grabadora = null
+                grabandoVoz = false
+
+                if (archivo != null && archivo.exists() && archivo.length() > 44L) {
+                    archivoVoz = archivo
+                    viewModel.enviarAudio(archivo)
+                    archivoVoz = null
+                } else {
+                    archivo?.delete()
+                }
+            }
+
+            return
+        }
+
+        val tienePermiso =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+
+        if (tienePermiso) {
+            iniciarGrabacionVoz(
+                context = context,
+                onGrabando = { grabandoVoz = it },
+                onGrabadora = { grabadora = it },
+                onArchivo = { archivoVoz = it }
+            )
+        } else {
+            permisoMicrofono.launch(Manifest.permission.RECORD_AUDIO)
+        }
     }
 
     LaunchedEffect(mensajes.size) {
@@ -269,7 +375,12 @@ fun SigiScreen(
                 consulta = consulta,
                 onConsultaChange = { consulta = it },
                 onEnviar = { enviarConsulta() },
-                cargando = cargando
+                onMicrofono = { activarMicrofono() },
+                onDetenerVoz = { viewModel.detenerVoz() },
+                grabandoVoz = grabandoVoz,
+                segundosGrabacion = segundosGrabacion,
+                cargando = cargando,
+                hablando = hablando
             )
         }
     }
@@ -889,27 +1000,214 @@ private fun IndicadorCargaMensaje() {
 |--------------------------------------------------------------------------
 */
 
+private fun iniciarGrabacionVoz(
+    context: android.content.Context,
+    onGrabando: (Boolean) -> Unit,
+    onGrabadora: (GrabadorWav?) -> Unit,
+    onArchivo: (File?) -> Unit
+) {
+    try {
+        val archivo = File(
+            context.cacheDir,
+            "zoe_${System.currentTimeMillis()}.wav"
+        )
+
+        val grabador = GrabadorWav(archivo)
+        grabador.iniciar()
+
+        onArchivo(archivo)
+        onGrabadora(grabador)
+        onGrabando(true)
+
+    } catch (_: Exception) {
+        onArchivo(null)
+        onGrabadora(null)
+        onGrabando(false)
+    }
+}
+
+private class GrabadorWav(
+    private val archivo: File
+) {
+
+    companion object {
+        private const val SAMPLE_RATE = 16000
+        private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
+        private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
+    }
+
+    private var audioRecord: AudioRecord? = null
+    private var hiloGrabacion: Thread? = null
+    private var grabando = false
+
+    fun iniciar() {
+        val bufferSize = AudioRecord.getMinBufferSize(
+            SAMPLE_RATE,
+            CHANNEL_CONFIG,
+            AUDIO_FORMAT
+        )
+
+        if (bufferSize == ERROR_INVALID_OPERATION || bufferSize <= 0) {
+            throw IllegalStateException("No se pudo obtener el buffer de audio")
+        }
+
+        val buffer = ByteArray(bufferSize)
+
+        val record = AudioRecord(
+            MediaRecorder.AudioSource.MIC,
+            SAMPLE_RATE,
+            CHANNEL_CONFIG,
+            AUDIO_FORMAT,
+            bufferSize * 2
+        )
+
+        if (record.state != AudioRecord.STATE_INITIALIZED) {
+            record.release()
+            throw IllegalStateException("No se pudo inicializar el micrófono")
+        }
+
+        audioRecord = record
+        grabando = true
+
+        hiloGrabacion = Thread {
+            val archivoPcm = File(
+                archivo.parentFile,
+                "${archivo.nameWithoutExtension}.pcm"
+            )
+
+            try {
+                FileOutputStream(archivoPcm).use { output ->
+                    record.startRecording()
+
+                    while (grabando) {
+                        val cantidad = record.read(
+                            buffer,
+                            0,
+                            buffer.size
+                        )
+
+                        if (cantidad > 0) {
+                            output.write(buffer, 0, cantidad)
+                        }
+                    }
+                }
+
+                convertirPcmAWav(archivoPcm, archivo)
+
+            } catch (_: Exception) {
+                archivo.delete()
+            } finally {
+                archivoPcm.delete()
+
+                try {
+                    record.stop()
+                } catch (_: Exception) {
+                }
+
+                record.release()
+                audioRecord = null
+            }
+        }.apply {
+            start()
+        }
+    }
+
+    fun detener(): File? {
+        grabando = false
+
+        try {
+            hiloGrabacion?.join(1500)
+        } catch (_: InterruptedException) {
+        }
+
+        hiloGrabacion = null
+
+        return if (archivo.exists() && archivo.length() > 44L) {
+            archivo
+        } else {
+            null
+        }
+    }
+
+    private fun convertirPcmAWav(
+        pcm: File,
+        wav: File
+    ) {
+        val datosAudio = pcm.length()
+
+        FileOutputStream(wav).use { output ->
+            val header = ByteArray(44)
+
+            escribirAscii(header, 0, "RIFF")
+            escribirIntLE(header, 4, (36 + datosAudio).toInt())
+            escribirAscii(header, 8, "WAVE")
+            escribirAscii(header, 12, "fmt ")
+            escribirIntLE(header, 16, 16)
+            escribirShortLE(header, 20, 1)
+            escribirShortLE(header, 22, 1)
+            escribirIntLE(header, 24, SAMPLE_RATE)
+            escribirIntLE(header, 28, SAMPLE_RATE * 2)
+            escribirShortLE(header, 32, 2)
+            escribirShortLE(header, 34, 16)
+            escribirAscii(header, 36, "data")
+            escribirIntLE(header, 40, datosAudio.toInt())
+
+            output.write(header)
+
+            pcm.inputStream().use { input ->
+                input.copyTo(output)
+            }
+        }
+    }
+
+    private fun escribirAscii(
+        buffer: ByteArray,
+        offset: Int,
+        texto: String
+    ) {
+        texto.toByteArray(Charsets.US_ASCII)
+            .copyInto(buffer, offset)
+    }
+
+    private fun escribirIntLE(
+        buffer: ByteArray,
+        offset: Int,
+        valor: Int
+    ) {
+        buffer[offset] = (valor and 0xff).toByte()
+        buffer[offset + 1] = ((valor shr 8) and 0xff).toByte()
+        buffer[offset + 2] = ((valor shr 16) and 0xff).toByte()
+        buffer[offset + 3] = ((valor shr 24) and 0xff).toByte()
+    }
+
+    private fun escribirShortLE(
+        buffer: ByteArray,
+        offset: Int,
+        valor: Int
+    ) {
+        buffer[offset] = (valor and 0xff).toByte()
+        buffer[offset + 1] = ((valor shr 8) and 0xff).toByte()
+    }
+}
+
 @Composable
 private fun BarraEntradaModerna(
     consulta: String,
     onConsultaChange: (String) -> Unit,
     onEnviar: () -> Unit,
-    cargando: Boolean
+    onMicrofono: () -> Unit,
+    onDetenerVoz: () -> Unit,
+    grabandoVoz: Boolean,
+    segundosGrabacion: Int,
+    cargando: Boolean,
+    hablando: Boolean
 ) {
     val colorPrincipal = SeasonalColors.primary(
         SeasonalTheme.getSeason()
     )
 
-    val puedeEnviar = consulta.trim().isNotEmpty() && !cargando
+    val hayTexto = consulta.trim().isNotEmpty()
 
-    /*
-     * Barra inferior tipo mensajería:
-     *
-     *  [+]  Escribe un mensaje...   [🎤] [📎] [➤]
-     *
-     * Todos los colores salen de MaterialTheme/SeasonalColors
-     * para respetar automáticamente el tema claro y oscuro.
-     */
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -925,7 +1223,9 @@ private fun BarraEntradaModerna(
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            // Botón "+" para futuras acciones (adjuntos, cámara, etc.).
+            // =========================================================
+            // BOTÓN +
+            // =========================================================
             IconButton(
                 onClick = { },
                 modifier = Modifier.size(42.dp)
@@ -940,61 +1240,67 @@ private fun BarraEntradaModerna(
 
             Spacer(modifier = Modifier.width(4.dp))
 
-            // Campo principal de escritura.
-            OutlinedTextField(
-                value = consulta,
-                onValueChange = onConsultaChange,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(50.dp),
-                enabled = true,
-                singleLine = true,
-                placeholder = {
-                    Text(
-                        text = "Escribe un mensaje...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp
-                    )
-                },
-                maxLines = 1,
-                shape = RoundedCornerShape(24.dp),
-                keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Send
-                ),
-                keyboardActions = KeyboardActions(
-                    onSend = { onEnviar() }
-                ),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    cursorColor = colorPrincipal
+            // =========================================================
+            // CAMPO DE TEXTO / ESTADO DE GRABACIÓN
+            // =========================================================
+            if (grabandoVoz) {
+                BarraGrabandoVoz(
+                    segundos = segundosGrabacion,
+                    colorPrincipal = colorPrincipal,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
                 )
-            )
-
-            Spacer(modifier = Modifier.width(4.dp))
-
-            // Micrófono: queda preparado para integrar la entrada por voz.
-            IconButton(
-                onClick = { },
-                modifier = Modifier.size(42.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Mic,
-                    contentDescription = "Hablar con ZOE",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(23.dp)
+            } else {
+                OutlinedTextField(
+                    value = consulta,
+                    onValueChange = onConsultaChange,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp),
+                    enabled = !cargando,
+                    singleLine = true,
+                    placeholder = {
+                        Text(
+                            text = "Escribe un mensaje...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp
+                        )
+                    },
+                    maxLines = 1,
+                    shape = RoundedCornerShape(24.dp),
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Send
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onSend = {
+                            if (hayTexto) {
+                                onEnviar()
+                            }
+                        }
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        cursorColor = colorPrincipal
+                    )
                 )
             }
 
-            // Adjuntar archivo.
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // =========================================================
+            // 📎 ADJUNTAR
+            // =========================================================
             IconButton(
                 onClick = { },
+                enabled = !grabandoVoz,
                 modifier = Modifier.size(42.dp)
             ) {
                 Icon(
@@ -1005,33 +1311,211 @@ private fun BarraEntradaModerna(
                 )
             }
 
-            // Enviar.
-            IconButton(
-                onClick = onEnviar,
-                enabled = puedeEnviar,
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(
-                        color = if (puedeEnviar) {
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // =========================================================
+            // BOTÓN DINÁMICO
+            //
+            // Sin texto  → 🎤 Micrófono
+            // Con texto  → ➤ Enviar
+            //
+            // Micrófono:
+            // mantener presionado = grabar
+            // soltar = enviar automáticamente
+            // =========================================================
+            // =========================================================
+// BOTÓN DINÁMICO
+//
+// ZOE hablando → 🛑 detener
+// Con texto    → ➤ enviar
+// Sin texto    → 🎤 micrófono
+// =========================================================
+
+            if (hablando) {
+
+                // =====================================================
+                // 🛑 DETENER VOZ DE ZOE
+                // =====================================================
+                IconButton(
+                    onClick = onDetenerVoz,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(
+                            color = Color(0xFFEF4444),
+                            shape = CircleShape
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Stop,
+                        contentDescription = "Detener voz de ZOE",
+                        tint = Color.White,
+                        modifier = Modifier.size(21.dp)
+                    )
+                }
+
+            } else if (hayTexto && !grabandoVoz) {
+
+                // =====================================================
+                // ➤ ENVIAR
+                // =====================================================
+                IconButton(
+                    onClick = onEnviar,
+                    enabled = !cargando,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(
+                            color = colorPrincipal,
+                            shape = CircleShape
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Enviar mensaje",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+
+            } else {
+
+                // =====================================================
+                // 🎤 MICRÓFONO
+                // =====================================================
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(
+                            color = if (grabandoVoz) {
+                                colorPrincipal.copy(alpha = 0.18f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            },
+                            shape = CircleShape
+                        )
+                        .pointerInput(cargando) {
+                            detectTapGestures(
+                                onPress = {
+                                    if (cargando) {
+                                        return@detectTapGestures
+                                    }
+
+                                    onMicrofono()
+
+                                    try {
+                                        awaitRelease()
+                                    } finally {
+                                        onMicrofono()
+                                    }
+                                }
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Mic,
+                        contentDescription = if (grabandoVoz) {
+                            "Grabando..."
+                        } else {
+                            "Mantener presionado para hablar con ZOE"
+                        },
+                        tint = if (grabandoVoz) {
                             colorPrincipal
                         } else {
-                            MaterialTheme.colorScheme.surfaceVariant
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         },
-                        shape = CircleShape
+                        modifier = Modifier.size(23.dp)
                     )
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Enviar",
-                    tint = if (puedeEnviar) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    modifier = Modifier.size(19.dp)
+                }
+            }
+        }
+    }
+}
+
+/*
+ * Barra visual de grabación de voz.
+ *
+ * Es una animación propia de SIGEFIV/ZOE:
+ * - punto rojo de grabación
+ * - contador de tiempo
+ * - ondas animadas
+ *
+ * No modifica el audio ni el flujo de envío.
+ */
+@Composable
+private fun BarraGrabandoVoz(
+    segundos: Int,
+    colorPrincipal: Color,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(
+        label = "zoe_waveform"
+    )
+
+    val amplitudes = listOf(0.35f, 0.70f, 1.00f, 0.55f, 0.82f, 0.45f, 0.90f)
+
+    Row(
+        modifier = modifier
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(24.dp)
+            )
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(9.dp)
+                .background(Color(0xFFEF4444), CircleShape)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = formatearTiempoGrabacion(segundos),
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium
+        )
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            amplitudes.forEachIndexed { indice, amplitud ->
+                val altura by infiniteTransition.animateFloat(
+                    initialValue = 0.35f,
+                    targetValue = amplitud,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(
+                            durationMillis = 420 + (indice * 70)
+                        ),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "onda_$indice"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height((24.dp.value * altura).dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(colorPrincipal)
                 )
             }
         }
     }
+}
+
+private fun formatearTiempoGrabacion(segundos: Int): String {
+    val minutos = segundos / 60
+    val segundosRestantes = segundos % 60
+
+    return "%d:%02d".format(
+        minutos,
+        segundosRestantes
+    )
 }
 

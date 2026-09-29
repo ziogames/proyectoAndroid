@@ -5,6 +5,7 @@
     <!-- Conexión con Laravel -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <!-- Notificaciones en Android 13 o superior -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
