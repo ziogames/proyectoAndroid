@@ -1,4 +1,3 @@
-
 package com.sigefiv.app.data.api
 
 import com.sigefiv.app.data.SessionManager
@@ -64,10 +63,13 @@ class AuthInterceptor(
                     } else {
 
                         if (esLoginGoogle) {
+
                             println(
                                 "SIGEFIV AUTH: Login Google - NO SE ENVIO TOKEN"
                             )
+
                         } else {
+
                             println(
                                 "SIGEFIV AUTH: NO SE ENVIO TOKEN"
                             )
@@ -88,7 +90,11 @@ class AuthInterceptor(
         /*
          * Enviar la petición al servidor.
          *
-         * Detectar errores de conexión.
+         * Los errores de red se registran aquí,
+         * pero NO se muestran como error global.
+         *
+         * Una petición individual puede fallar mientras
+         * otras peticiones de SIGEFIV siguen funcionando.
          */
         val response: Response
 
@@ -100,11 +106,15 @@ class AuthInterceptor(
         } catch (e: IOException) {
 
             println(
-                "SIGEFIV ERROR DE CONEXION: ${e.message}"
+                "SIGEFIV ERROR DE CONEXION: " +
+                        "${request.method} ${request.url} → ${e.message}"
             )
 
-            NetworkErrorManager.mostrarErrorConexion()
-
+            /*
+             * Propagar el error para que el ViewModel
+             * o Repository que realizó la operación
+             * pueda manejarlo correctamente.
+             */
             throw e
         }
 
@@ -126,17 +136,17 @@ class AuthInterceptor(
         /*
          * Manejo de errores HTTP del servidor.
          *
-         * No mostramos mensajes técnicos al usuario.
+         * Solamente registramos el error aquí.
+         * No mostramos un mensaje global desde el interceptor.
          */
         when (response.code) {
 
             500, 502, 503, 504 -> {
 
                 println(
-                    "SIGEFIV ERROR DEL SERVIDOR: ${response.code}"
+                    "SIGEFIV ERROR DEL SERVIDOR: " +
+                            "${response.code} ${request.url}"
                 )
-
-                NetworkErrorManager.mostrarErrorServidor()
             }
         }
 
@@ -151,7 +161,8 @@ class AuthInterceptor(
                     response.peekBody(1024 * 1024)
 
                 println(
-                    "SIGEFIV RESPONSE BODY: ${responseBody.string()}"
+                    "SIGEFIV RESPONSE BODY: " +
+                            responseBody.string()
                 )
 
             } catch (e: Exception) {

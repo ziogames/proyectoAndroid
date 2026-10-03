@@ -109,6 +109,17 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import com.sigefiv.app.ComprobanteInterpretado
 import com.sigefiv.app.TipoMovimientoDetectado
 import com.sigefiv.app.notifications.NotificacionEventBus
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
+import kotlin.math.roundToInt
+import com.sigefiv.app.screens.mascota.MascotaEstado
+import com.sigefiv.app.screens.mascota.MascotaPreferencias
+import com.sigefiv.app.screens.mascota.MascotaSigefiv
+import com.sigefiv.app.screens.mascota.MascotaControlador
+import com.sigefiv.app.screens.mascota.MascotaBurbujaEvento
+
 enum class AppScreen(val drawerRoute: String) {
     DASHBOARD("dashboard"),
     MOVIMIENTOS("movimientos"),
@@ -181,9 +192,17 @@ fun AppNavigation(
     val usuarioPerfil by perfilViewModel.usuario.collectAsState()
     val guardandoPerfil by perfilViewModel.guardando.collectAsState()
     val subiendoFotoPerfil by perfilViewModel.subiendoFoto.collectAsState()
-    // Solo el rol Tesorero tiene acceso al módulo Movimientos.
+    // Permisos del usuario actual
+    val permisosUsuario = usuarioPerfil?.permisos ?: emptyList()
+
+    fun puede(permiso: String): Boolean {
+        return permisosUsuario.any {
+            it.trim().equals(permiso, ignoreCase = true)
+        }
+    }
+
     val puedeVerMovimientos =
-        usuarioPerfil?.rol?.equals("Tesorero", ignoreCase = true) == true
+        puede("movimientos.index")
 
 
     var notificacionTitulo by remember {
@@ -222,6 +241,28 @@ fun AppNavigation(
     val zoeSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
+    val mascotaPreferencias = remember {
+        MascotaPreferencias(context)
+    }
+
+    val mascotaEstado by MascotaControlador.estado.collectAsState()
+    val eventoMascota by MascotaControlador.eventoUi.collectAsState()
+
+    val mascotaVisible by mascotaPreferencias.visible.collectAsState(
+        initial = true
+    )
+
+    var mascotaX by remember { mutableStateOf(0f) }
+
+    var mascotaY by remember { mutableStateOf(0f) }
+
+    val mascotaScope = rememberCoroutineScope()
+    LaunchedEffect(Unit) {
+        mascotaPreferencias.posicion.collect { posicion ->
+            mascotaX = posicion.first
+            mascotaY = posicion.second
+        }
+    }
 
     fun navegarA(pantalla: AppScreen, limpiarPila: Boolean = false) {
         if (limpiarPila) {
@@ -362,14 +403,22 @@ fun AppNavigation(
                             }
                         }
 
-                        "chat" -> navegarA(AppScreen.CHAT)
+                        "chat" -> {
+                            if (puede("chat.index")) {
+                                navegarA(AppScreen.CHAT)
+                            }
+                        }
 
                         "asambleas" -> {
                             asambleaSeleccionada = null
                             navegarA(AppScreen.ASAMBLEAS)
                         }
 
-                        "periodos" -> navegarA(AppScreen.PERIODOS)
+                        "periodos" -> {
+                            if (puede("periodos.index")) {
+                                navegarA(AppScreen.PERIODOS)
+                            }
+                        }
                         "sigi" -> navegarA(AppScreen.SIGI)
                         "perfil" -> {
                             perfilViewModel.cargarPerfil()
@@ -383,7 +432,11 @@ fun AppNavigation(
                         }
 
                         "caja" -> navegarA(AppScreen.CAJA)
-                        "notificaciones" -> navegarA(AppScreen.NOTIFICACIONES)
+                        "notificaciones" -> {
+                            if (puede("notificaciones.index")) {
+                                navegarA(AppScreen.NOTIFICACIONES)
+                            }
+                        }
                         "actividad" -> {
                             actividadViewModel.cargarActividades()
                             navegarA(AppScreen.ACTIVIDAD)
@@ -419,7 +472,9 @@ fun AppNavigation(
                             notificacionesNoLeidas = notificacionesNoLeidas,
 
                             onNotificacionesClick = {
-                                navegarA(AppScreen.NOTIFICACIONES)
+                                if (puede("notificaciones.index")) {
+                                    navegarA(AppScreen.NOTIFICACIONES)
+                                }
                             },
 
                             onMovimientosClick = {
@@ -428,7 +483,11 @@ fun AppNavigation(
                                 }
                             },
                             onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
-                            onPeriodosClick = { navegarA(AppScreen.PERIODOS) },
+                            onPeriodosClick = {
+                                if (puede("periodos.index")) {
+                                    navegarA(AppScreen.PERIODOS)
+                                }
+                            },
                             onMiCuentaClick = {
                                 perfilViewModel.cargarPerfil()
                                 navegarA(AppScreen.PERFIL)
@@ -471,7 +530,11 @@ fun AppNavigation(
                             periodoViewModel = periodoViewModel,
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
                             onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
-                            onPeriodosClick = { navegarA(AppScreen.PERIODOS) },
+                            onPeriodosClick = {
+                                if (puede("periodos.index")) {
+                                    navegarA(AppScreen.PERIODOS)
+                                }
+                            },
                             onMiCuentaClick = {
                                 perfilViewModel.cargarPerfil()
                                 navegarA(AppScreen.PERFIL)
@@ -482,9 +545,7 @@ fun AppNavigation(
                                 navegarA(AppScreen.DETALLE_MOVIMIENTO)
                             },
                             onOpenDrawer = { scope.launch { drawerState.open() } },
-                            puedeCerrarPeriodo = usuarioPerfil?.rol
-                                ?.equals("Tesorero", ignoreCase = true)
-                                    == true,
+                            puedeCerrarPeriodo = puede("periodos.cerrar"),
 
                             onCerrarPeriodoClick = {
                                 periodo?.let { periodoActual ->
@@ -616,7 +677,7 @@ fun AppNavigation(
                                     monto = monto,
                                     referencia = referencia,
                                     observaciones = observaciones,
-                                            comprobanteUri = comprobanteUri
+                                    comprobanteUri = comprobanteUri
                                 ) { exito ->
                                     if (exito) {
                                         dashboardViewModel.cargarDashboard()
@@ -790,7 +851,11 @@ fun AppNavigation(
                             onBackClick = { retroceder() },
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
                             onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
-                            onPeriodosClick = { navegarA(AppScreen.PERIODOS) },
+                            onPeriodosClick = {
+                                if (puede("periodos.index")) {
+                                    navegarA(AppScreen.PERIODOS)
+                                }
+                            },
                             onMiCuentaClick = { },
                             nombre = usuarioPerfil?.name ?: "Usuario",
                             seudonimo = usuarioPerfil?.seudonimo,
@@ -904,7 +969,8 @@ fun AppNavigation(
                         CajaScreen(
                             viewModel = cajaViewModel,
                             onBackClick = { retroceder() },
-                            onOpenDrawer = { scope.launch { drawerState.open() } }
+                            onOpenDrawer = { scope.launch { drawerState.open() } },
+                            darkTheme = darkTheme
                         )
                     }
 
@@ -922,6 +988,13 @@ fun AppNavigation(
                             viewModel = notificacionViewModel,
                             fcmPreferenciaViewModel = fcmPreferenciaViewModel,
                             rol = usuarioPerfil?.rol,
+                            mascotaVisible = mascotaVisible,
+
+                            onMascotaVisibleChange = { visible ->
+                                mascotaScope.launch {
+                                    mascotaPreferencias.guardarVisible(visible)
+                                }
+                            },
 
                             onNuevaNotificacionClick = {
                                 navegarA(AppScreen.ENVIAR_NOTIFICACION)
@@ -1057,6 +1130,109 @@ fun AppNavigation(
 
                 }
             }
+            // ============================================================
+            // MASCOTA GLOBAL DE ZOE
+            // Visible en todas las pantallas de SIGEFIV
+            // ============================================================
+
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize()
+            ) {
+
+                val mascotaSize = 78.dp
+                val margen = 12.dp
+                val density = androidx.compose.ui.platform.LocalDensity.current
+
+                val limiteIzquierdo = with(density) {
+                    -(maxWidth - mascotaSize - margen * 2).toPx()
+                }
+
+                val limiteSuperior = with(density) {
+                    -(maxHeight - mascotaSize - margen * 2).toPx()
+                }
+                if (mascotaVisible) {
+
+                    // --------------------------------------------------------
+                    // NUBE DE EVENTO
+                    // --------------------------------------------------------
+
+                    if (eventoMascota != null) {
+
+                        MascotaBurbujaEvento(
+                            evento = eventoMascota,
+                            visible = true,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(margen)
+                                .zIndex(21f)
+                                .offset {
+                                    IntOffset(
+                                        mascotaX
+                                            .coerceIn(limiteIzquierdo, 0f)
+                                            .roundToInt(),
+
+                                        (
+                                                mascotaY -
+                                                        with(density) {
+                                                            mascotaSize.toPx()
+                                                        }
+                                                )
+                                            .coerceIn(limiteSuperior, 0f)
+                                            .roundToInt()
+                                    )
+                                }
+                        )
+                    }
+
+                    // --------------------------------------------------------
+                    // ZOE
+                    // --------------------------------------------------------
+
+                    MascotaSigefiv(
+                        estado = mascotaEstado,
+
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(margen)
+                            .zIndex(20f)
+                            .offset {
+                                IntOffset(
+                                    mascotaX
+                                        .coerceIn(limiteIzquierdo, 0f)
+                                        .roundToInt(),
+
+                                    mascotaY
+                                        .coerceIn(limiteSuperior, 0f)
+                                        .roundToInt()
+                                )
+                            },
+
+                        onDrag = { dx, dy ->
+
+                            mascotaX = (mascotaX + dx)
+                                .coerceIn(limiteIzquierdo, 0f)
+
+                            mascotaY = (mascotaY + dy)
+                                .coerceIn(limiteSuperior, 0f)
+                        },
+
+                        onDragEnd = {
+
+                            mascotaScope.launch {
+
+                                mascotaPreferencias.guardarPosicion(
+                                    mascotaX,
+                                    mascotaY
+                                )
+                            }
+                        },
+
+                        onClick = {
+                            mostrarZoeModal = true
+                        }
+                    )
+                }
+            }
         }
 
 // MODAL DE ZOE INTELIGENTE
@@ -1074,7 +1250,7 @@ fun AppNavigation(
                 dragHandle = null
             ) {
 
-                Box(
+                BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(0.95f)
@@ -1086,6 +1262,83 @@ fun AppNavigation(
                         },
                         onOpenDrawer = {}
                     )
+
+                    val mascotaSize = 78.dp
+                    val margen = 12.dp
+                    val density = androidx.compose.ui.platform.LocalDensity.current
+
+                    val limiteIzquierdo = with(density) {
+                        -(maxWidth - mascotaSize - margen * 2).toPx()
+                    }
+
+                    val limiteSuperior = with(density) {
+                        -(maxHeight - mascotaSize - margen * 2).toPx()
+                    }
+
+                    if (mascotaVisible) {
+
+                        if (eventoMascota != null) {
+                            MascotaBurbujaEvento(
+                                evento = eventoMascota,
+                                visible = true,
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(margen)
+                                    .zIndex(11f)
+                                    .offset {
+                                        IntOffset(
+                                            x = mascotaX
+                                                .coerceIn(limiteIzquierdo, 0f)
+                                                .roundToInt(),
+
+                                            y = (
+                                                    mascotaY -
+                                                            with(density) {
+                                                                mascotaSize.toPx()
+                                                            }
+                                                    )
+                                                .coerceIn(limiteSuperior, 0f)
+                                                .roundToInt()
+                                        )
+                                    }
+                            )
+                        }
+                        MascotaSigefiv(
+                            estado = mascotaEstado,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(margen)
+                                .zIndex(10f)
+                                .offset {
+                                    IntOffset(
+                                        mascotaX
+                                            .coerceIn(limiteIzquierdo, 0f)
+                                            .roundToInt(),
+
+                                        mascotaY
+                                            .coerceIn(limiteSuperior, 0f)
+                                            .roundToInt()
+                                    )
+                                },
+                            onDrag = { dx, dy ->
+                                mascotaX = (mascotaX + dx)
+                                    .coerceIn(limiteIzquierdo, 0f)
+
+                                mascotaY = (mascotaY + dy)
+                                    .coerceIn(limiteSuperior, 0f)
+                            },
+                            onDragEnd = {
+                                mascotaScope.launch {
+                                    mascotaPreferencias.guardarPosicion(
+                                        mascotaX,
+                                        mascotaY
+                                    )
+                                }
+                            }
+                        )
+                    }
+
+                    // Cierra if (mascotaVisible)
                 }
             }
         }

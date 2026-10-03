@@ -191,7 +191,7 @@ fun NuevoEgresoScreen(
     val periodoVM = remember { PeriodoViewModel(context) }
 
     LaunchedEffect(Unit) {
-        categoriasVM.cargarCategorias()
+        categoriasVM.cargarCategoriasParaMovimientos()
         periodoVM.cargarPeriodoAbierto()
     }
 
@@ -236,10 +236,18 @@ fun NuevoEgresoScreen(
         periodoInicio.withDayOfMonth(periodoInicio.lengthOfMonth())
     }
 
-    var fecha by remember(periodoInicio, fechaInicial) {
-        mutableStateOf(
-            fechaInicial ?: periodoInicio.toString()
-        )
+    val fechaPredeterminada = remember(periodoInicio, periodoFin, fechaInicial, hoy) {
+        fechaInicial ?: run {
+            if (periodoInicio.year == hoy.year && periodoInicio.monthValue == hoy.monthValue) {
+                hoy.toString()
+            } else {
+                periodoFin.toString()
+            }
+        }
+    }
+
+    var fecha by remember(periodoInicio, fechaInicial, fechaPredeterminada) {
+        mutableStateOf(fechaPredeterminada)
     }
 
     var concepto by remember {
@@ -280,12 +288,20 @@ fun NuevoEgresoScreen(
     | DATEPICKER CONFIGURADO EN UTC
     |--------------------------------------------------------------------------
     */
+    val fechaPredeterminadaDate = remember(fechaPredeterminada) {
+        LocalDate.parse(fechaPredeterminada)
+    }
+
     val initialMonthMillis = remember(periodoInicio) {
         periodoInicio.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     }
 
+    val initialSelectedDateMillis = remember(fechaPredeterminadaDate) {
+        fechaPredeterminadaDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    }
+
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = initialMonthMillis,
+        initialSelectedDateMillis = initialSelectedDateMillis,
         initialDisplayedMonthMillis = initialMonthMillis,
         selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean {
@@ -298,9 +314,9 @@ fun NuevoEgresoScreen(
         }
     )
 
-    LaunchedEffect(initialMonthMillis) {
+    LaunchedEffect(initialMonthMillis, initialSelectedDateMillis) {
         datePickerState.displayedMonthMillis = initialMonthMillis
-        datePickerState.selectedDateMillis = initialMonthMillis
+        datePickerState.selectedDateMillis = initialSelectedDateMillis
     }
 
     /*
@@ -420,7 +436,15 @@ fun NuevoEgresoScreen(
             |--------------------------------------------------------------------------
             */
             OutlinedTextField(
-                value = fecha,
+                value = runCatching {
+                    LocalDate.parse(fecha).let {
+                        "%02d-%02d-%04d".format(
+                            it.dayOfMonth,
+                            it.monthValue,
+                            it.year
+                        )
+                    }
+                }.getOrElse { fecha },
                 onValueChange = {},
                 readOnly = true,
                 enabled = !guardando,

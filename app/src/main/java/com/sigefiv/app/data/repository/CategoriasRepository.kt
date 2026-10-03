@@ -10,4 +10,8 @@ class CategoriasRepository(
     suspend fun obtenerCategorias(): CategoriasResponse {
         return authApi.categorias()
     }
+
+    suspend fun obtenerCategoriasParaMovimientos(): CategoriasResponse {
+        return authApi.categoriasParaMovimientos()
+    }
 }

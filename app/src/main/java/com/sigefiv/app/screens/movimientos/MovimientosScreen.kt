@@ -176,7 +176,7 @@ fun MovimientosScreen(
 
         // Carga inicial.
         movimientosViewModel.cargarMovimientos()
-        categoriasVM.cargarCategorias()
+        categoriasVM.cargarCategoriasParaMovimientos()
         periodoVM.cargarPeriodoAbierto()
 
         // Escucha cambios realizados desde otros dispositivos.
@@ -290,24 +290,12 @@ fun MovimientosScreen(
                 )
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNuevoMovimientoClick,
-                containerColor = SeasonalColors.primary(
-                    SeasonalTheme.getSeason()
-                ),
-                contentColor = Blanco
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Add,
-                    contentDescription = "Agregar movimiento"
-                )
-            }
-        },
         bottomBar = {
             BarraInferiorMovimientos(
                 onInicioClick = onInicioClick,
                 onAsambleasClick = onAsambleasClick,
+                onNuevoMovimientoClick = onNuevoMovimientoClick,
+                puedeCrearMovimiento = true,
                 onPeriodosClick = onPeriodosClick,
                 onMiCuentaClick = onMiCuentaClick
             )
@@ -1724,76 +1712,126 @@ private fun coloresCampo() = androidx.compose.material3.OutlinedTextFieldDefault
 private fun BarraInferiorMovimientos(
     onInicioClick: () -> Unit,
     onAsambleasClick: () -> Unit,
+    onNuevoMovimientoClick: () -> Unit,
+    puedeCrearMovimiento: Boolean,
     onPeriodosClick: () -> Unit,
     onMiCuentaClick: () -> Unit
 ) {
-    NavigationBar(
-        containerColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
-        tonalElevation = 0.dp
+    Box(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        NavigationBarItem(
-            selected = false,
-            onClick = onInicioClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Home,
-                    contentDescription = "Inicio"
-                )
-            },
-            label = { Text(text = "Inicio") },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
-            )
-        )
 
-        NavigationBarItem(
-            selected = false,
-            onClick = onAsambleasClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Groups,
-                    contentDescription = "Asamblea"
-                )
-            },
-            label = { Text(text = "Asamblea") },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
-            )
-        )
+        NavigationBar(
+            containerColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
+            tonalElevation = 0.dp
+        ) {
 
-        NavigationBarItem(
-            selected = false,
-            onClick = onPeriodosClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.CalendarMonth,
-                    contentDescription = "Periodos"
+            NavigationBarItem(
+                selected = false,
+                onClick = onInicioClick,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Home,
+                        contentDescription = "Inicio"
+                    )
+                },
+                label = { Text(text = "Inicio") },
+                colors = NavigationBarItemDefaults.colors(
+                    unselectedIconColor = Blanco.copy(alpha = 0.75f),
+                    unselectedTextColor = Blanco.copy(alpha = 0.75f)
                 )
-            },
-            label = { Text(text = "Periodos") },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
             )
-        )
 
-        NavigationBarItem(
-            selected = false,
-            onClick = onMiCuentaClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Person,
-                    contentDescription = "Mi cuenta"
+            NavigationBarItem(
+                selected = false,
+                onClick = onAsambleasClick,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Groups,
+                        contentDescription = "Asamblea"
+                    )
+                },
+                label = { Text(text = "Asamblea") },
+                colors = NavigationBarItemDefaults.colors(
+                    unselectedIconColor = Blanco.copy(alpha = 0.75f),
+                    unselectedTextColor = Blanco.copy(alpha = 0.75f)
                 )
-            },
-            label = { Text(text = "Mi cuenta") },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
             )
-        )
+
+            if (puedeCrearMovimiento) {
+
+                // Espacio reservado para el botón circular central.
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNuevoMovimientoClick,
+                    icon = {
+                        Spacer(
+                            modifier = Modifier.size(64.dp)
+                        )
+                    },
+                    label = null,
+                    colors = NavigationBarItemDefaults.colors(
+                        unselectedIconColor = Blanco.copy(alpha = 0f),
+                        selectedIconColor = Blanco.copy(alpha = 0f),
+                        indicatorColor = Color.Transparent
+                    )
+                )
+            }
+
+            NavigationBarItem(
+                selected = false,
+                onClick = onPeriodosClick,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Outlined.CalendarMonth,
+                        contentDescription = "Periodos"
+                    )
+                },
+                label = { Text(text = "Periodos") },
+                colors = NavigationBarItemDefaults.colors(
+                    unselectedIconColor = Blanco.copy(alpha = 0.75f),
+                    unselectedTextColor = Blanco.copy(alpha = 0.75f)
+                )
+            )
+
+            NavigationBarItem(
+                selected = false,
+                onClick = onMiCuentaClick,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Person,
+                        contentDescription = "Mi cuenta"
+                    )
+                },
+                label = { Text(text = "Mi cuenta") },
+                colors = NavigationBarItemDefaults.colors(
+                    unselectedIconColor = Blanco.copy(alpha = 0.75f),
+                    unselectedTextColor = Blanco.copy(alpha = 0.75f)
+                )
+            )
+        }
+
+        if (puedeCrearMovimiento) {
+
+            FloatingActionButton(
+                onClick = onNuevoMovimientoClick,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (-28).dp)
+                    .size(72.dp),
+                containerColor = SeasonalColors.primary(
+                    SeasonalTheme.getSeason()
+                ),
+                contentColor = Blanco,
+                shape = androidx.compose.foundation.shape.CircleShape
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Add,
+                    contentDescription = "Agregar movimiento",
+                    modifier = Modifier.size(34.dp)
+                )
+            }
+        }
     }
 }
 

@@ -77,6 +77,29 @@ class CategoriasViewModel(
         }
     }
 
+    fun cargarCategoriasParaMovimientos() {
+        viewModelScope.launch {
+            _cargando.value = true
+
+            try {
+                val respuesta = repository.obtenerCategoriasParaMovimientos()
+
+                if (respuesta.success) {
+                    _categorias.value = respuesta.categorias
+                    _mensaje.value = null
+                } else {
+                    _mensaje.value = "No se pudieron cargar las categorías."
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _mensaje.value =
+                    e.message ?: "No se pudieron cargar las categorías."
+            } finally {
+                _cargando.value = false
+            }
+        }
+    }
 
     fun limpiarMensaje() {
 

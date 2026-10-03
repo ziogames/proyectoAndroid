@@ -27,7 +27,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SmartToy
+
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.HorizontalDivider
@@ -75,24 +75,24 @@ fun AppDrawer(
     // =========================================================
     // LÓGICA DE PERMISOS (@can / RBAC de Spatie)
     // =========================================================
+// =========================================================
+// LÓGICA DE PERMISOS
+// =========================================================
 
     val esAdmin =
         rol?.trim()?.equals("Administrador", ignoreCase = true) == true
-    val esConsulta =
-        rol?.trim()?.equals("Consulta", ignoreCase = true) == true
-    val esTesorero =
-        rol?.trim()?.equals("Tesorero", ignoreCase = true) == true
 
     fun puede(permiso: String): Boolean {
         if (esAdmin) return true
-        return permisos.contains(permiso)
+
+        return permisos.any {
+            it.trim().equals(permiso, ignoreCase = true)
+        }
     }
 
     fun puedeCualquiera(vararg listaPermisos: String): Boolean {
-        if (esAdmin) return true
-        return listaPermisos.any { permisos.contains(it) }
+        return listaPermisos.any { puede(it) }
     }
-
     ModalDrawerSheet(
         modifier = Modifier.width(300.dp),
         drawerContainerColor = MaterialTheme.colorScheme.surface
@@ -229,19 +229,21 @@ fun AppDrawer(
 
             DrawerSectionTitle("COMUNIDAD")
 
-            DrawerItem(
-                title = "Chat Vecinal",
-                icon = Icons.Default.Chat,
-                route = "chat",
-                currentScreen = currentScreen,
-                darkTheme = darkTheme,
-                onNavigate = onNavigate
-            )
+            if (puede("chat.index")) {
+                DrawerItem(
+                    title = "Chat Vecinal",
+                    icon = Icons.Default.Chat,
+                    route = "chat",
+                    currentScreen = currentScreen,
+                    darkTheme = darkTheme,
+                    onNavigate = onNavigate
+                )
+            }
 
             // ---------------------------------------------------------
             // NOTIFICACIONES
             // ---------------------------------------------------------
-
+            if (puede("notificaciones.index")) {
             NavigationDrawerItem(
                 label = {
                     Text(
@@ -318,6 +320,7 @@ fun AppDrawer(
                         MaterialTheme.colorScheme.primary
                 )
             )
+        }
 
             if (puede("asambleas.index")) {
 
@@ -331,65 +334,7 @@ fun AppDrawer(
                 )
             }
 
-            // =========================================================
-            // ASISTENTE
-            // =========================================================
 
-            DrawerSectionTitle("ASISTENTE")
-
-            NavigationDrawerItem(
-                label = {
-                    Text(
-                        text = "ZOE",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                icon = {
-                    Icon(
-                        imageVector = Icons.Default.SmartToy,
-                        contentDescription = "ZOE"
-                    )
-                },
-                badge = {
-                    Text(
-                        text = "IA",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                selected = currentScreen == "sigi",
-                onClick = {
-                    onNavigate("sigi")
-                },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.padding(
-                    horizontal = 12.dp,
-                    vertical = 2.dp
-                ),
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = if (darkTheme) {
-                        Color(0xFF065F46)
-                    } else {
-                        Color(0xFFD1FAE5)
-                    },
-                    selectedTextColor = if (darkTheme) {
-                        Color(0xFFA7F3D0)
-                    } else {
-                        Color(0xFF166534)
-                    },
-                    selectedIconColor = if (darkTheme) {
-                        Color(0xFFA7F3D0)
-                    } else {
-                        Color(0xFF166534)
-                    },
-                    unselectedContainerColor =
-                        Color.Transparent,
-                    unselectedTextColor =
-                        MaterialTheme.colorScheme.onSurface,
-                    unselectedIconColor =
-                        MaterialTheme.colorScheme.primary
-                )
-            )
 
             // =========================================================
             // CONTABILIDAD
@@ -419,8 +364,7 @@ fun AppDrawer(
                     )
                 }
 
-                if (esTesorero) {
-
+                if (puede("movimientos.index")) {
                     DrawerItem(
                         title = "Movimientos",
                         icon = Icons.Default.SwapHoriz,
@@ -431,14 +375,16 @@ fun AppDrawer(
                     )
                 }
 
-                DrawerItem(
-                    title = "Períodos",
-                    icon = Icons.Default.Timeline,
-                    route = "periodos",
-                    currentScreen = currentScreen,
-                    darkTheme = darkTheme,
-                    onNavigate = onNavigate
-                )
+                if (puede("periodos.index")) {
+                    DrawerItem(
+                        title = "Períodos",
+                        icon = Icons.Default.Timeline,
+                        route = "periodos",
+                        currentScreen = currentScreen,
+                        darkTheme = darkTheme,
+                        onNavigate = onNavigate
+                    )
+                }
 
                 if (puede("caja.index")) {
 

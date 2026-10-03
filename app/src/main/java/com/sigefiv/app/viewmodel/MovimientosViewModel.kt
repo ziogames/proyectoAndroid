@@ -78,6 +78,7 @@ class MovimientosViewModel(
         viewModelScope.launch {
 
             _cargando.value = true
+            _mensaje.value = null
 
             try {
 

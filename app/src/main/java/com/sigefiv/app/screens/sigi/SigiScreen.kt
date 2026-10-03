@@ -150,6 +150,7 @@ fun SigiScreen(
     val mensajes by viewModel.mensajes.collectAsState()
     val cargando by viewModel.cargando.collectAsState()
     val hablando by viewModel.hablando.collectAsState()
+    val escuchando by viewModel.escuchando.collectAsState()
 
     var consulta by remember { mutableStateOf("") }
     var grabandoVoz by remember { mutableStateOf(false) }
@@ -208,25 +209,8 @@ fun SigiScreen(
     }
 
     fun activarMicrofono() {
+        android.util.Log.d("ZOE_AUDIO", "activarMicrofono() ejecutado")
         if (cargando) return
-
-        if (grabandoVoz) {
-            grabadora?.let { grabador ->
-                val archivo = grabador.detener()
-                grabadora = null
-                grabandoVoz = false
-
-                if (archivo != null && archivo.exists() && archivo.length() > 44L) {
-                    archivoVoz = archivo
-                    viewModel.enviarAudio(archivo)
-                    archivoVoz = null
-                } else {
-                    archivo?.delete()
-                }
-            }
-
-            return
-        }
 
         val tienePermiso =
             ContextCompat.checkSelfPermission(
@@ -234,15 +218,15 @@ fun SigiScreen(
                 Manifest.permission.RECORD_AUDIO
             ) == PackageManager.PERMISSION_GRANTED
 
-        if (tienePermiso) {
-            iniciarGrabacionVoz(
-                context = context,
-                onGrabando = { grabandoVoz = it },
-                onGrabadora = { grabadora = it },
-                onArchivo = { archivoVoz = it }
-            )
-        } else {
+        if (!tienePermiso) {
             permisoMicrofono.launch(Manifest.permission.RECORD_AUDIO)
+            return
+        }
+
+        if (viewModel.escuchando.value) {
+            viewModel.detenerEscucha()
+        } else {
+            viewModel.iniciarEscucha()
         }
     }
 
@@ -375,9 +359,12 @@ fun SigiScreen(
                 consulta = consulta,
                 onConsultaChange = { consulta = it },
                 onEnviar = { enviarConsulta() },
-                onMicrofono = { activarMicrofono() },
+                onMicrofono = {
+                    android.util.Log.d("ZOE_AUDIO", "BOTÓN MICRÓFONO PRESIONADO")
+                    activarMicrofono()
+                },
                 onDetenerVoz = { viewModel.detenerVoz() },
-                grabandoVoz = grabandoVoz,
+                grabandoVoz = escuchando,
                 segundosGrabacion = segundosGrabacion,
                 cargando = cargando,
                 hablando = hablando
@@ -1381,7 +1368,15 @@ private fun BarraEntradaModerna(
                 // =====================================================
                 // 🎤 MICRÓFONO
                 // =====================================================
-                Box(
+                IconButton(
+                    onClick = {
+                        android.util.Log.d(
+                            "ZOE_AUDIO",
+                            "BOTÓN MICRÓFONO PRESIONADO"
+                        )
+                        onMicrofono()
+                    },
+                    enabled = !cargando,
                     modifier = Modifier
                         .size(44.dp)
                         .background(
@@ -1392,32 +1387,10 @@ private fun BarraEntradaModerna(
                             },
                             shape = CircleShape
                         )
-                        .pointerInput(cargando) {
-                            detectTapGestures(
-                                onPress = {
-                                    if (cargando) {
-                                        return@detectTapGestures
-                                    }
-
-                                    onMicrofono()
-
-                                    try {
-                                        awaitRelease()
-                                    } finally {
-                                        onMicrofono()
-                                    }
-                                }
-                            )
-                        },
-                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Mic,
-                        contentDescription = if (grabandoVoz) {
-                            "Grabando..."
-                        } else {
-                            "Mantener presionado para hablar con ZOE"
-                        },
+                        contentDescription = "Hablar con ZOE",
                         tint = if (grabandoVoz) {
                             colorPrincipal
                         } else {

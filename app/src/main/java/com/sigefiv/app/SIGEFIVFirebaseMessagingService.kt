@@ -11,6 +11,9 @@ import androidx.core.app.NotificationManagerCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.sigefiv.app.notifications.NotificacionEventBus
+import com.sigefiv.app.screens.mascota.MascotaControlador
+import com.sigefiv.app.screens.mascota.MascotaEstado
+import com.sigefiv.app.screens.mascota.MascotaEvento
 
 class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
 
@@ -145,6 +148,8 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                 remoteMessage.data["movimiento_id"]
                     ?.toIntOrNull()
 
+            // Actualización silenciosa de movimientos.
+            // No debe hacer reaccionar a la mascota.
             kotlinx.coroutines.runBlocking {
                 NotificacionEventBus.publicarMovimientoActualizado(
                     movimientoId = movimientoId
@@ -158,7 +163,103 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
 
         val notificacionId =
             remoteMessage.data["notificacion_id"]
+        // ============================================================
+        // REACCIÓN DE ZOE A EVENTOS DE SIGEFIV
+        // ============================================================
+
+        // ============================================================
+// REACCIÓN DE ZOE A EVENTOS DE SIGEFIV
+// ============================================================
+
+        when {
+            tipo?.equals("ingreso", ignoreCase = true) == true -> {
+                MascotaControlador.mensajeZoe(
+                    titulo = titulo,
+                    mensaje = mensaje,
+                    icono = "💰",
+                    estado = MascotaEstado.FELIZ
+                )
+            }
+
+            tipo?.equals("egreso", ignoreCase = true) == true -> {
+                MascotaControlador.mensajeZoe(
+                    titulo = titulo,
+                    mensaje = mensaje,
+                    icono = "💸",
+                    estado = MascotaEstado.ATENTA
+                )
+            }
+
+            tipo?.equals("movimiento", ignoreCase = true) == true ||
+                    tipo?.equals("movimiento_registrado", ignoreCase = true) == true -> {
+                MascotaControlador.mensajeZoe(
+                    titulo = titulo,
+                    mensaje = mensaje,
+                    icono = "📋",
+                    estado = MascotaEstado.FELIZ
+                )
+            }
+
+            tipo?.equals("periodo_abierto", ignoreCase = true) == true -> {
+                MascotaControlador.mensajeZoe(
+                    titulo = titulo,
+                    mensaje = mensaje,
+                    icono = "📂",
+                    estado = MascotaEstado.SALUDANDO
+                )
+            }
+
+            tipo?.equals("periodo_cerrado", ignoreCase = true) == true -> {
+                MascotaControlador.mensajeZoe(
+                    titulo = titulo,
+                    mensaje = mensaje,
+                    icono = "🎉",
+                    estado = MascotaEstado.CELEBRANDO,
+                    duracion = 3500L
+                )
+            }
+
+            tipo?.equals("zoe_mascota", ignoreCase = true) == true -> {
+
+                val iconoZoe =
+                    remoteMessage.data["icono"]
+                        ?: "🤖"
+
+                val estadoZoe =
+                    when (
+                        remoteMessage.data["estado"]
+                            ?.uppercase()
+                    ) {
+                        "NORMAL" -> MascotaEstado.NORMAL
+                        "SALUDANDO" -> MascotaEstado.SALUDANDO
+                        "FELIZ" -> MascotaEstado.FELIZ
+                        "PENSANDO" -> MascotaEstado.PENSANDO
+                        "ATENTA" -> MascotaEstado.ATENTA
+                        "DURMIENDO" -> MascotaEstado.DURMIENDO
+                        "CELEBRANDO" -> MascotaEstado.CELEBRANDO
+                        else -> MascotaEstado.FELIZ
+                    }
+
+                MascotaControlador.mensajeZoe(
+                    titulo = titulo,
+                    mensaje = mensaje,
+                    icono = iconoZoe,
+                    estado = estadoZoe
+                )
+            }
+
+            else -> {
+                MascotaControlador.mensajeZoe(
+                    titulo = titulo,
+                    mensaje = mensaje,
+                    icono = "🔔",
+                    estado = MascotaEstado.ATENTA
+                )
+            }
+        }
+
         NotificacionEventBus.notificacionRecibida()
+
         kotlinx.coroutines.runBlocking {
             NotificacionEventBus.publicar(
                 titulo = titulo,
@@ -172,15 +273,30 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
    *
    * Si es data-only, nosotros la mostramos.
    */
-        crearCanalNotificaciones()
+        /*
+   * ZOE MASCOTA utiliza la mascota y su burbuja
+   * como interfaz visual.
+   *
+   * No mostramos una notificación nativa de Android
+   * para evitar duplicar el mensaje.
+   */
+        if (
+            tipo?.equals(
+                "zoe_mascota",
+                ignoreCase = true
+            ) != true
+        ) {
 
-        mostrarNotificacion(
-            titulo = titulo,
-            mensaje = mensaje,
-            tipo = tipo,
-            asambleaId = asambleaId,
-            notificacionId = notificacionId
-        )
+            crearCanalNotificaciones()
+
+            mostrarNotificacion(
+                titulo = titulo,
+                mensaje = mensaje,
+                tipo = tipo,
+                asambleaId = asambleaId,
+                notificacionId = notificacionId
+            )
+        }
     }
 
     /**

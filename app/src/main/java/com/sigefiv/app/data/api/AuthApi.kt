@@ -140,7 +140,8 @@ interface AuthApi {
     @GET("categorias")
     suspend fun categorias(): CategoriasResponse
 
-
+    @GET("movimientos/categorias")
+    suspend fun categoriasParaMovimientos(): CategoriasResponse
     // =========================================================
     // PERIODOS
     // =========================================================

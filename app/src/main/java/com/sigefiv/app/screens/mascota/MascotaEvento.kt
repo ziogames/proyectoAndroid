@@ -1,0 +1,24 @@
+package com.sigefiv.app.screens.mascota
+
+enum class MascotaEvento {
+
+    INGRESO_REGISTRADO,
+
+    EGRESO_REGISTRADO,
+
+    MOVIMIENTO_REGISTRADO,
+
+    RESUMEN_ACTUALIZADO,
+
+    PERIODO_ABIERTO,
+
+    PERIODO_CERRADO,
+
+    NOTIFICACION_RECIBIDA,
+
+    ZOE_PENSANDO,
+
+    ZOE_RESPONDIENDO,
+
+    ERROR
+}

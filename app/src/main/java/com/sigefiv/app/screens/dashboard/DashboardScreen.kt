@@ -1,4 +1,3 @@
-
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.sigefiv.app.screens.dashboard
@@ -9,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -59,8 +59,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +81,8 @@ import com.sigefiv.app.ui.theme.SeasonalTheme
 import com.sigefiv.app.viewmodel.DashboardViewModel
 import com.sigefiv.app.viewmodel.MovimientosViewModel
 import java.util.Calendar
+
+
 /*
 |--------------------------------------------------------------------------
 | COLORES SIGEFIV
@@ -88,8 +92,20 @@ import java.util.Calendar
 private val VerdeSuave = Color(0xFFDCFCE7)
 private val Turquesa = Color(0xFF15803D)
 private val Blanco = Color(0xFFFFFFFF)
-private val Verde = Color(0xFF15803D)
-private val Rojo = Color(0xFFDC2626)
+
+// Colores semánticos para ingresos y egresos.
+// Modo claro: conservan los colores de la primera referencia.
+// Modo oscuro: variantes más luminosas para mantener el contraste.
+private val VerdeIngresoClaro = Color(0xFF15803D)
+private val VerdeIngresoOscuro = Color(0xFF4ADE80)
+private val RojoEgresoClaro = Color(0xFFDC2626)
+private val RojoEgresoOscuro = Color(0xFFF87171)
+
+// Fondos semánticos de las tarjetas Ingresos / Egresos.
+private val FondoIngresoClaro = Color(0xFFDCFCE7)
+private val FondoIngresoOscuro = Color(0xFF123D25)
+private val FondoEgresoClaro = Color(0xFFFEE2E2)
+private val FondoEgresoOscuro = Color(0xFF451A1A)
 
 /*
 |--------------------------------------------------------------------------
@@ -121,6 +137,7 @@ fun DashboardScreen(
     val nombreUsuario by sessionManager.nombre.collectAsState(initial = "Usuario")
     val seudonimo by sessionManager.seudonimo.collectAsState(initial = null)
     val rol by sessionManager.rol.collectAsState(initial = null)
+
 
     val nombreMostrar =
         seudonimo?.trim()?.takeIf { it.isNotEmpty() }
@@ -165,187 +182,190 @@ fun DashboardScreen(
     */
 
 
-        Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
 
-            /*
-            |--------------------------------------------------------------------------
-            | BARRA SUPERIOR
-            |--------------------------------------------------------------------------
-            */
+        /*
+        |--------------------------------------------------------------------------
+        | BARRA SUPERIOR
+        |--------------------------------------------------------------------------
+        */
 
-            topBar = {
+        topBar = {
 
-                TopAppBar(
+            TopAppBar(
 
-                    title = {
+                title = {
 
-                        Text(
-                            text = "SIGEFIV",
-                            color = Blanco,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 19.sp
+                    Text(
+                        text = "SIGEFIV",
+                        color = Blanco,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 19.sp
+                    )
+                },
+
+                navigationIcon = {
+
+                    IconButton(
+                        onClick = onOpenDrawer
+                    ) {
+
+                        Icon(
+                            imageVector = Icons.Outlined.Menu,
+                            contentDescription = "Abrir menú",
+                            tint = Blanco
                         )
-                    },
+                    }
+                },
 
-                    navigationIcon = {
+                actions = {
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | BOTÓN MODO CLARO / OSCURO
+                    |--------------------------------------------------------------------------
+                    */
+
+                    IconButton(
+                        onClick = onThemeToggle
+                    ) {
+
+                        Icon(
+                            imageVector = if (darkTheme) {
+                                Icons.Outlined.LightMode
+                            } else {
+                                Icons.Outlined.DarkMode
+                            },
+
+                            contentDescription = if (darkTheme) {
+                                "Cambiar a modo claro"
+                            } else {
+                                "Cambiar a modo oscuro"
+                            },
+
+                            tint = Blanco
+                        )
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | SIGI
+                    |--------------------------------------------------------------------------
+                    */
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | ZOE INTELIGENTE
+                    |--------------------------------------------------------------------------
+                    */
+
+                    IconButton(
+                        onClick = onSigiClick
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.SmartToy,
+                            contentDescription = "ZOE inteligente",
+                            tint = Blanco
+                        )
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | NOTIFICACIONES
+                    |--------------------------------------------------------------------------
+                    */
+
+                    Box(
+                        modifier = Modifier.size(48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
 
                         IconButton(
-                            onClick = onOpenDrawer
+                            onClick = onNotificacionesClick
                         ) {
 
                             Icon(
-                                imageVector = Icons.Outlined.Menu,
-                                contentDescription = "Abrir menú",
-                                tint = Blanco
-                            )
-                        }
-                    },
-
-                    actions = {
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | BOTÓN MODO CLARO / OSCURO
-                        |--------------------------------------------------------------------------
-                        */
-
-                        IconButton(
-                            onClick = onThemeToggle
-                        ) {
-
-                            Icon(
-                                imageVector = if (darkTheme) {
-                                    Icons.Outlined.LightMode
-                                } else {
-                                    Icons.Outlined.DarkMode
-                                },
-
-                                contentDescription = if (darkTheme) {
-                                    "Cambiar a modo claro"
-                                } else {
-                                    "Cambiar a modo oscuro"
-                                },
-
+                                imageVector = Icons.Outlined.Notifications,
+                                contentDescription = "Notificaciones",
                                 tint = Blanco
                             )
                         }
 
-                        /*
-                        |--------------------------------------------------------------------------
-                        | SIGI
-                        |--------------------------------------------------------------------------
-                        */
+                        if (notificacionesNoLeidas > 0) {
 
+                            Box(
+                                modifier = Modifier
+                                    .size(19.dp)
+                                    .offset(
+                                        x = 7.dp,
+                                        y = (-7).dp
+                                    )
+                                    .background(
+                                        color = if (darkTheme) RojoEgresoOscuro else RojoEgresoClaro,
+                                        shape = CircleShape
+                                    ),
 
-                        /*
-                        |--------------------------------------------------------------------------
-                        | ZOE INTELIGENTE
-                        |--------------------------------------------------------------------------
-                        */
-
-                        IconButton(
-                            onClick = onSigiClick
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.SmartToy,
-                                contentDescription = "ZOE inteligente",
-                                tint = Blanco
-                            )
-                        }
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | NOTIFICACIONES
-                        |--------------------------------------------------------------------------
-                        */
-
-                        Box(
-                            modifier = Modifier.size(48.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-
-                            IconButton(
-                                onClick = onNotificacionesClick
+                                contentAlignment = Alignment.Center
                             ) {
 
-                                Icon(
-                                    imageVector = Icons.Outlined.Notifications,
-                                    contentDescription = "Notificaciones",
-                                    tint = Blanco
+                                Text(
+                                    text = if (notificacionesNoLeidas > 99) {
+                                        "99+"
+                                    } else {
+                                        notificacionesNoLeidas.toString()
+                                    },
+
+                                    color = Blanco,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
                                 )
                             }
-
-                            if (notificacionesNoLeidas > 0) {
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(19.dp)
-                                        .offset(
-                                            x = 7.dp,
-                                            y = (-7).dp
-                                        )
-                                        .background(
-                                            color = Rojo,
-                                            shape = CircleShape
-                                        ),
-
-                                    contentAlignment = Alignment.Center
-                                ) {
-
-                                    Text(
-                                        text = if (notificacionesNoLeidas > 99) {
-                                            "99+"
-                                        } else {
-                                            notificacionesNoLeidas.toString()
-                                        },
-
-                                        color = Blanco,
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
                         }
-                    },
+                    }
+                },
 
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = SeasonalColors.primary(
-                            SeasonalTheme.getSeason()
-                        )
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
                     )
                 )
-            },
+            )
+        },
 
-            /*
-            |--------------------------------------------------------------------------
-            | BARRA INFERIOR
-            |--------------------------------------------------------------------------
-            */
+        /*
+        |--------------------------------------------------------------------------
+        | BARRA INFERIOR
+        |--------------------------------------------------------------------------
+        */
 
-            bottomBar = {
+        bottomBar = {
 
-                SigefivBottomBar(
-                    onInicioClick = {},
-                    onAsambleasClick = onAsambleasClick,
-                    onPeriodosClick = onPeriodosClick,
-                    onMiCuentaClick = onMiCuentaClick
-                )
-            }
-
-        ) { innerPadding ->
-
-            DashboardContenido(
-                modifier = Modifier.padding(innerPadding),
-                nombreUsuario = nombreMostrar,
-                periodo = periodo,
-                movimientos = movimientos,
-                cargandoMovimientos = cargandoMovimientos,
-                puedeVerMovimientos = puedeVerMovimientos,
-                onMovimientosClick = onMovimientosClick
+            SigefivBottomBar(
+                onInicioClick = {},
+                onAsambleasClick = onAsambleasClick,
+                onPeriodosClick = onPeriodosClick,
+                onMiCuentaClick = onMiCuentaClick
             )
         }
+
+    ) { innerPadding ->
+
+        DashboardContenido(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            nombreUsuario = nombreMostrar,
+            periodo = periodo,
+            movimientos = movimientos,
+            cargandoMovimientos = cargandoMovimientos,
+            puedeVerMovimientos = puedeVerMovimientos,
+            onMovimientosClick = onMovimientosClick,
+            darkTheme = darkTheme
+        )
+    }
 
 }
 
@@ -363,13 +383,13 @@ private fun DashboardContenido(
     movimientos: List<Movimiento>,
     cargandoMovimientos: Boolean,
     puedeVerMovimientos: Boolean,
-    onMovimientosClick: () -> Unit
+    onMovimientosClick: () -> Unit,
+    darkTheme: Boolean
 ){
 
     val scrollState = rememberScrollState()
 
     val temporada = SeasonalTheme.getSeason()
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -524,7 +544,8 @@ private fun DashboardContenido(
             */
 
             SaldoCard(
-                periodo = periodo
+                periodo = periodo,
+                darkTheme = darkTheme
             )
 
             /*
@@ -552,7 +573,8 @@ private fun DashboardContenido(
 
                     icono = Icons.Outlined.ArrowUpward,
 
-                    color = Verde
+                    color = if (darkTheme) VerdeIngresoOscuro else VerdeIngresoClaro,
+                    fondoColor = if (darkTheme) FondoIngresoOscuro else FondoIngresoClaro
                 )
 
                 ResumenCard(
@@ -567,7 +589,8 @@ private fun DashboardContenido(
 
                     icono = Icons.Outlined.ArrowDownward,
 
-                    color = Rojo
+                    color = if (darkTheme) RojoEgresoOscuro else RojoEgresoClaro,
+                    fondoColor = if (darkTheme) FondoEgresoOscuro else FondoEgresoClaro
                 )
             }
 
@@ -643,7 +666,8 @@ private fun DashboardContenido(
                 movimientos.forEach { movimiento ->
 
                     MovimientoItem(
-                        movimiento = movimiento
+                        movimiento = movimiento,
+                        darkTheme = darkTheme
                     )
                 }
 
@@ -679,119 +703,126 @@ private fun DashboardContenido(
 
 @Composable
 private fun SaldoCard(
-    periodo: PeriodoDashboard?
+    periodo: PeriodoDashboard?,
+    darkTheme: Boolean
 ) {
 
+    val fondoSaldo = if (darkTheme) {
+        R.drawable.saldo_fondo_dark
+    } else {
+        R.drawable.saldo_fondo_light
+    }
+
     Card(
-
-        modifier = Modifier.fillMaxWidth(),
-
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(150.dp),
         shape = RoundedCornerShape(16.dp),
-
-        colors = CardDefaults.cardColors(
-
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-
         elevation = CardDefaults.cardElevation(
             defaultElevation = 1.5.dp
         )
     ) {
 
-        Row(
-
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-
-            horizontalArrangement = Arrangement.SpaceBetween,
-
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
 
-            Column {
+            // ========================================================
+            // FONDO SEGÚN EL TEMA
+            // ========================================================
 
-                Text(
+            Image(
+                painter = painterResource(
+                    id = fondoSaldo
+                ),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
 
-                    text = "SALDO DISPONIBLE",
+            // ========================================================
+            // CONTENIDO
+            // ========================================================
 
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-
-                    fontSize = 11.sp,
-
-                    fontWeight = FontWeight.Bold,
-
-                    letterSpacing = 0.5.sp
-                )
-
-                Spacer(
-                    modifier = Modifier.height(4.dp)
-                )
-
-                Text(
-
-                    text = "S/ %,.2f".format(
-                        periodo?.saldo_final ?: 0.0
-                    ),
-
-                    color = SeasonalColors.primary(
-                        SeasonalTheme.getSeason()
-                    ),
-
-                    fontSize = 26.sp,
-
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(
-                    modifier = Modifier.height(2.dp)
-                )
-
-                Text(
-
-                    text = periodo?.nombre ?: "Sin período",
-
-                    color = SeasonalColors.primary(
-                        SeasonalTheme.getSeason()
-                    ),
-
-                    fontSize = 13.sp,
-
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            Box(
-
+            Row(
                 modifier = Modifier
-                    .size(48.dp)
-                    .background(
+                    .fillMaxSize()
+                    .padding(16.dp),
 
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
 
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-
-                contentAlignment = Alignment.Center
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
-                Icon(
+                Column {
 
-                    imageVector = Icons.Outlined.AccountBalanceWallet,
+                    Text(
+                        text = "SALDO DISPONIBLE",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    )
 
-                    contentDescription = "Saldo disponible",
+                    Spacer(
+                        modifier = Modifier.height(4.dp)
+                    )
 
-                    tint = SeasonalColors.primary(
-                        SeasonalTheme.getSeason()
-                    ),
+                    Text(
+                        text = "S/ %,.2f".format(
+                            periodo?.saldo_final ?: 0.0
+                        ),
+                        color = Color.White,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Bold
+                    )
 
-                    modifier = Modifier.size(26.dp)
-                )
+                    Spacer(
+                        modifier = Modifier.height(2.dp)
+                    )
+
+                    Text(
+                        text = periodo?.nombre ?: "Sin período",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            color = Color.White.copy(
+                                alpha = 0.90f
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Outlined.AccountBalanceWallet,
+
+                        contentDescription =
+                            "Saldo disponible",
+
+                        tint =
+                            SeasonalColors.primary(
+                                SeasonalTheme.getSeason()
+                            ),
+
+                        modifier =
+                            Modifier.size(26.dp)
+                    )
+                }
             }
         }
     }
 }
-
 /*
 |--------------------------------------------------------------------------
 | TARJETA RESUMEN
@@ -809,7 +840,8 @@ private fun ResumenCard(
 
     icono: ImageVector,
 
-    color: Color
+    color: Color,
+    fondoColor: Color
 ) {
 
     Card(
@@ -819,8 +851,7 @@ private fun ResumenCard(
         shape = RoundedCornerShape(14.dp),
 
         colors = CardDefaults.cardColors(
-
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = fondoColor
         ),
 
         elevation = CardDefaults.cardElevation(
@@ -878,6 +909,21 @@ private fun ResumenCard(
                 fontSize = 17.sp,
 
                 fontWeight = FontWeight.Bold
+            )
+
+            Spacer(
+                modifier = Modifier.height(2.dp)
+            )
+
+            Text(
+
+                text = "Este período",
+
+                color = color,
+
+                fontSize = 11.sp,
+
+                fontWeight = FontWeight.Medium
             )
         }
     }
@@ -985,7 +1031,8 @@ private fun CardPeriodo(
 
 @Composable
 private fun MovimientoItem(
-    movimiento: Movimiento
+    movimiento: Movimiento,
+    darkTheme: Boolean
 ) {
 
     val ingreso = movimiento.tipo.equals(
@@ -1045,7 +1092,11 @@ private fun MovimientoItem(
 
                     contentDescription = movimiento.concepto,
 
-                    tint = if (ingreso) Verde else Rojo,
+                    tint = if (ingreso) {
+                        if (darkTheme) VerdeIngresoOscuro else VerdeIngresoClaro
+                    } else {
+                        if (darkTheme) RojoEgresoOscuro else RojoEgresoClaro
+                    },
 
                     modifier = Modifier.size(20.dp)
                 )
@@ -1120,7 +1171,11 @@ private fun MovimientoItem(
                     "- S/ %,.2f".format(movimiento.monto)
                 },
 
-                color = if (ingreso) Verde else Rojo,
+                color = if (ingreso) {
+                    if (darkTheme) VerdeIngresoOscuro else VerdeIngresoClaro
+                } else {
+                    if (darkTheme) RojoEgresoOscuro else RojoEgresoClaro
+                },
 
                 fontSize = 14.sp,
 
