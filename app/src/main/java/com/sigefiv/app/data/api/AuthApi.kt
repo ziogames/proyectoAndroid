@@ -21,8 +21,10 @@ import com.sigefiv.app.data.model.PeriodoDetalleResponse
 import com.sigefiv.app.data.model.PeriodoMovimientosResponse
 import com.sigefiv.app.data.model.PeriodoResponse
 import com.sigefiv.app.data.model.PeriodosResponse
+import com.sigefiv.app.data.model.ZoeAIConsultaRequest
 import com.sigefiv.app.data.model.ZoeConsultaRequest
 import com.sigefiv.app.data.model.ZoeConsultaResponse
+import com.sigefiv.app.data.model.ZoeVozResponse
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -34,7 +36,6 @@ import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
-import com.sigefiv.app.data.model.ZoeVozResponse
 
 interface AuthApi {
 
@@ -65,7 +66,6 @@ interface AuthApi {
 
     /**
      * Actualiza la información personal del usuario autenticado.
-     *
      * Incluye el seudónimo.
      */
     @PUT("mi-cuenta")
@@ -75,8 +75,6 @@ interface AuthApi {
 
     /**
      * Actualiza la fotografía del usuario autenticado.
-     *
-     * La fotografía se envía como multipart/form-data.
      */
     @Multipart
     @POST("mi-cuenta/foto")
@@ -142,6 +140,8 @@ interface AuthApi {
 
     @GET("movimientos/categorias")
     suspend fun categoriasParaMovimientos(): CategoriasResponse
+
+
     // =========================================================
     // PERIODOS
     // =========================================================
@@ -167,24 +167,56 @@ interface AuthApi {
         @Path("id") id: Int
     ): PeriodoResponse
 
+
     // =========================================================
     // ZOE
     // =========================================================
 
+    /**
+     * Consulta inteligente actual.
+     * Se mantiene para no romper el funcionamiento existente.
+     */
     @POST("consulta-inteligente")
     suspend fun consultarZoe(
         @Body request: ZoeConsultaRequest
     ): ZoeConsultaResponse
 
+    /**
+     * ZOE mediante el flujo actual de n8n.
+     * Se mantiene para no romper el sistema existente.
+     */
     @POST("zoe")
     suspend fun consultarZoeN8n(
         @Body request: ZoeConsultaRequest
     ): ZoeConsultaResponse
+
+    /**
+     * Nuevo cerebro de ZOE:
+     *
+     * Android
+     *    ↓
+     * Laravel
+     *    ↓
+     * Python + FastAPI
+     *    ↓
+     * Qwen
+     *
+     * Este endpoint es independiente del ZOE actual.
+     */
+    @POST("zoe-ai/chat")
+    suspend fun consultarZoeAI(
+        @Body request: ZoeAIConsultaRequest
+    ): ZoeConsultaResponse
+
+    /**
+     * ZOE por voz.
+     */
     @Multipart
     @POST("zoe-voz")
     suspend fun enviarVoz(
         @Part audio: MultipartBody.Part
     ): ZoeVozResponse
+
 
     // =========================================================
     // FCM
@@ -249,6 +281,4 @@ interface AuthApi {
     suspend fun actualizarPreferenciaFcm(
         @Body datos: FcmPreferenciaRequest
     ): Response<Unit>
-
-
 }

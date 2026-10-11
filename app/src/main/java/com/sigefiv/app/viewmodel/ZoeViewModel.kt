@@ -16,7 +16,7 @@ import android.speech.tts.UtteranceProgressListener
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sigefiv.app.data.api.ApiClient
-import com.sigefiv.app.data.model.ZoeConsultaRequest
+
 import com.sigefiv.app.data.model.ZoeEstadistica
 import com.sigefiv.app.screens.mascota.MascotaControlador
 import com.sigefiv.app.screens.mascota.MascotaEvento
@@ -38,6 +38,9 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import com.sigefiv.app.data.repository.ZoeRepository
+import com.google.gson.JsonParser
+import android.util.Log
 
 data class ZoeMensaje(
     val texto: String,
@@ -66,6 +69,7 @@ class ZoeViewModel(
     // Reproductor del WAV generado por Supertonic en el Gateway.
     private var reproductorAudio: MediaPlayer? = null
     private val audioHandler = Handler(Looper.getMainLooper())
+    private val zoeRepository = ZoeRepository(appContext)
 
     /*
      * ============================================================
@@ -128,14 +132,7 @@ class ZoeViewModel(
      * ============================================================
      */
 
-    private val _mensajes = MutableStateFlow(
-        listOf(
-            ZoeMensaje(
-                texto = "Hola, soy ZOE. Estoy lista para ayudarte con la información de SIGEFIV.",
-                esUsuario = false
-            )
-        )
-    )
+    private val _mensajes = MutableStateFlow<List<ZoeMensaje>>(emptyList())
 
     val mensajes: StateFlow<List<ZoeMensaje>> =
         _mensajes.asStateFlow()
@@ -529,7 +526,88 @@ class ZoeViewModel(
 
         return convertirNumerosParaVoz(limpio)
     }
+    /*
+        |--------------------------------------------------------------------------
+        | ENVIAR EVENTO SILENCIOSO (INICIO DE SESIÓN)
+        |--------------------------------------------------------------------------
+        */
+    fun enviarEventoSilencioso(mensaje: String) {
+        val consulta = mensaje.trim()
 
+        if (consulta.isEmpty() || _cargando.value) {
+            return
+        }
+
+        _error.value = null
+
+        // LA MAGIA: Aquí NO agregamos el ZoeMensaje(esUsuario = true) a _mensajes.value.
+        // El usuario no verá el globo verde en su chat.
+
+        viewModelScope.launch {
+            _cargando.value = true
+            MascotaControlador.evento(MascotaEvento.ZOE_PENSANDO)
+
+            try {
+                val respuesta = zoeRepository.consultar(consulta)
+
+                if (respuesta.success) {
+                    val respuestaTexto = respuesta.respuesta
+                        ?.trim()
+                        ?.replace("**", "")
+                        ?.replace("__", "")
+                        ?.takeIf { it.isNotEmpty() }
+                        ?: "ZOE recibió la consulta, pero no devolvió un mensaje."
+
+                    val estadisticaZoe: ZoeEstadistica? = respuesta.estadistica
+                        ?.takeIf { it.isJsonObject }
+                        ?.let {
+                            try {
+                                com.google.gson.Gson().fromJson(it, ZoeEstadistica::class.java)
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+
+                    // AÑADIMOS SOLO LA RESPUESTA DE ZOE (El globo blanco)
+                    _mensajes.value = _mensajes.value + ZoeMensaje(
+                        texto = respuestaTexto,
+                        esUsuario = false,
+                        tipoMovimiento = null,
+                        estadistica = estadisticaZoe
+                    )
+
+                    _cargando.value = false
+                    MascotaControlador.evento(MascotaEvento.ZOE_RESPONDIENDO)
+                    delay(1500)
+                    MascotaControlador.normal()
+
+                } else {
+                    MascotaControlador.evento(MascotaEvento.ERROR)
+                    val mensajeError = respuesta.message?.trim()?.takeIf { it.isNotEmpty() }
+                        ?: respuesta.mensaje?.trim()?.takeIf { it.isNotEmpty() }
+                        ?: "No fue posible procesar el inicio de sesión."
+
+                    _error.value = mensajeError
+                    _mensajes.value = _mensajes.value + ZoeMensaje(texto = mensajeError, esUsuario = false)
+                    delay(1500)
+                    MascotaControlador.normal()
+                }
+
+            } catch (e: Exception) {
+                android.util.Log.e("ZOE_DEBUG", "ERROR EVENTO SILENCIOSO: ${e.message}", e)
+                MascotaControlador.evento(MascotaEvento.ERROR)
+
+                val mensajeError = "No se pudo conectar con ZOE. Verifica que el servidor SIGEFIV esté funcionando."
+                _error.value = mensajeError
+                _mensajes.value = _mensajes.value + ZoeMensaje(texto = mensajeError, esUsuario = false)
+
+                delay(1500)
+                MascotaControlador.normal()
+            } finally {
+                _cargando.value = false
+            }
+        }
+    }
 
     /*
      * ============================================================
@@ -618,7 +696,6 @@ class ZoeViewModel(
                 MascotaEvento.ZOE_PENSANDO
             )
 
-
             try {
 
                 /*
@@ -630,12 +707,7 @@ class ZoeViewModel(
                  */
 
                 val respuesta =
-                    api.consultarZoeN8n(
-                        ZoeConsultaRequest(
-                            mensaje = consulta
-                        )
-                    )
-
+                    zoeRepository.consultar(consulta)
 
                 /*
                  * =================================================
@@ -661,15 +733,35 @@ class ZoeViewModel(
                      * la guardamos dentro del mensaje.
                      */
 
+
+                    val estadisticaZoe: ZoeEstadistica? =
+                        respuesta.estadistica
+                            ?.takeIf { it.isJsonObject }
+                            ?.let {
+                                try {
+                                    com.google.gson.Gson().fromJson(
+                                        it,
+                                        ZoeEstadistica::class.java
+                                    )
+                                } catch (e: Exception) {
+                                    Log.e(
+                                        "ZOE_DEBUG",
+                                        "Error convirtiendo estadística",
+                                        e
+                                    )
+                                    null
+                                }
+                            }
+
                     _mensajes.value =
                         _mensajes.value +
                                 ZoeMensaje(
                                     texto = respuestaTexto,
                                     esUsuario = false,
                                     tipoMovimiento = tipoMovimiento,
-                                    estadistica =
-                                        respuesta.estadistica
+                                    estadistica = estadisticaZoe
                                 )
+
 
 
                     /*
@@ -793,7 +885,11 @@ class ZoeViewModel(
 
 
             } catch (e: Exception) {
-
+                android.util.Log.e(
+                    "ZOE_DEBUG",
+                    "ERROR CONSULTANDO ZOE: ${e.message}",
+                    e
+                )
                 /*
                  * =================================================
                  * ERROR DE CONEXIÓN / EXCEPCIÓN

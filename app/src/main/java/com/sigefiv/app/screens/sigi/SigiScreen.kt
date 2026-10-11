@@ -152,6 +152,16 @@ fun SigiScreen(
     val hablando by viewModel.hablando.collectAsState()
     val escuchando by viewModel.escuchando.collectAsState()
 
+    // =========================================================
+    // NUEVO: DISPARADOR SILENCIOSO AL ABRIR LA PANTALLA
+    // =========================================================
+    LaunchedEffect(Unit) {
+        if (mensajes.isEmpty()) {
+            viewModel.enviarEventoSilencioso("evento_inicio_sesion")
+        }
+    }
+    // =========================================================
+
     var consulta by remember { mutableStateOf("") }
     var grabandoVoz by remember { mutableStateOf(false) }
     var grabadora by remember { mutableStateOf<GrabadorWav?>(null) }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
@@ -119,7 +120,13 @@ import com.sigefiv.app.screens.mascota.MascotaPreferencias
 import com.sigefiv.app.screens.mascota.MascotaSigefiv
 import com.sigefiv.app.screens.mascota.MascotaControlador
 import com.sigefiv.app.screens.mascota.MascotaBurbujaEvento
-
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import com.sigefiv.app.ui.theme.SeasonalColors
+import com.sigefiv.app.ui.theme.SeasonalTheme
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.text.style.TextAlign
 enum class AppScreen(val drawerRoute: String) {
     DASHBOARD("dashboard"),
     MOVIMIENTOS("movimientos"),
@@ -274,6 +281,7 @@ fun AppNavigation(
     }
 
 
+
     fun retroceder(): Boolean {
         return if (backStack.size > 1) {
             backStack.removeAt(backStack.lastIndex)
@@ -287,11 +295,114 @@ fun AppNavigation(
         retroceder()
     }
 
+
+
     var anioSeleccionado by remember { mutableStateOf(2026) }
     var periodoIdSeleccionado by remember { mutableStateOf(0) }
     var movimientoSeleccionado by remember { mutableStateOf<Movimiento?>(null) }
     var asambleaSeleccionada by remember { mutableStateOf<Asamblea?>(null) }
     var asambleaConvocatoria by remember { mutableStateOf<Asamblea?>(null) }
+    var mostrarAvisoAsamblea by remember {
+        mutableStateOf(false)
+    }
+    var mensajeAvisoAsamblea by remember {
+        mutableStateOf("No hay asambleas programadas por el momento.")
+    }
+    if (mostrarAvisoAsamblea) {
+        AlertDialog(
+            onDismissRequest = {
+                mostrarAvisoAsamblea = false
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Outlined.Groups,
+                    contentDescription = null,
+                    tint = SeasonalColors.primary(
+                        SeasonalTheme.getSeason()
+                    ),
+                    modifier = Modifier.size(42.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Asambleas",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 21.sp,
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Text(
+                    text = mensajeAvisoAsamblea,
+                    textAlign = TextAlign.Center,
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        mostrarAvisoAsamblea = false
+                    },
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SeasonalColors.primary(
+                            SeasonalTheme.getSeason()
+                        )
+                    )
+                ) {
+                    Text(
+                        text = "Aceptar",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        )
+    }
+    fun abrirAsamblea() {
+        Log.d("ASAMBLEA_DEBUG", "abrirAsamblea() EJECUTADA")
+
+        if (puede("asambleas.index")) {
+
+            Log.d("ASAMBLEA_DEBUG", "TIENE PERMISO ADMIN")
+
+            asambleaSeleccionada = null
+            navegarA(AppScreen.ASAMBLEAS)
+
+        } else {
+
+            Log.d("ASAMBLEA_DEBUG", "CONSULTANDO PROXIMA ASAMBLEA")
+
+            asambleasViewModel.obtenerProximaAsamblea { asamblea ->
+
+                Log.d(
+                    "ASAMBLEA_DEBUG",
+                    "RESULTADO PROXIMA ASAMBLEA = $asamblea"
+                )
+
+                if (asamblea != null) {
+
+                    asambleaConvocatoria = asamblea
+                    navegarA(AppScreen.CONVOCATORIA_ASAMBLEA)
+
+                } else {
+                    Log.d(
+                        "ASAMBLEA_DEBUG",
+                        "NO HAY ASAMBLEA - SOLICITANDO MENSAJE DE ZOE"
+                    )
+
+                    asambleasViewModel.obtenerAvisoSinAsamblea { mensaje ->
+
+                        mensajeAvisoAsamblea =
+                            mensaje
+                                ?: "No hay asambleas programadas por el momento."
+
+                        mostrarAvisoAsamblea = true
+                    }
+                }
+            }
+        }
+    }
     var comprobanteParaFormulario by remember {
         mutableStateOf<ComprobanteInterpretado?>(null)
     }
@@ -307,11 +418,11 @@ fun AppNavigation(
                 "NAVEGANDO A ASAMBLEA ID = $id"
             )
 
-            asambleasViewModel.obtenerAsamblea(id) { asamblea ->
+            asambleasViewModel.obtenerAsambleaPublica(id) { asamblea ->
 
                 Log.d(
                     "SIGEFIV_NOTIF",
-                    "ASAMBLEA OBTENIDA = $asamblea"
+                    "ASAMBLEA PÚBLICA OBTENIDA = $asamblea"
                 )
 
                 if (asamblea != null) {
@@ -320,11 +431,21 @@ fun AppNavigation(
 
                     Log.d(
                         "SIGEFIV_NOTIF",
-                        "ABRIENDO CONVOCATORIA"
+                        "ABRIENDO CONVOCATORIA PÚBLICA"
                     )
+
                     backStack.clear()
                     backStack.add(AppScreen.DASHBOARD)
                     backStack.add(AppScreen.CONVOCATORIA_ASAMBLEA)
+
+                } else {
+
+                    Log.d(
+                        "SIGEFIV_NOTIF",
+                        "NO HAY ASAMBLEA PROGRAMADA"
+                    )
+
+                    mostrarAvisoAsamblea = true
                 }
             }
         }
@@ -410,8 +531,10 @@ fun AppNavigation(
                         }
 
                         "asambleas" -> {
-                            asambleaSeleccionada = null
-                            navegarA(AppScreen.ASAMBLEAS)
+                            if (puede("asambleas.index")) {
+                                asambleaSeleccionada = null
+                                navegarA(AppScreen.ASAMBLEAS)
+                            }
                         }
 
                         "periodos" -> {
@@ -482,7 +605,9 @@ fun AppNavigation(
                                     navegarA(AppScreen.MOVIMIENTOS)
                                 }
                             },
-                            onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
+                            onAsambleasClick = {
+                                abrirAsamblea()
+                            },
                             onPeriodosClick = {
                                 if (puede("periodos.index")) {
                                     navegarA(AppScreen.PERIODOS)
@@ -509,7 +634,7 @@ fun AppNavigation(
                                     navegarA(AppScreen.MOVIMIENTOS)
                                 }
                             },
-                            onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
+                            onAsambleasClick = { abrirAsamblea() },
                             onMasClick = { navegarA(AppScreen.PERFIL) },
                             onBackClick = { retroceder() },
                             onOpenDrawer = { scope.launch { drawerState.open() } }
@@ -529,7 +654,7 @@ fun AppNavigation(
                             movimientosViewModel = movimientosViewModel,
                             periodoViewModel = periodoViewModel,
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
-                            onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
+                            onAsambleasClick = { abrirAsamblea() },
                             onPeriodosClick = {
                                 if (puede("periodos.index")) {
                                     navegarA(AppScreen.PERIODOS)
@@ -586,7 +711,7 @@ fun AppNavigation(
                                     navegarA(AppScreen.DASHBOARD, limpiarPila = true)
                                 },
                                 onAsambleasClick = {
-                                    navegarA(AppScreen.ASAMBLEAS)
+                                    abrirAsamblea()
                                 },
                                 onPeriodosClick = {
                                     navegarA(AppScreen.PERIODOS)
@@ -723,7 +848,7 @@ fun AppNavigation(
                                     )
                                 },
                                 onMovimientosClick = { navegarA(AppScreen.PERIODOS) },
-                                onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
+                                onAsambleasClick = { abrirAsamblea() },
                                 onPeriodosClick = {
                                     perfilViewModel.cargarPerfil()
                                     navegarA(AppScreen.PERFIL)
@@ -796,7 +921,7 @@ fun AppNavigation(
                                 navegarA(AppScreen.PERIODOS_ANIO)
                             },
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
-                            onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
+                            onAsambleasClick = { abrirAsamblea() },
                             onPeriodosClick = { },
                             onMiCuentaClick = {
                                 perfilViewModel.cargarPerfil()
@@ -838,7 +963,7 @@ fun AppNavigation(
                             onMovimientosClick = { navegarA(AppScreen.ASAMBLEAS) },
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
                             onMovimientosPrincipalClick = { navegarA(AppScreen.ASAMBLEAS) },
-                            onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
+                            onAsambleasClick = { abrirAsamblea() },
                             onMiCuentaClick = {
                                 perfilViewModel.cargarPerfil()
                                 navegarA(AppScreen.PERFIL)
@@ -850,7 +975,7 @@ fun AppNavigation(
                         PerfilScreen(
                             onBackClick = { retroceder() },
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
-                            onAsambleasClick = { navegarA(AppScreen.ASAMBLEAS) },
+                            onAsambleasClick = { abrirAsamblea() },
                             onPeriodosClick = {
                                 if (puede("periodos.index")) {
                                     navegarA(AppScreen.PERIODOS)
@@ -1003,6 +1128,26 @@ fun AppNavigation(
                             onNotificacionClick = { notificacion ->
 
                                 when (notificacion.tipo.lowercase()) {
+                                    "asamblea" -> {
+
+                                        val asambleaId = notificacion.data
+                                            ?.get("asamblea_id")
+                                            ?.toIntOrNull()
+                                        if (asambleaId != null) {
+
+                                            asambleasViewModel.obtenerAsambleaPublica(asambleaId) { asamblea ->
+
+                                                if (asamblea != null) {
+
+                                                    asambleaConvocatoria = asamblea
+
+                                                    navegarA(
+                                                        AppScreen.CONVOCATORIA_ASAMBLEA
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
 
                                     "zoe" -> {
                                         val periodoId = notificacion.data
@@ -1341,6 +1486,7 @@ fun AppNavigation(
                     // Cierra if (mascotaVisible)
                 }
             }
+
         }
     }
 }

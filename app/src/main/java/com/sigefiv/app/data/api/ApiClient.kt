@@ -5,6 +5,7 @@ import com.sigefiv.app.data.SessionManager
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 object ApiClient {
 
@@ -28,6 +29,9 @@ object ApiClient {
                         sessionManager
                     )
                 )
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(15, TimeUnit.SECONDS)
+                .writeTimeout(15, TimeUnit.SECONDS)
                 .build()
 
         return Retrofit.Builder()

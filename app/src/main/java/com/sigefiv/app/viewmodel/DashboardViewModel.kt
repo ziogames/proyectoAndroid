@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sigefiv.app.data.api.ApiClient
+import com.sigefiv.app.data.model.Movimiento
 import com.sigefiv.app.data.model.PeriodoDashboard
 import com.sigefiv.app.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,20 @@ class DashboardViewModel(
     val periodo: StateFlow<PeriodoDashboard?> =
         _periodo
 
+    // ------------------------------------------------------------
+    // MOVIMIENTOS RECIENTES
+    // ------------------------------------------------------------
+
+    private val _movimientos =
+        MutableStateFlow<List<Movimiento>>(emptyList())
+
+    val movimientos: StateFlow<List<Movimiento>> =
+        _movimientos
+
+    // ------------------------------------------------------------
+    // ESTADO
+    // ------------------------------------------------------------
+
     private val _cargando =
         MutableStateFlow(false)
 
@@ -37,13 +52,11 @@ class DashboardViewModel(
     val mensaje: StateFlow<String?> =
         _mensaje
 
-
     fun cargarDashboard() {
 
         viewModelScope.launch {
 
             _cargando.value = true
-
             _mensaje.value = null
 
             try {
@@ -55,6 +68,9 @@ class DashboardViewModel(
 
                     _periodo.value =
                         respuesta.periodo
+
+                    _movimientos.value =
+                        respuesta.movimientos
 
                 } else {
 

@@ -287,6 +287,70 @@ class AsambleasViewModel(
                 }
         }
     }
+    fun obtenerAsambleaPublica(
+        id: Int,
+        onResultado: (Asamblea?) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+
+            repository.obtenerAsambleaPublica(id)
+                .onSuccess { asamblea ->
+
+                    onResultado(asamblea)
+                }
+                .onFailure { error ->
+
+                    _uiState.value =
+                        _uiState.value.copy(
+                            error =
+                                error.message
+                                    ?: "No hay asambleas programadas por el momento."
+                        )
+
+                    onResultado(null)
+                }
+        }
+    }
+    fun obtenerProximaAsamblea(
+        onResultado: (Asamblea?) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            repository.obtenerProximaAsamblea()
+                .onSuccess { asamblea ->
+                    onResultado(asamblea)
+                }
+                .onFailure { error ->
+                    _uiState.value =
+                        _uiState.value.copy(
+                            error =
+                                error.message
+                                    ?: "No hay asambleas programadas por el momento."
+                        )
+
+                    onResultado(null)
+                }
+        }
+    }
+
+    fun obtenerAvisoSinAsamblea(
+        onResultado: (String?) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            repository.obtenerAvisoSinAsamblea()
+                .onSuccess { mensaje ->
+                    onResultado(mensaje)
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        error = error.message
+                    )
+
+                    onResultado(null)
+                }
+        }
+    }
+
+
     fun limpiarMensaje() {
         _uiState.value =
             _uiState.value.copy(

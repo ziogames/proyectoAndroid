@@ -3,7 +3,7 @@ package com.sigefiv.app.data.repository
 import com.sigefiv.app.data.api.AsambleaApi
 import com.sigefiv.app.data.model.Asamblea
 import com.sigefiv.app.data.model.CrearAsambleaRequest
-
+import com.sigefiv.app.data.model.AvisoSinAsambleaResponse
 class AsambleaRepository(
     private val api: AsambleaApi
 ) {
@@ -32,6 +32,71 @@ class AsambleaRepository(
                     )
                 )
             }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun obtenerAsambleaPublica(
+        id: Int
+    ): Result<Asamblea> {
+        return try {
+            val response = api.obtenerAsambleaPublica(id)
+
+            if (response.isSuccessful) {
+                val body = response.body()
+
+                if (body?.success == true && body.asamblea != null) {
+                    Result.success(body.asamblea)
+                } else {
+                    Result.failure(
+                        Exception(
+                            body?.message
+                                ?: "No hay asambleas programadas por el momento."
+                        )
+                    )
+                }
+            } else {
+                val mensaje = when (response.code()) {
+                    404 -> "No hay asambleas programadas por el momento."
+                    401 -> "La sesión ha expirado."
+                    else -> "Error del servidor: ${response.code()}"
+                }
+
+                Result.failure(Exception(mensaje))
+            }
+
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    suspend fun obtenerProximaAsamblea(): Result<Asamblea> {
+        return try {
+            val response = api.obtenerProximaAsamblea()
+
+            if (response.isSuccessful) {
+                val body = response.body()
+
+                if (body?.success == true && body.asamblea != null) {
+                    Result.success(body.asamblea)
+                } else {
+                    Result.failure(
+                        Exception(
+                            body?.message
+                                ?: "No hay asambleas programadas por el momento."
+                        )
+                    )
+                }
+            } else {
+                val mensaje = when (response.code()) {
+                    404 -> "No hay asambleas programadas por el momento."
+                    401 -> "La sesión ha expirado."
+                    else -> "Error del servidor: ${response.code()}"
+                }
+
+                Result.failure(Exception(mensaje))
+            }
+
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -194,6 +259,34 @@ class AsambleaRepository(
                 }
 
                 Result.failure(Exception(mensaje))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    suspend fun obtenerAvisoSinAsamblea(): Result<String> {
+        return try {
+            val response = api.obtenerAvisoSinAsamblea()
+
+            if (response.isSuccessful) {
+                val body = response.body()
+
+                if (body?.success == true && !body.mensaje.isNullOrBlank()) {
+                    Result.success(body.mensaje)
+                } else {
+                    Result.failure(
+                        Exception(
+                            body?.mensaje
+                                ?: "No hay asambleas programadas por el momento."
+                        )
+                    )
+                }
+            } else {
+                Result.failure(
+                    Exception(
+                        "Error del servidor: ${response.code()}"
+                    )
+                )
             }
         } catch (e: Exception) {
             Result.failure(e)

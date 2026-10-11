@@ -81,7 +81,7 @@ import com.sigefiv.app.ui.theme.SeasonalTheme
 import com.sigefiv.app.viewmodel.DashboardViewModel
 import com.sigefiv.app.viewmodel.MovimientosViewModel
 import java.util.Calendar
-
+import android.util.Log
 
 /*
 |--------------------------------------------------------------------------
@@ -154,8 +154,7 @@ fun DashboardScreen(
         rol?.equals("Tesorero", ignoreCase = true) == true
 
     val periodo by dashboardViewModel.periodo.collectAsState()
-    val movimientos by movimientosViewModel.movimientos.collectAsState()
-    val cargandoMovimientos by movimientosViewModel.cargando.collectAsState()
+    val movimientos by dashboardViewModel.movimientos.collectAsState()
 
     /*
     |--------------------------------------------------------------------------
@@ -165,13 +164,11 @@ fun DashboardScreen(
 
     LaunchedEffect(Unit) {
 
-        movimientosViewModel.cargarMovimientos()
+        dashboardViewModel.cargarDashboard()
 
         NotificacionEventBus.movimientoActualizado.collect {
 
             dashboardViewModel.cargarDashboard()
-
-            movimientosViewModel.cargarMovimientos()
         }
     }
 
@@ -360,7 +357,7 @@ fun DashboardScreen(
             nombreUsuario = nombreMostrar,
             periodo = periodo,
             movimientos = movimientos,
-            cargandoMovimientos = cargandoMovimientos,
+            cargandoMovimientos = false,
             puedeVerMovimientos = puedeVerMovimientos,
             onMovimientosClick = onMovimientosClick,
             darkTheme = darkTheme
@@ -1271,7 +1268,10 @@ private fun SigefivBottomBar(
 
             selected = false,
 
-            onClick = onAsambleasClick,
+            onClick = {
+                Log.d("ASAMBLEA_DEBUG", "CLICK EN BOTON ASAMBLEA")
+                onAsambleasClick()
+            },
 
             icon = {
 

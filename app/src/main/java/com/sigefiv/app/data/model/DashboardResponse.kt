@@ -2,7 +2,8 @@ package com.sigefiv.app.data.model
 
 data class DashboardResponse(
     val success: Boolean,
-    val periodo: PeriodoDashboard?
+    val periodo: PeriodoDashboard?,
+    val movimientos: List<Movimiento> = emptyList()
 )
 
 data class PeriodoDashboard(

@@ -4,6 +4,19 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 
 data class ZoeConsultaRequest(
+    val usuario_id: Int,
+    val nombre_usuario: String,
+    val mensaje: String
+)
+
+/**
+ * Request exclusivo para el nuevo ZOE AI.
+ *
+ * No modifica el ZOE actual.
+ */
+data class ZoeAIConsultaRequest(
+    val usuario_id: Int,
+    val nombre_usuario: String,
     val mensaje: String
 )
 
@@ -16,8 +29,9 @@ data class ZoeConsultaResponse(
     val tipo: String? = null,
     val mensaje: String? = null,
     val message: String? = null,
-    val estadistica: ZoeEstadistica? = null
+    val estadistica: JsonElement? = null
 )
+
 data class ZoeVozResponse(
     val success: Boolean = false,
     val texto: String? = null,
