@@ -114,12 +114,21 @@ object ApiClient {
     /**
      * Cliente para la API de Actividad de Usuarios.
      */
+    /**
+     * Cliente para la API de Actividad de Usuarios.
+     */
     fun actividadApi(
         context: Context
     ): ActividadApi {
-
         return createRetrofit(context)
             .create(ActividadApi::class.java)
     }
 
+    /**
+     * Cliente para la API de Emprendimientos.
+     */
+    fun emprendimientoApi(context: Context): EmprendimientoApi {
+        return createRetrofit(context).create(EmprendimientoApi::class.java)
+        // Nota: Asegúrate de usar la misma función base que usan tus otras APIs (getClient, getRetrofit, etc.)
+    }
 }

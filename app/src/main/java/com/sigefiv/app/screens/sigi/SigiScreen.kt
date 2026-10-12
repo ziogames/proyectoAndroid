@@ -99,7 +99,10 @@ import java.io.FileOutputStream
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
-
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 /*
 |--------------------------------------------------------------------------
 | PALETA DE COLORES PROFESIONAL SIGEFIV
@@ -391,6 +394,7 @@ fun SigiScreen(
 
 @Composable
 private fun BurbujaChat(mensaje: ZoeMensaje) {
+    val context = LocalContext.current
     val colorPrincipal = SeasonalColors.primary(
         SeasonalTheme.getSeason()
     )
@@ -507,6 +511,92 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
+
+// TARJETAS DE EMPRENDIMIENTOS
+                    mensaje.estadistica
+                        ?.takeIf { it.tipo == "emprendimientos" }
+                        ?.emprendimientos
+                        ?.forEach { emprendimiento ->
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                                elevation = CardDefaults.cardElevation(
+                                    defaultElevation = 1.dp
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = emprendimiento.nombre
+                                            ?.takeIf { it.isNotBlank() }
+                                            ?: "Emprendimiento",
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    emprendimiento.descripcion
+                                        ?.takeIf { it.isNotBlank() }
+                                        ?.let {
+                                            Text(
+                                                text = it,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontSize = 14.sp
+                                            )
+                                        }
+
+                                    emprendimiento.zona_atencion
+                                        ?.takeIf { it.isNotBlank() }
+                                        ?.let {
+                                            Text(
+                                                text = "📍 Zona: $it",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontSize = 12.sp
+                                            )
+                                        }
+
+                                    emprendimiento.horario
+                                        ?.takeIf { it.isNotBlank() }
+                                        ?.let {
+                                            Text(
+                                                text = "🕒 Horario: $it",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontSize = 12.sp
+                                            )
+                                        }
+
+                                    if (
+                                        emprendimiento.show_whatsapp &&
+                                        !emprendimiento.telefono.isNullOrBlank()
+                                    ) {
+                                        Button(
+                                            onClick = {
+                                                abrirWhatsApp(
+                                                    context,
+                                                    emprendimiento.telefono
+                                                )
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = Color(0xFF25D366),
+                                                contentColor = Color.White
+                                            )
+                                        ) {
+                                            Text("Contactar por WhatsApp")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+
+
 
 
 
@@ -1501,4 +1591,26 @@ private fun formatearTiempoGrabacion(segundos: Int): String {
         segundosRestantes
     )
 }
+private fun abrirWhatsApp(
+    context: android.content.Context,
+    telefono: String
+) {
+    val numero = telefono.filter { it.isDigit() }
 
+    if (numero.isBlank()) return
+
+    val numeroPeru = if (numero.startsWith("51")) {
+        numero
+    } else {
+        "51$numero"
+    }
+
+    val url = "https://wa.me/$numeroPeru"
+
+    val intent = Intent(
+        Intent.ACTION_VIEW,
+        Uri.parse(url)
+    )
+
+    context.startActivity(intent)
+}

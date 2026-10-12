@@ -66,6 +66,9 @@ import com.sigefiv.app.screens.actividad.ActividadScreen
 import com.sigefiv.app.screens.notificaciones.EnviarNotificacionScreen
 import com.sigefiv.app.screens.notificaciones.NotificacionesScreen
 import com.sigefiv.app.screens.perfil.PerfilScreen
+// Importaciones de las pantallas de emprendimiento
+import com.sigefiv.app.screens.emprendimiento.EmprendimientosListScreen
+import com.sigefiv.app.screens.emprendimiento.EmprendimientoFormScreen
 import com.sigefiv.app.screens.periodos.PeriodoDetalleScreen
 import com.sigefiv.app.screens.periodos.PeriodosAnioScreen
 import com.sigefiv.app.screens.periodos.PeriodosScreen
@@ -87,6 +90,9 @@ import com.sigefiv.app.viewmodel.MovimientosViewModel
 import com.sigefiv.app.viewmodel.PeriodoViewModel
 import com.sigefiv.app.viewmodel.PeriodosViewModel
 import com.sigefiv.app.viewmodel.PerfilViewModel
+// Importaciones de los ViewModels de emprendimiento
+import com.sigefiv.app.viewmodel.EmprendimientosListViewModel
+import com.sigefiv.app.viewmodel.EmprendimientoFormViewModel
 import com.sigefiv.app.viewmodel.RolViewModel
 import com.sigefiv.app.viewmodel.UsuarioViewModel
 import com.sigefiv.app.viewmodel.ActividadViewModel
@@ -127,6 +133,12 @@ import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.text.style.TextAlign
+import com.sigefiv.app.data.api.EmprendimientoApi
+import com.sigefiv.app.data.repository.EmprendimientoRepository
+import com.sigefiv.app.screens.emprendimiento.EmprendimientosListScreen
+import com.sigefiv.app.screens.emprendimiento.EmprendimientoFormScreen
+
+
 enum class AppScreen(val drawerRoute: String) {
     DASHBOARD("dashboard"),
     MOVIMIENTOS("movimientos"),
@@ -152,7 +164,9 @@ enum class AppScreen(val drawerRoute: String) {
     ACTIVIDAD("actividad"),
     NOTIFICACIONES("notificaciones"),
     ENVIAR_NOTIFICACION("notificaciones"),
-    CONFIRMAR_NOTIFICACION("notificaciones")
+    CONFIRMAR_NOTIFICACION("notificaciones"),
+    MIS_EMPRENDIMIENTOS("perfil"),
+    EMPRENDIMIENTO_FORM("perfil")
 }
 
 @Composable
@@ -174,6 +188,8 @@ fun AppNavigation(
     val periodoViewModel = remember { PeriodoViewModel(context) }
     val periodosViewModel = remember { PeriodosViewModel(context) }
     val perfilViewModel = remember { PerfilViewModel(context) }
+  //  val emprendimientosListViewModel = remember { EmprendimientosListViewModel() }
+  //  val emprendimientoFormViewModel = remember { EmprendimientoFormViewModel() }
     val asambleasViewModel =
         remember { AsambleasViewModel(context.applicationContext as Application) }
     val usuarioViewModel =
@@ -201,6 +217,14 @@ fun AppNavigation(
     val subiendoFotoPerfil by perfilViewModel.subiendoFoto.collectAsState()
     // Permisos del usuario actual
     val permisosUsuario = usuarioPerfil?.permisos ?: emptyList()
+
+    val emprendimientoApi: EmprendimientoApi = remember { ApiClient.emprendimientoApi(context) }
+
+    val emprendimientoRepository: EmprendimientoRepository = remember { EmprendimientoRepository(emprendimientoApi, context) }
+
+    val emprendimientosListViewModel: EmprendimientosListViewModel = remember { EmprendimientosListViewModel(emprendimientoRepository) }
+
+    val emprendimientoFormViewModel: EmprendimientoFormViewModel = remember { EmprendimientoFormViewModel(context.applicationContext as Application) }
 
     fun puede(permiso: String): Boolean {
         return permisosUsuario.any {
@@ -982,6 +1006,9 @@ fun AppNavigation(
                                 }
                             },
                             onMiCuentaClick = { },
+                            onMisEmprendimientosClick = {
+                                navegarA(AppScreen.MIS_EMPRENDIMIENTOS)
+                            },
                             nombre = usuarioPerfil?.name ?: "Usuario",
                             seudonimo = usuarioPerfil?.seudonimo,
                             email = usuarioPerfil?.email ?: "",
@@ -1269,6 +1296,38 @@ fun AppNavigation(
                                     backStack.removeAt(backStack.lastIndex)
                                 }
                             }
+                        )
+                    }
+                    AppScreen.MIS_EMPRENDIMIENTOS -> {
+                        LaunchedEffect(Unit) {
+                            emprendimientosListViewModel.cargarMisEmprendimientos()
+                        }
+
+                        val state by emprendimientosListViewModel.state.collectAsState()
+
+                        EmprendimientosListScreen(
+                            state = state,
+                            onBackClick = { retroceder() },
+                            onNuevoEmprendimientoClick = {
+                                navegarA(AppScreen.EMPRENDIMIENTO_FORM)
+                            },
+                            onEditarEmprendimientoClick = { id ->
+                                navegarA(AppScreen.EMPRENDIMIENTO_FORM)
+                            },
+                            onCambiarEstadoClick = { id, nuevoEstado ->
+                                emprendimientosListViewModel.cambiarEstado(id, nuevoEstado)
+                            }
+                        )
+                    }
+                    AppScreen.EMPRENDIMIENTO_FORM -> {
+                        val state by emprendimientoFormViewModel.state.collectAsState()
+                        EmprendimientoFormScreen(
+                            state = state,
+                            onAction = { action -> emprendimientoFormViewModel.onAction(action) },
+                            onPickImageClick = {
+                                // Selector de imágenes nativo
+                            },
+                            onNavigateBack = { retroceder() }
                         )
                     }
 
