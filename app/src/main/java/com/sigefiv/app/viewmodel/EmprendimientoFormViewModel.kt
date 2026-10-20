@@ -90,7 +90,12 @@ class EmprendimientoFormViewModel(application: Application) : AndroidViewModel(a
 
         viewModelScope.launch {
             _state.update { it.copy(isGeneratingWithZoe = true, errorMessage = null) }
-            repository.generarDescripcionZoe(_state.value.nombre).fold(
+
+            // Pasamos el nombre y la descripción actual de la pantalla
+            repository.generarDescripcionZoe(
+                _state.value.nombre,
+                _state.value.descripcion ?: ""
+            ).fold(
                 onSuccess = { desc ->
                     _state.update { it.copy(descripcion = desc, isGeneratingWithZoe = false) }
                 },

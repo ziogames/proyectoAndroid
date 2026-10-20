@@ -41,12 +41,26 @@ import okhttp3.WebSocketListener
 import com.sigefiv.app.data.repository.ZoeRepository
 import com.google.gson.JsonParser
 import android.util.Log
+import com.sigefiv.app.data.model.ConversacionItem
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import android.net.Uri
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
 data class ZoeMensaje(
     val texto: String,
     val esUsuario: Boolean,
     val tipoMovimiento: String? = null,
     val estadistica: ZoeEstadistica? = null,
+    val imagenUri: Uri? = null, // <--- NUEVO: Para guardar la foto adjunta en el mensaje
     val hora: String = SimpleDateFormat(
         "h:mm a",
         Locale.getDefault()
@@ -70,6 +84,26 @@ class ZoeViewModel(
     private var reproductorAudio: MediaPlayer? = null
     private val audioHandler = Handler(Looper.getMainLooper())
     private val zoeRepository = ZoeRepository(appContext)
+    /*
+    |--------------------------------------------------------------------------
+    | HISTORIAL DE CONVERSACIONES
+    |--------------------------------------------------------------------------
+    */
+    private val _historialConversaciones = MutableStateFlow<List<ConversacionItem>>(emptyList())
+    val historialConversaciones: StateFlow<List<ConversacionItem>> = _historialConversaciones.asStateFlow()
+
+    fun cargarHistorial() {
+        viewModelScope.launch {
+            try {
+                val respuesta = zoeRepository.obtenerHistorial()
+                if (respuesta.success) {
+                    _historialConversaciones.value = respuesta.historial
+                }
+            } catch (e: Exception) {
+                Log.e("ZOE_HISTORIAL", "Error al cargar historial: ${e.message}", e)
+            }
+        }
+    }
 
     /*
      * ============================================================
@@ -124,6 +158,7 @@ class ZoeViewModel(
     init {
         inicializarVoz()
         conectarZoeWebSocket()
+        cargarHistorial() // <-- Añade esta línea aquí
     }
 
     /*
@@ -149,7 +184,17 @@ class ZoeViewModel(
     val cargando: StateFlow<Boolean> =
         _cargando.asStateFlow()
 
+    // Estado para la Uri del archivo o foto adjunta lista para enviar
+    private val _archivoAdjuntoUri = MutableStateFlow<Uri?>(null)
+    val archivoAdjuntoUri: StateFlow<Uri?> = _archivoAdjuntoUri
 
+    fun seleccionarArchivo(uri: Uri?) {
+        _archivoAdjuntoUri.value = uri
+    }
+
+    fun limpiarAdjunto() {
+        _archivoAdjuntoUri.value = null
+    }
     /*
      * ============================================================
      * ERRORES
@@ -580,6 +625,7 @@ class ZoeViewModel(
                     MascotaControlador.evento(MascotaEvento.ZOE_RESPONDIENDO)
                     delay(1500)
                     MascotaControlador.normal()
+                    cargarHistorial()
 
                 } else {
                     MascotaControlador.evento(MascotaEvento.ERROR)
@@ -823,6 +869,8 @@ class ZoeViewModel(
                     delay(1500)
 
                     MascotaControlador.normal()
+                    cargarHistorial()
+
 
 
                 } else {
@@ -1601,5 +1649,183 @@ class ZoeViewModel(
                 }
             }
         )
+    }
+    fun cargarConversacion(conversacionId: String) {
+        viewModelScope.launch {
+            _cargando.value = true
+            try {
+                val respuesta = zoeRepository.obtenerDetalle(conversacionId)
+                if (respuesta.success) {
+                    // Filtramos los eventos internos o saludos repetitivos del sistema
+                    _mensajes.value = respuesta.mensajes
+                        .filter { dto ->
+                            val textoTrim = dto.texto.trim()
+                            textoTrim.isNotEmpty() &&
+                                    !textoTrim.startsWith("evento_") &&
+                                    !textoTrim.contains("bienvenido de nuevo a SIGEFIV", ignoreCase = true)
+                        }
+                        .map { dto ->
+                            ZoeMensaje(
+                                texto = dto.texto.replace("[REPORTE_DIRECTIVA] ", ""),
+                                esUsuario = dto.esUsuario,
+                                hora = dto.hora
+                            )
+                        }
+                }
+            } catch (e: Exception) {
+                Log.e("ZOE_HISTORIAL", "Error al cargar detalle de conversación: ${e.message}", e)
+            } finally {
+                _cargando.value = false
+            }
+        }
+    }
+    fun iniciarNuevaConversacion() {
+        // Limpiamos los mensajes actuales de la pantalla de inmediato
+        _mensajes.value = emptyList()
+
+        // Disparamos el evento silencioso para que ZOE dé la bienvenida en una nueva charla
+        enviarEventoSilencioso("evento_inicio_sesion")
+    }
+    fun enviarArchivoConMensaje(context: Context, uri: Uri, mensajeTexto: String) {
+        viewModelScope.launch {
+            try {
+                _cargando.value = true
+
+                // 1. Convertir la Uri en un archivo físico temporal en caché para leer sus bytes
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val archivoTemporal = File(context.cacheDir, "upload_${System.currentTimeMillis()}.tmp")
+
+                inputStream?.use { input ->
+                    archivoTemporal.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                // 2. Determinar el tipo MIME del archivo (imagen, pdf, etc.)
+                val tipoMime = context.contentResolver.getType(uri) ?: "application/octet-stream"
+                val requestBodyFile = archivoTemporal.asRequestBody(tipoMime.toMediaTypeOrNull())
+
+                // 3. Crear la parte Multipart del archivo
+                val parteArchivo = MultipartBody.Part.createFormData("archivo", archivoTemporal.name, requestBodyFile)
+                val requestTexto = mensajeTexto.toRequestBody("text/plain".toMediaTypeOrNull())
+
+                // 4. Enviar a tu servicio Retrofit hacia Laravel
+                // val respuesta = apiService.enviarMensajeConArchivo(parteArchivo, requestTexto)
+
+                // Limpiar archivo temporal
+                archivoTemporal.delete()
+
+            } catch (e: Exception) {
+                android.util.Log.e("ZOE_VIEWMODEL", "Error al enviar archivo: ${e.message}")
+            } finally {
+                _cargando.value = false
+            }
+        }
+    }
+    fun enviarMensajeConMultimedia(context: Context, uri: Uri?, textoMensaje: String) {
+        val mensajeTextoLimpio = textoMensaje.trim()
+        if (mensajeTextoLimpio.isBlank() && uri == null) return
+
+        viewModelScope.launch {
+            try {
+                _cargando.value = true
+                MascotaControlador.evento(MascotaEvento.ZOE_PENSANDO)
+
+                // 1. Añadimos el mensaje del usuario a la pantalla CON su imagen adjunta
+                _mensajes.value = _mensajes.value + ZoeMensaje(
+                    texto = if (mensajeTextoLimpio.isBlank()) "[Imagen adjunta]" else mensajeTextoLimpio,
+                    esUsuario = true,
+                    imagenUri = uri
+                )
+
+                var parteArchivo: MultipartBody.Part? = null
+                var bodyTexto: RequestBody? = null
+
+                // 2. Preparamos el archivo si existe
+                if (uri != null) {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    val archivoTemporal = File(context.cacheDir, "zoe_upload_${System.currentTimeMillis()}.tmp")
+
+                    inputStream?.use { input ->
+                        archivoTemporal.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+
+                    val tipoMime = context.contentResolver.getType(uri) ?: "image/jpeg"
+                    val requestFile = archivoTemporal.asRequestBody(tipoMime.toMediaTypeOrNull())
+                    parteArchivo = MultipartBody.Part.createFormData("archivo", archivoTemporal.name, requestFile)
+                }
+
+                // 3. Preparamos el texto (asegúrate de que el nombre de la clave sea "mensaje" tal como lo pusiste en ZoeApi)
+                if (mensajeTextoLimpio.isNotBlank()) {
+                    bodyTexto = mensajeTextoLimpio.toRequestBody("text/plain".toMediaTypeOrNull())
+                }
+
+                // 4. Primero subimos la foto y el reporte al servidor
+                val respuestaArchivo = zoeRepository.enviarMensajeConArchivo(parteArchivo, bodyTexto)
+
+                if (respuestaArchivo != null && respuestaArchivo.success) {
+                    // 5. Llamamos a ZOE (n8n + Ollama) para que genere la respuesta cálida y personalizada
+                    val detalleReporte = if (mensajeTextoLimpio.isBlank()) {
+                        "Adjunté una fotografía como reporte para la directiva."
+                    } else {
+                        mensajeTextoLimpio
+                    }
+
+                    val consultaParaN8n = "[REPORTE_DIRECTIVA] $detalleReporte"
+                    val respuestaZoe = zoeRepository.consultar(consultaParaN8n)
+
+                    val textoRespuestaZoe = if (respuestaZoe.success && !respuestaZoe.respuesta.isNullOrBlank()) {
+                        respuestaZoe.respuesta!!
+                            .trim()
+                            .replace("**", "")
+                            .replace("__", "")
+                    } else {
+                        "¡Muchas gracias! He recibido tu fotografía y el reporte, y ya fueron enviados con éxito a la directiva."
+                    }
+
+                    _mensajes.value = _mensajes.value + ZoeMensaje(
+                        texto = textoRespuestaZoe,
+                        esUsuario = false
+                    )
+                } else {
+                    _mensajes.value = _mensajes.value + ZoeMensaje(
+                        texto = "El servidor no pudo procesar el archivo adjunto.",
+                        esUsuario = false
+                    )
+                }
+
+                // Limpiamos el adjunto temporal de la barra inferior
+                _archivoAdjuntoUri.value = null
+
+                MascotaControlador.evento(MascotaEvento.ZOE_RESPONDIENDO)
+                delay(1500)
+                MascotaControlador.normal()
+                cargarHistorial()
+
+            } catch (e: Exception) {
+                Log.e("ZOE_VM", "Error al enviar contenido multimedia: ${e.message}", e)
+                MascotaControlador.evento(MascotaEvento.ERROR)
+
+                _mensajes.value = _mensajes.value + ZoeMensaje(
+                    texto = "No se pudo conectar con el servidor para enviar el archivo.",
+                    esUsuario = false
+                )
+
+                delay(1500)
+                MascotaControlador.normal()
+            } finally {
+                _cargando.value = false
+            }
+        }
+    }
+    fun enviarConsultaOAdjunto(context: Context, texto: String) {
+        val uriActual = _archivoAdjuntoUri.value
+        if (uriActual != null) {
+            enviarMensajeConMultimedia(context, uriActual, texto)
+        } else {
+            enviarConsulta(texto)
+        }
     }
 }

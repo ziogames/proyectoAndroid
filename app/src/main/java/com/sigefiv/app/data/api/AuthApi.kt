@@ -37,6 +37,10 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+import okhttp3.RequestBody
+import com.sigefiv.app.data.model.HistorialResponse
+
+
 interface AuthApi {
 
     // =========================================================
@@ -281,4 +285,11 @@ interface AuthApi {
     suspend fun actualizarPreferenciaFcm(
         @Body datos: FcmPreferenciaRequest
     ): Response<Unit>
+
+    @Multipart
+    @POST("zoe/mensaje-con-adjunto")
+    suspend fun enviarMensajeConArchivo(
+        @Part archivo: MultipartBody.Part?,
+        @Part("mensaje") mensaje: RequestBody?
+    ): HistorialResponse
 }

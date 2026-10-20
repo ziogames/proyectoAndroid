@@ -3,22 +3,41 @@
 package com.sigefiv.app.screens.sigi
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
-
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.AudioRecord.ERROR_INVALID_OPERATION
+import android.media.MediaRecorder
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,22 +53,33 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.SmartToy
+import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -57,13 +87,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -71,38 +95,41 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sigefiv.app.viewmodel.ZoeMensaje
-import com.sigefiv.app.viewmodel.ZoeViewModel
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import com.sigefiv.app.data.model.ConversacionItem
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.ui.text.style.TextAlign
-import android.media.AudioFormat
-import android.media.AudioRecord
-import android.media.MediaRecorder
-import android.media.AudioRecord.ERROR_INVALID_OPERATION
+import com.sigefiv.app.viewmodel.ZoeMensaje
+import com.sigefiv.app.viewmodel.ZoeViewModel
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import kotlinx.coroutines.launch
+import coil.compose.AsyncImage
+
 /*
 |--------------------------------------------------------------------------
 | PALETA DE COLORES PROFESIONAL SIGEFIV
@@ -155,15 +182,22 @@ fun SigiScreen(
     val hablando by viewModel.hablando.collectAsState()
     val escuchando by viewModel.escuchando.collectAsState()
 
-    // =========================================================
-    // NUEVO: DISPARADOR SILENCIOSO AL ABRIR LA PANTALLA
-    // =========================================================
+    // Observamos el flujo de historial real desde el ViewModel
+    val historialConversaciones by viewModel.historialConversaciones.collectAsState()
+
+    // Estados para el Panel Lateral de Historial (Drawer)
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val coroutineScope = rememberCoroutineScope()
+
+    // Desplazamiento vertical para deslizar la pantalla hacia abajo/arriba con la barra superior
+    val offsetY = remember { Animatable(0f) }
+    val archivoAdjuntoUri by viewModel.archivoAdjuntoUri.collectAsState()
+    // Disparador del saludo inicial al abrir la pantalla por primera vez
     LaunchedEffect(Unit) {
         if (mensajes.isEmpty()) {
             viewModel.enviarEventoSilencioso("evento_inicio_sesion")
         }
     }
-    // =========================================================
 
     var consulta by remember { mutableStateOf("") }
     var grabandoVoz by remember { mutableStateOf(false) }
@@ -171,7 +205,53 @@ fun SigiScreen(
     var archivoVoz by remember { mutableStateOf<File?>(null) }
     var segundosGrabacion by remember { mutableStateOf(0) }
 
+    // Estados profesionales para cámara y selector de archivos
+    var uriFotoTemporal by remember { mutableStateOf<Uri?>(null) }
+    var mostrarMenuAdjuntar by remember { mutableStateOf(false) }
+
+    val lanzadorCamara = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { exito ->
+        if (exito && uriFotoTemporal != null) {
+            viewModel.seleccionarArchivo(uriFotoTemporal)
+        }
+    }
+
+    val lanzadorGaleria = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { archivoUri ->
+            viewModel.seleccionarArchivo(archivoUri)
+        }
+    }
+
+    fun abrirCamaraDirectamente() {
+        try {
+            val archivoFoto = File(context.cacheDir, "zoe_camara_${System.currentTimeMillis()}.jpg")
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                archivoFoto
+            )
+            uriFotoTemporal = uri
+            lanzadorCamara.launch(uri)
+        } catch (e: Exception) {
+            android.util.Log.e("ZOE_CAMARA", "Error al preparar la cámara: ${e.message}", e)
+        }
+    }
+
     val listaEstado = rememberLazyListState()
+
+    // Lanzador para solicitar el permiso de la cámara en tiempo de ejecución
+    val permisoCamaraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) {
+            abrirCamaraDirectamente()
+        } else {
+            android.util.Log.w("ZOE_CAMARA", "Permiso de cámara denegado por el usuario")
+        }
+    }
 
     val permisoMicrofono = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -216,8 +296,6 @@ fun SigiScreen(
         val texto = consulta.trim()
         if (texto.isEmpty() || cargando) return
         viewModel.enviarConsulta(texto)
-        // Limpiamos únicamente el texto.
-        // Conservamos el foco para mantener el teclado visible.
         consulta = ""
     }
 
@@ -249,138 +327,391 @@ fun SigiScreen(
         }
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(VerdeSuaveAvatar, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.SmartToy,
-                                contentDescription = "ZOE",
-                                tint = colorPrincipal,
-                                modifier = Modifier.size(24.dp)
-                            )
+    // PANEL LATERAL DESLIZABLE (DRAWER) PROFESIONAL Y DINÁMICO
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                modifier = Modifier.width(300.dp)
+            ) {
+                ContenidoPanelHistorial(
+                    listaConversaciones = historialConversaciones,
+                    onConversacionClick = { conversacionId ->
+                        coroutineScope.launch {
+                            drawerState.close()
+                            viewModel.cargarConversacion(conversacionId)
                         }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column {
-                            Text(
-                                text = "ZOE Asistente",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .background(VerdeOnline, CircleShape)
-                                )
-                                Spacer(modifier = Modifier.width(5.dp))
-                                Text(
-                                    text = if (cargando) "Escribiendo..." else "En línea",
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                                    fontSize = 11.sp
-                                )
-                            }
+                    },
+                    onNuevaConversacion = {
+                        coroutineScope.launch {
+                            drawerState.close()
+                            viewModel.iniciarNuevaConversacion()
                         }
+                    },
+                    onCerrar = {
+                        coroutineScope.launch { drawerState.close() }
                     }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Regresar",
-                            tint = colorContenidoBarra
-                        )
-                    }
-                },
-                actions = {
-
-                    IconButton(
-                        onClick = onOpenHistory
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.History,
-                            contentDescription = "Historial de conversaciones",
-                            tint = colorContenidoBarra
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorBarraTitulo,
-                    titleContentColor = colorContenidoBarra,
-                    navigationIconContentColor = colorContenidoBarra,
-                    actionIconContentColor = colorContenidoBarra
                 )
-            )
+            }
         }
-    ) { paddingValues ->
-
-        Column(
+    ) {
+        Scaffold(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // 1. BARRA DE ACCIONES RÁPIDAS (CHIPS DESLIZABLES TIPO GOOGLE/TELEGRAM)
-            SugerenciasChipsBar(
-                onPregunta = { pregunta ->
-                    if (!cargando) viewModel.enviarConsulta(pregunta)
-                }
-            )
+                .offset { IntOffset(0, offsetY.value.roundToInt()) }
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
+            containerColor = MaterialTheme.colorScheme.background,
+            topBar = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colorBarraTitulo)
+                        .draggable(
+                            orientation = Orientation.Vertical,
+                            state = rememberDraggableState { delta ->
+                                coroutineScope.launch {
+                                    val nuevoValor = (offsetY.value + delta).coerceAtLeast(0f)
+                                    offsetY.snapTo(nuevoValor)
+                                }
+                            },
+                            onDragStopped = { velocity ->
+                                coroutineScope.launch {
+                                    if (offsetY.value > 280f || velocity > 900f) {
+                                        offsetY.animateTo(
+                                            targetValue = 2200f,
+                                            animationSpec = tween(durationMillis = 220)
+                                        )
+                                        onBackClick()
+                                    } else {
+                                        offsetY.animateTo(
+                                            targetValue = 0f,
+                                            animationSpec = tween(durationMillis = 250)
+                                        )
+                                    }
+                                }
+                            }
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 10.dp, bottom = 2.dp)
+                            .width(40.dp)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(
+                                colorContenidoBarra.copy(alpha = 0.30f)
+                            )
+                    )
 
-            // 2. HISTORIAL DE CONVERSACIÓN
-            LazyColumn(
-                state = listaEstado,
+                    TopAppBar(
+                        windowInsets = WindowInsets(0.dp),
+                        title = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(VerdeSuaveAvatar, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.SmartToy,
+                                        contentDescription = "ZOE",
+                                        tint = colorPrincipal,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column {
+                                    Text(
+                                        text = "ZOE Asistente",
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .background(VerdeOnline, CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = if (cargando) "Escribiendo..." else "En línea",
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        actions = {
+                            IconButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        viewModel.cargarHistorial()
+                                        if (drawerState.isClosed) drawerState.open() else drawerState.close()
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.History,
+                                    contentDescription = "Historial de conversaciones",
+                                    tint = colorContenidoBarra
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = colorBarraTitulo,
+                            titleContentColor = colorContenidoBarra,
+                            actionIconContentColor = colorContenidoBarra
+                        )
+                    )
+                }
+            }
+        ) { paddingValues ->
+
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 10.dp)
+                    .fillMaxSize()
+                    .padding(paddingValues)
             ) {
-                items(
-                    count = mensajes.size,
-                    key = { index ->
-                        // Combinamos el índice único con el hash del mensaje para garantizar unicidad absoluta
-                        val mensaje = mensajes[index]
-                        "$index-${mensaje.esUsuario}-${mensaje.texto.hashCode()}"
+                // 1. BARRA DE ACCIONES RÁPIDAS
+                SugerenciasChipsBar(
+                    onPregunta = { pregunta ->
+                        if (!cargando) viewModel.enviarConsulta(pregunta)
                     }
-                ) { index ->
-                    BurbujaChat(mensajes[index])
+                )
+
+                // 2. HISTORIAL DE CONVERSACIÓN
+                LazyColumn(
+                    state = listaEstado,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(vertical = 10.dp)
+                ) {
+                    items(
+                        count = mensajes.size,
+                        key = { index ->
+                            val mensaje = mensajes[index]
+                            "$index-${mensaje.esUsuario}-${mensaje.texto.hashCode()}"
+                        }
+                    ) { index ->
+                        BurbujaChat(mensajes[index])
+                    }
+
+                    if (cargando) {
+                        item(key = "loading_indicator") {
+                            IndicadorCargaMensaje()
+                        }
+                    }
                 }
 
-                if (cargando) {
-                    item(key = "loading_indicator") {
-                        IndicadorCargaMensaje()
+                // ... dentro del Scaffold -> Column:
+                BarraEntradaModerna(
+                    consulta = consulta,
+                    onConsultaChange = { consulta = it },
+                    onEnviar = {
+                        // Usamos la función inteligente que detecta si hay archivo o solo texto
+                        viewModel.enviarConsultaOAdjunto(context, consulta)
+                        consulta = "" // Limpiamos la caja de texto tras enviar
+                    },
+                    onMicrofono = { activarMicrofono() },
+                    onDetenerVoz = { viewModel.detenerVoz() },
+                    grabandoVoz = escuchando,
+                    segundosGrabacion = segundosGrabacion,
+                    cargando = cargando,
+                    hablando = hablando,
+                    mostrarMenuAdjuntar = mostrarMenuAdjuntar,
+                    onToggleMenuAdjuntar = { mostrarMenuAdjuntar = it },
+                    onCamaraClick = {
+                        val tienePermisoCamara = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.CAMERA
+                        ) == PackageManager.PERMISSION_GRANTED
+
+                        if (tienePermisoCamara) {
+                            abrirCamaraDirectamente()
+                        } else {
+                            permisoCamaraLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    },
+                    onGaleriaClick = { lanzadorGaleria.launch("*/*") },
+                    archivoAdjuntoUri = archivoAdjuntoUri, // <--- NUEVO
+                    onEliminarAdjunto = { viewModel.limpiarAdjunto() } // <--- NUEVO
+                )
+            }
+        }
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| CONTENIDO DEL PANEL LATERAL DE HISTORIAL REFINADO
+|--------------------------------------------------------------------------
+*/
+
+@Composable
+private fun ContenidoPanelHistorial(
+    listaConversaciones: List<ConversacionItem>,
+    onConversacionClick: (String) -> Unit,
+    onNuevaConversacion: () -> Unit,
+    onCerrar: () -> Unit
+) {
+    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(16.dp)
+            .navigationBarsPadding()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.History,
+                    contentDescription = null,
+                    tint = colorPrincipal,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Historial de ZOE",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            IconButton(onClick = onCerrar) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Cerrar historial",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .clickable(onClick = onNuevaConversacion),
+            color = colorPrincipal.copy(alpha = 0.12f),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.3f))
+        ) {
+            Row(
+                modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.SmartToy,
+                    contentDescription = null,
+                    tint = colorPrincipal,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "+ Nueva Conversación",
+                    color = colorPrincipal,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (listaConversaciones.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No hay conversaciones registradas",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            val grupos = listaConversaciones.groupBy { it.grupo }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                grupos.forEach { (nombreGrupo, itemsDelGrupo) ->
+                    item(key = "header_$nombreGrupo") {
+                        Text(
+                            text = nombreGrupo,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colorPrincipal,
+                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 12.dp)
+                        )
+                    }
+
+                    items(itemsDelGrupo, key = { it.id }) { chat ->
+                        ItemConversacionHistorial(
+                            titulo = chat.titulo,
+                            onClick = { onConversacionClick(chat.id) }
+                        )
                     }
                 }
             }
+        }
+    }
+}
 
-            // 3. BARRA DE ENTRADA CON ESTILO FLOTANTE
-            BarraEntradaModerna(
-                consulta = consulta,
-                onConsultaChange = { consulta = it },
-                onEnviar = { enviarConsulta() },
-                onMicrofono = {
-                    android.util.Log.d("ZOE_AUDIO", "BOTÓN MICRÓFONO PRESIONADO")
-                    activarMicrofono()
-                },
-                onDetenerVoz = { viewModel.detenerVoz() },
-                grabandoVoz = escuchando,
-                segundosGrabacion = segundosGrabacion,
-                cargando = cargando,
-                hablando = hablando
+@Composable
+private fun ItemConversacionHistorial(
+    titulo: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick),
+        color = Color.Transparent,
+        shape = RoundedCornerShape(10.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 11.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Text(
+                text = titulo,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.Normal,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -429,38 +760,59 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier.widthIn(min = 50.dp, max = 290.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 6.dp),
-                    verticalAlignment = Alignment.Bottom
+                Column(
+                    modifier = Modifier.padding(all = 8.dp)
                 ) {
-                    Text(
-                        text = mensaje.texto,
-                        color = colorTextoUsuario,
-                        fontSize = 14.5.sp,
-                        lineHeight = 19.sp,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    // 🖼️ SI EL MENSAJE TIENE UNA IMAGEN ADJUNTA, LA MOSTRAMOS AQUÍ EN LA BURBUJA
+                    // 🖼️ SI EL MENSAJE TIENE UNA IMAGEN ADJUNTA, LA MOSTRAMOS AQUÍ EN LA BURBUJA
+                    mensaje.imagenUri?.let { uri ->
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = "Imagen adjunta del reporte",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)
+                                .clip(RoundedCornerShape(10.dp)),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop // <--- CORREGIDO AQUÍ
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
+
                     Row(
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 2.dp),
+                        verticalAlignment = Alignment.Bottom
                     ) {
-                        Text(
-                            text = mensaje.hora,
-                            color = colorHoraUsuario,
-                            fontSize = 10.sp
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = "✓✓",
-                            color = if (temaOscuro) Color(0xFF86EFAC) else AzulCheck,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        if (mensaje.texto.isNotBlank()) {
+                            Text(
+                                text = mensaje.texto,
+                                color = colorTextoUsuario,
+                                fontSize = 14.5.sp,
+                                lineHeight = 19.sp,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = mensaje.hora,
+                                color = colorHoraUsuario,
+                                fontSize = 10.sp
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "✓✓",
+                                color = if (temaOscuro) Color(0xFF86EFAC) else AzulCheck,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
         }
-    } else {
+    }else {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start,
@@ -512,93 +864,225 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
                         )
                     }
 
-// TARJETAS DE EMPRENDIMIENTOS
                     mensaje.estadistica
                         ?.takeIf { it.tipo == "emprendimientos" }
                         ?.emprendimientos
-                        ?.forEach { emprendimiento ->
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let { listaEmprendimientos ->
+                            Spacer(modifier = Modifier.height(10.dp))
 
-                            Card(
+                            Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                ),
-                                elevation = CardDefaults.cardElevation(
-                                    defaultElevation = 1.dp
-                                )
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(14.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = emprendimiento.nombre
-                                            ?.takeIf { it.isNotBlank() }
-                                            ?: "Emprendimiento",
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                listaEmprendimientos.forEach { emprendimiento ->
+                                    val colorFondoTarjeta = if (temaOscuro) Color(0xFF1E242B) else Color.White
+                                    val colorBorde = if (temaOscuro) Color.White.copy(alpha = 0.09f) else Color(0xFFE2E8F0)
 
-                                    emprendimiento.descripcion
-                                        ?.takeIf { it.isNotBlank() }
-                                        ?.let {
-                                            Text(
-                                                text = it,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                fontSize = 14.sp
-                                            )
-                                        }
-
-                                    emprendimiento.zona_atencion
-                                        ?.takeIf { it.isNotBlank() }
-                                        ?.let {
-                                            Text(
-                                                text = "📍 Zona: $it",
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontSize = 12.sp
-                                            )
-                                        }
-
-                                    emprendimiento.horario
-                                        ?.takeIf { it.isNotBlank() }
-                                        ?.let {
-                                            Text(
-                                                text = "🕒 Horario: $it",
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontSize = 12.sp
-                                            )
-                                        }
-
-                                    if (
-                                        emprendimiento.show_whatsapp &&
-                                        !emprendimiento.telefono.isNullOrBlank()
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(containerColor = colorFondoTarjeta),
+                                        border = BorderStroke(1.dp, colorBorde),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                     ) {
-                                        Button(
-                                            onClick = {
-                                                abrirWhatsApp(
-                                                    context,
-                                                    emprendimiento.telefono
-                                                )
-                                            },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = Color(0xFF25D366),
-                                                contentColor = Color.White
-                                            )
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
                                         ) {
-                                            Text("Contactar por WhatsApp")
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(42.dp)
+                                                        .background(
+                                                            colorPrincipal.copy(alpha = 0.12f),
+                                                            RoundedCornerShape(12.dp)
+                                                        ),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Outlined.Storefront,
+                                                        contentDescription = null,
+                                                        tint = colorPrincipal,
+                                                        modifier = Modifier.size(22.dp)
+                                                    )
+                                                }
+
+                                                Spacer(modifier = Modifier.width(12.dp))
+
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = emprendimiento.nombre?.takeIf { it.isNotBlank() }
+                                                            ?: "Emprendimiento Vecinal",
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        fontSize = 16.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+
+                                                    val etiqueta = emprendimiento.categoria?.takeIf { it.isNotBlank() }
+                                                        ?: emprendimiento.modalidad?.takeIf { it.isNotBlank() }
+
+                                                    if (etiqueta != null) {
+                                                        Spacer(modifier = Modifier.height(2.dp))
+                                                        Text(
+                                                            text = etiqueta.uppercase(),
+                                                            color = colorPrincipal,
+                                                            fontSize = 10.5.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            letterSpacing = 0.5.sp
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            emprendimiento.descripcion?.takeIf { it.isNotBlank() }?.let { desc ->
+                                                Text(
+                                                    text = desc,
+                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                                    fontSize = 13.5.sp,
+                                                    lineHeight = 19.sp
+                                                )
+                                            }
+
+                                            val tieneZona = !emprendimiento.zona_atencion.isNullOrBlank()
+                                            val tieneHorario = !emprendimiento.horario.isNullOrBlank()
+
+                                            if (tieneZona || tieneHorario) {
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .background(
+                                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                                            shape = RoundedCornerShape(10.dp)
+                                                        )
+                                                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                                                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                                                ) {
+                                                    if (tieneZona) {
+                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                            Icon(
+                                                                imageVector = Icons.Outlined.LocationOn,
+                                                                contentDescription = "Zona",
+                                                                tint = colorPrincipal,
+                                                                modifier = Modifier.size(15.dp)
+                                                            )
+                                                            Spacer(modifier = Modifier.width(6.dp))
+                                                            Text(
+                                                                text = "Zona: ${emprendimiento.zona_atencion}",
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                fontSize = 12.sp
+                                                            )
+                                                        }
+                                                    }
+
+                                                    if (tieneHorario) {
+                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                            Icon(
+                                                                imageVector = Icons.Outlined.AccessTime,
+                                                                contentDescription = "Horario",
+                                                                tint = colorPrincipal,
+                                                                modifier = Modifier.size(15.dp)
+                                                            )
+                                                            Spacer(modifier = Modifier.width(6.dp))
+                                                            Text(
+                                                                text = "Horario: ${emprendimiento.horario}",
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                fontSize = 12.sp
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            val telefonoLimpio = emprendimiento.telefono?.trim().orEmpty()
+
+                                            if (telefonoLimpio.isNotEmpty()) {
+                                                HorizontalDivider(
+                                                    color = colorBorde,
+                                                    thickness = 1.dp
+                                                )
+
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Surface(
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .clip(RoundedCornerShape(12.dp))
+                                                            .clickable {
+                                                                llamarVecino(context, telefonoLimpio)
+                                                            },
+                                                        shape = RoundedCornerShape(12.dp),
+                                                        color = colorPrincipal.copy(alpha = 0.10f),
+                                                        border = BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.25f))
+                                                    ) {
+                                                        Row(
+                                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .size(28.dp)
+                                                                    .background(colorPrincipal, CircleShape),
+                                                                contentAlignment = Alignment.Center
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Outlined.Phone,
+                                                                    contentDescription = "Llamar al vecino",
+                                                                    tint = Color.White,
+                                                                    modifier = Modifier.size(15.dp)
+                                                                )
+                                                            }
+                                                            Spacer(modifier = Modifier.width(10.dp))
+                                                            Column {
+                                                                Text(
+                                                                    text = "Llamar al vecino",
+                                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                    fontSize = 10.sp
+                                                                )
+                                                                Text(
+                                                                    text = formatearTelefonoPeru(telefonoLimpio),
+                                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                                    fontSize = 13.5.sp,
+                                                                    fontWeight = FontWeight.Bold
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+
+                                                    if (emprendimiento.show_whatsapp) {
+                                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                                        IconButton(
+                                                            onClick = {
+                                                                abrirWhatsApp(context, telefonoLimpio)
+                                                            },
+                                                            modifier = Modifier
+                                                                .size(46.dp)
+                                                                .background(Color(0xFF25D366), CircleShape)
+                                                        ) {
+                                                            IconoWhatsAppVector(
+                                                                modifier = Modifier.size(24.dp),
+                                                                tint = Color.White
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-
-
-
-
-
 
                     Text(
                         text = mensaje.hora,
@@ -622,11 +1106,6 @@ private fun BurbujaChat(mensaje: ZoeMensaje) {
 |--------------------------------------------------------------------------
 | RESPUESTA FORMATEADA DE ZOE
 |--------------------------------------------------------------------------
-|
-| Las respuestas normales se muestran como texto.
-| Las listas de ingresos/egresos se presentan visualmente
-| como tarjetas compactas, sin modificar la respuesta del backend.
-|
 */
 
 @Composable
@@ -634,18 +1113,7 @@ private fun ZoeRespuestaFormateada(
     texto: String,
     tipoMovimiento: String? = null,
     modifier: Modifier = Modifier
-){
-
-    /*
-     * ZOE actualmente devuelve los movimientos en texto plano, por ejemplo:
-     *
-     * • 2025-01-31 — S/ 12.00 — reflectores — usuario — Efectivo
-     *
-     * Por eso no debemos depender de un título como "📈 INGRESOS".
-     * Detectamos directamente las líneas que contienen:
-     * fecha + S/ monto + datos separados por "—".
-     */
-
+) {
     val lineas = texto.lines()
 
     val regexMovimiento = Regex(
@@ -655,11 +1123,9 @@ private fun ZoeRespuestaFormateada(
     val movimientos = mutableListOf<MovimientoVisual>()
 
     for (linea in lineas) {
-
         val match = regexMovimiento.find(linea)
 
         if (match != null) {
-
             val fecha = match.groupValues[1]
             val monto = match.groupValues[2]
             val resto = match.groupValues
@@ -672,12 +1138,6 @@ private fun ZoeRespuestaFormateada(
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
 
-            /*
-             * Formato actual observado:
-             * fecha — monto — categoría — usuario — forma de pago
-             *
-             * Mostramos todos los datos sin inventar etiquetas.
-             */
             val categoria = partes.getOrNull(0).orEmpty()
             val usuario = partes.getOrNull(1).orEmpty()
             val formaPago = partes.drop(2).joinToString(" — ")
@@ -694,12 +1154,7 @@ private fun ZoeRespuestaFormateada(
         }
     }
 
-    /*
-     * Si no hay líneas de movimientos, ZOE conserva exactamente
-     * su presentación de texto normal.
-     */
     if (movimientos.isEmpty()) {
-
         Text(
             text = texto,
             color = MaterialTheme.colorScheme.onSurface,
@@ -707,14 +1162,12 @@ private fun ZoeRespuestaFormateada(
             lineHeight = 19.sp,
             modifier = modifier
         )
-
         return
     }
-    val esEgreso =
-        tipoMovimiento == "Egreso"
 
-    val esIngreso =
-        tipoMovimiento == "Ingreso"
+    val esEgreso = tipoMovimiento == "Egreso"
+    val esIngreso = tipoMovimiento == "Ingreso"
+
     val colorTipo =
         when {
             esEgreso -> Color(0xFFDC2626)
@@ -768,7 +1221,6 @@ private fun ZoeRespuestaFormateada(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-
         Text(
             text = titulo,
             color = colorTipo,
@@ -777,7 +1229,6 @@ private fun ZoeRespuestaFormateada(
         )
 
         if (resumen != null) {
-
             Text(
                 text = resumen,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -786,7 +1237,6 @@ private fun ZoeRespuestaFormateada(
         }
 
         movimientos.forEach { movimiento ->
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -797,19 +1247,16 @@ private fun ZoeRespuestaFormateada(
                     defaultElevation = 0.dp
                 )
             ) {
-
                 Column(
                     modifier = Modifier.padding(
                         horizontal = 11.dp,
                         vertical = 9.dp
                     )
                 ) {
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-
                         Text(
                             text = "$icono ${movimiento.fecha}",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -827,11 +1274,7 @@ private fun ZoeRespuestaFormateada(
                     }
 
                     if (movimiento.categoria.isNotBlank()) {
-
-                        Spacer(
-                            modifier = Modifier.height(3.dp)
-                        )
-
+                        Spacer(modifier = Modifier.height(3.dp))
                         Text(
                             text = movimiento.categoria,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -841,7 +1284,6 @@ private fun ZoeRespuestaFormateada(
                     }
 
                     if (movimiento.usuario.isNotBlank()) {
-
                         Text(
                             text = "👤 ${movimiento.usuario}",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -850,7 +1292,6 @@ private fun ZoeRespuestaFormateada(
                     }
 
                     if (movimiento.formaPago.isNotBlank()) {
-
                         Text(
                             text = "💳 ${movimiento.formaPago}",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -871,7 +1312,6 @@ private fun ZoeRespuestaFormateada(
                 defaultElevation = 0.dp
             )
         ) {
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -881,7 +1321,6 @@ private fun ZoeRespuestaFormateada(
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
@@ -892,11 +1331,13 @@ private fun ZoeRespuestaFormateada(
                     )
 
                     Text(
-                        text = "💰 ${if (totalTexto != null) {
-                            totalTexto.substringAfter(":").trim()
-                        } else {
-                            "S/ %.2f".format(totalCalculado)
-                        }}",
+                        text = "💰 ${
+                            if (totalTexto != null) {
+                                totalTexto.substringAfter(":").trim()
+                            } else {
+                                "S/ %.2f".format(totalCalculado)
+                            }
+                        }",
                         color = colorTipo,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -978,9 +1419,7 @@ private fun SugerenciasChipsBar(
                 icon = Icons.Outlined.BarChart,
                 texto = "Resumen del mes",
                 onClick = {
-                    onPregunta(
-                        "RESUMEN_PERIODO_ACTIVO"
-                    )
+                    onPregunta("RESUMEN_PERIODO_ACTIVO")
                 }
             )
         }
@@ -1003,7 +1442,7 @@ private fun SugerenciaChip(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -1233,7 +1672,7 @@ private class GrabadorWav(
             escribirShortLE(header, 20, 1)
             escribirShortLE(header, 22, 1)
             escribirIntLE(header, 24, SAMPLE_RATE)
-            escribirIntLE(header, 28, SAMPLE_RATE * 2)
+            escribirIntLE(header, 28, SAMPLE_RATE * 16 * 1 / 8)
             escribirShortLE(header, 32, 2)
             escribirShortLE(header, 34, 16)
             escribirAscii(header, 36, "data")
@@ -1277,6 +1716,7 @@ private class GrabadorWav(
     }
 }
 
+
 @Composable
 private fun BarraEntradaModerna(
     consulta: String,
@@ -1287,13 +1727,19 @@ private fun BarraEntradaModerna(
     grabandoVoz: Boolean,
     segundosGrabacion: Int,
     cargando: Boolean,
-    hablando: Boolean
+    hablando: Boolean,
+    mostrarMenuAdjuntar: Boolean,
+    onToggleMenuAdjuntar: (Boolean) -> Unit,
+    onCamaraClick: () -> Unit,
+    onGaleriaClick: () -> Unit,
+    archivoAdjuntoUri: Uri?,           // <-- Parámetro añadido
+    onEliminarAdjunto: () -> Unit      // <-- Parámetro añadido
 ) {
     val colorPrincipal = SeasonalColors.primary(
         SeasonalTheme.getSeason()
     )
 
-    val hayTexto = consulta.trim().isNotEmpty()
+    val hayTexto = consulta.trim().isNotEmpty() || archivoAdjuntoUri != null
 
     Surface(
         modifier = Modifier
@@ -1303,217 +1749,215 @@ private fun BarraEntradaModerna(
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 8.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
 
-            // =========================================================
-            // BOTÓN +
-            // =========================================================
-            IconButton(
-                onClick = { },
-                modifier = Modifier.size(42.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Add,
-                    contentDescription = "Más opciones",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(25.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(4.dp))
-
-            // =========================================================
-            // CAMPO DE TEXTO / ESTADO DE GRABACIÓN
-            // =========================================================
-            if (grabandoVoz) {
-                BarraGrabandoVoz(
-                    segundos = segundosGrabacion,
-                    colorPrincipal = colorPrincipal,
+            // 🖼️ VISTA PREVIA FLOTANTE DE LA IMAGEN ADJUNTA
+            if (archivoAdjuntoUri != null) {
+                Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(50.dp)
-                )
-            } else {
-                OutlinedTextField(
-                    value = consulta,
-                    onValueChange = onConsultaChange,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(50.dp),
-                    enabled = !cargando,
-                    singleLine = true,
-                    placeholder = {
-                        Text(
-                            text = "Escribe un mensaje...",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 14.sp
-                        )
-                    },
-                    maxLines = 1,
-                    shape = RoundedCornerShape(24.dp),
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.Send
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            if (hayTexto) {
-                                onEnviar()
-                            }
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .size(72.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    AsyncImage(
+                        model = archivoAdjuntoUri,
+                        contentDescription = "Vista previa de imagen adjunta",
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    // Botón circular "X" para descartar la foto
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .size(22.dp)
+                            .clickable { onEliminarAdjunto() },
+                        shape = CircleShape,
+                        color = Color.Black.copy(alpha = 0.6f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "✕",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        cursorColor = colorPrincipal
-                    )
-                )
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.width(4.dp))
-
-            // =========================================================
-            // 📎 ADJUNTAR
-            // =========================================================
-            IconButton(
-                onClick = { },
-                enabled = !grabandoVoz,
-                modifier = Modifier.size(42.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.AttachFile,
-                    contentDescription = "Adjuntar archivo",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(23.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(4.dp))
-
-            // =========================================================
-            // BOTÓN DINÁMICO
-            //
-            // Sin texto  → 🎤 Micrófono
-            // Con texto  → ➤ Enviar
-            //
-            // Micrófono:
-            // mantener presionado = grabar
-            // soltar = enviar automáticamente
-            // =========================================================
-            // =========================================================
-// BOTÓN DINÁMICO
-//
-// ZOE hablando → 🛑 detener
-// Con texto    → ➤ enviar
-// Sin texto    → 🎤 micrófono
-// =========================================================
-
-            if (hablando) {
-
-                // =====================================================
-                // 🛑 DETENER VOZ DE ZOE
-                // =====================================================
-                IconButton(
-                    onClick = onDetenerVoz,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(
-                            color = Color(0xFFEF4444),
-                            shape = CircleShape
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Stop,
-                        contentDescription = "Detener voz de ZOE",
-                        tint = Color.White,
-                        modifier = Modifier.size(21.dp)
+                if (grabandoVoz) {
+                    BarraGrabandoVoz(
+                        segundos = segundosGrabacion,
+                        colorPrincipal = colorPrincipal,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
                     )
-                }
-
-            } else if (hayTexto && !grabandoVoz) {
-
-                // =====================================================
-                // ➤ ENVIAR
-                // =====================================================
-                IconButton(
-                    onClick = onEnviar,
-                    enabled = !cargando,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(
-                            color = colorPrincipal,
-                            shape = CircleShape
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Enviar mensaje",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(19.dp)
-                    )
-                }
-
-            } else {
-
-                // =====================================================
-                // 🎤 MICRÓFONO
-                // =====================================================
-                IconButton(
-                    onClick = {
-                        android.util.Log.d(
-                            "ZOE_AUDIO",
-                            "BOTÓN MICRÓFONO PRESIONADO"
-                        )
-                        onMicrofono()
-                    },
-                    enabled = !cargando,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(
-                            color = if (grabandoVoz) {
-                                colorPrincipal.copy(alpha = 0.18f)
-                            } else {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            },
-                            shape = CircleShape
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Mic,
-                        contentDescription = "Hablar con ZOE",
-                        tint = if (grabandoVoz) {
-                            colorPrincipal
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    OutlinedTextField(
+                        value = consulta,
+                        onValueChange = onConsultaChange,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp),
+                        enabled = !cargando,
+                        singleLine = true,
+                        placeholder = {
+                            Text(
+                                text = if (archivoAdjuntoUri != null) "Añade un comentario (opcional)..." else "Escribe un mensaje...",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 14.sp
+                            )
                         },
-                        modifier = Modifier.size(23.dp)
+                        maxLines = 1,
+                        shape = RoundedCornerShape(24.dp),
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Sentences,
+                            imeAction = ImeAction.Send
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onSend = {
+                                if (hayTexto) {
+                                    onEnviar()
+                                }
+                            }
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            cursorColor = colorPrincipal
+                        )
                     )
+                }
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                // Botón de Adjuntar con Menú Profesional Desplegable
+                Box {
+                    IconButton(
+                        onClick = { onToggleMenuAdjuntar(true) },
+                        enabled = !grabandoVoz,
+                        modifier = Modifier.size(42.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.AttachFile,
+                            contentDescription = "Adjuntar archivo o foto",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(23.dp)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = mostrarMenuAdjuntar,
+                        onDismissRequest = { onToggleMenuAdjuntar(false) }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Tomar foto") },
+                            onClick = {
+                                onToggleMenuAdjuntar(false)
+                                onCamaraClick()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.CameraAlt,
+                                    contentDescription = null,
+                                    tint = colorPrincipal
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Elegir de galería / archivos") },
+                            onClick = {
+                                onToggleMenuAdjuntar(false)
+                                onGaleriaClick()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Image,
+                                    contentDescription = null,
+                                    tint = colorPrincipal
+                                )
+                            }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(4.dp))
+
+                if (hablando) {
+                    IconButton(
+                        onClick = onDetenerVoz,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(
+                                color = Color(0xFFEF4444),
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Stop,
+                            contentDescription = "Detener voz de ZOE",
+                            tint = Color.White,
+                            modifier = Modifier.size(21.dp)
+                        )
+                    }
+                } else if (hayTexto && !grabandoVoz) {
+                    IconButton(
+                        onClick = onEnviar,
+                        enabled = !cargando,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(
+                                color = colorPrincipal,
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Enviar mensaje",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = { onMicrofono() },
+                        enabled = !cargando,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Mic,
+                            contentDescription = "Hablar con ZOE",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(23.dp)
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-/*
- * Barra visual de grabación de voz.
- *
- * Es una animación propia de SIGEFIV/ZOE:
- * - punto rojo de grabación
- * - contador de tiempo
- * - ondas animadas
- *
- * No modifica el audio ni el flujo de envío.
- */
 @Composable
 private fun BarraGrabandoVoz(
     segundos: Int,
@@ -1573,7 +2017,7 @@ private fun BarraGrabandoVoz(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height((24.dp.value * altura).dp)
+                        .height(24.dp * altura)
                         .clip(RoundedCornerShape(4.dp))
                         .background(colorPrincipal)
                 )
@@ -1591,12 +2035,103 @@ private fun formatearTiempoGrabacion(segundos: Int): String {
         segundosRestantes
     )
 }
+
+/*
+|--------------------------------------------------------------------------
+| ÍCONO VECTORIAL OFICIAL DE WHATSAPP Y ACCIONES TELEFÓNICAS
+|--------------------------------------------------------------------------
+*/
+
+@Composable
+private fun IconoWhatsAppVector(
+    modifier: Modifier = Modifier,
+    tint: Color = Color.White
+) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        val bubblePath = Path().apply {
+            moveTo(w * 0.15f, h * 0.85f)
+            lineTo(w * 0.22f, h * 0.68f)
+            cubicTo(
+                w * 0.10f, h * 0.50f,
+                w * 0.18f, h * 0.20f,
+                w * 0.45f, h * 0.15f
+            )
+            cubicTo(
+                w * 0.75f, h * 0.10f,
+                w * 0.92f, h * 0.35f,
+                w * 0.85f, h * 0.62f
+            )
+            cubicTo(
+                w * 0.78f, h * 0.85f,
+                w * 0.50f, h * 0.90f,
+                w * 0.33f, h * 0.79f
+            )
+            close()
+        }
+
+        drawPath(
+            path = bubblePath,
+            color = tint,
+            style = Stroke(
+                width = w * 0.085f,
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
+            )
+        )
+
+        val phonePath = Path().apply {
+            moveTo(w * 0.38f, h * 0.36f)
+            quadraticTo(w * 0.34f, h * 0.45f, w * 0.44f, h * 0.56f)
+            quadraticTo(w * 0.55f, h * 0.66f, w * 0.64f, h * 0.62f)
+        }
+
+        drawPath(
+            path = phonePath,
+            color = tint,
+            style = Stroke(
+                width = w * 0.095f,
+                cap = StrokeCap.Round
+            )
+        )
+    }
+}
+
+private fun formatearTelefonoPeru(telefono: String): String {
+    val digitos = telefono.filter { it.isDigit() }
+    val local = if (digitos.startsWith("51") && digitos.length == 11) {
+        digitos.substring(2)
+    } else {
+        digitos
+    }
+    return if (local.length == 9) {
+        "${local.substring(0, 3)} ${local.substring(3, 6)} ${local.substring(6, 9)}"
+    } else {
+        telefono
+    }
+}
+
+private fun llamarVecino(
+    context: android.content.Context,
+    telefono: String
+) {
+    val numero = telefono.filter { it.isDigit() || it == '+' }
+    if (numero.isBlank()) return
+
+    val intent = Intent(
+        Intent.ACTION_DIAL,
+        Uri.parse("tel:$numero")
+    )
+    context.startActivity(intent)
+}
+
 private fun abrirWhatsApp(
     context: android.content.Context,
     telefono: String
 ) {
     val numero = telefono.filter { it.isDigit() }
-
     if (numero.isBlank()) return
 
     val numeroPeru = if (numero.startsWith("51")) {
@@ -1606,11 +2141,9 @@ private fun abrirWhatsApp(
     }
 
     val url = "https://wa.me/$numeroPeru"
-
     val intent = Intent(
         Intent.ACTION_VIEW,
         Uri.parse(url)
     )
-
     context.startActivity(intent)
 }

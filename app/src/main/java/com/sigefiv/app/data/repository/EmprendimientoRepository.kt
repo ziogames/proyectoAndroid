@@ -37,13 +37,21 @@ class EmprendimientoRepository(
         }
     }
 
-    suspend fun generarDescripcionZoe(nombre: String): Result<String> {
+    suspend fun generarDescripcionZoe(
+        nombre: String,
+        borradorDescripcion: String = "" // Valor por defecto para evitar errores en otros lados
+    ): Result<String> {
         return try {
-            val response = api.generarDescripcionZoe(mapOf("name" to nombre))
+            val response = api.generarDescripcionZoe(
+                mapOf(
+                    "name" to nombre,
+                    "description" to borradorDescripcion
+                )
+            )
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!.description)
             } else {
-                Result.failure(Exception("Error al generar descripción con ZOE"))
+                Result.failure(Exception("Error al generar descripción: ${response.code()}"))
             }
         } catch (e: Exception) {
             Result.failure(e)

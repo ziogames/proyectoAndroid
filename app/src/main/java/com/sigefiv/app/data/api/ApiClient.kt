@@ -131,4 +131,10 @@ object ApiClient {
         return createRetrofit(context).create(EmprendimientoApi::class.java)
         // Nota: Asegúrate de usar la misma función base que usan tus otras APIs (getClient, getRetrofit, etc.)
     }
+    /**
+     * Cliente para la API de ZOE (Asistente e Historial).
+     */
+    fun zoeApi(context: Context): ZoeApi {
+        return createRetrofit(context).create(ZoeApi::class.java)
+    }
 }
