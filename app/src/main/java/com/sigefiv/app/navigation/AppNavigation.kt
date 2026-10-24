@@ -137,7 +137,7 @@ import com.sigefiv.app.data.api.EmprendimientoApi
 import com.sigefiv.app.data.repository.EmprendimientoRepository
 import com.sigefiv.app.screens.emprendimiento.EmprendimientosListScreen
 import com.sigefiv.app.screens.emprendimiento.EmprendimientoFormScreen
-
+import com.sigefiv.app.screens.roles.NuevoRolScreen
 
 enum class AppScreen(val drawerRoute: String) {
     DASHBOARD("dashboard"),
@@ -159,6 +159,8 @@ enum class AppScreen(val drawerRoute: String) {
     PERFIL("perfil"),
     USUARIOS("usuarios"),
     ROLES("roles"),
+
+    NUEVO_ROL("roles"),
     EDITAR_ROL("roles"),
     CAJA("caja"),
     ACTIVIDAD("actividad"),
@@ -192,8 +194,12 @@ fun AppNavigation(
   //  val emprendimientoFormViewModel = remember { EmprendimientoFormViewModel() }
     val asambleasViewModel =
         remember { AsambleasViewModel(context.applicationContext as Application) }
-    val usuarioViewModel =
-        remember { UsuarioViewModel(UsuarioRepository(ApiClient.usuarioApi(context))) }
+    val usuarioViewModel = remember {
+        UsuarioViewModel(
+            UsuarioRepository(ApiClient.usuarioApi(context)),
+            RolRepository(ApiClient.rolApi(context))
+        )
+    }
     val cajaViewModel = remember { CajaViewModel(CajaRepository(ApiClient.cajaApi(context))) }
     val actividadViewModel = remember {
         ActividadViewModel(
@@ -1045,7 +1051,10 @@ fun AppNavigation(
                         RolesListScreen(
                             viewModel = rolViewModel,
                             onBackClick = { retroceder() },
-                            onNuevoRol = { },
+                            onNuevoRol = {
+                                rolViewModel.cargarPermisosParaNuevoRol()
+                                navegarA(AppScreen.NUEVO_ROL)
+                            },
                             onEditarRol = { rolSeleccionado ->
                                 rolViewModel.cargarDetalleRol(rolSeleccionado.id)
                                 navegarA(AppScreen.EDITAR_ROL)
@@ -1116,6 +1125,29 @@ fun AppNavigation(
                             }
                         }
                     }
+
+                    AppScreen.NUEVO_ROL -> {
+                        val rolUiState by rolViewModel.uiState.collectAsState()
+
+                        NuevoRolScreen(
+                            permisosAgrupados = rolUiState.permisosDisponibles,
+                            cargandoPermisos = rolUiState.cargandoPermisos,
+                            guardando = rolUiState.guardando,
+                            error = rolUiState.error,
+                            onBackClick = { retroceder() },
+                            onReintentar = {
+                                rolViewModel.cargarPermisosParaNuevoRol()
+                            },
+                            onCrearRol = { nombre, permisos ->
+                                rolViewModel.crearRol(nombre, permisos) { exito ->
+                                    if (exito) {
+                                        retroceder()
+                                    }
+                                }
+                            }
+                        )
+                    }
+
 
                     AppScreen.CAJA -> {
                         CajaScreen(

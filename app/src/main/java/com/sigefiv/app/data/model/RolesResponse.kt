@@ -85,3 +85,27 @@ data class Permiso(
     @SerializedName("asignado", alternate = ["assigned"])
     val asignado: Boolean = false
 )
+/**
+ * Respuesta de GET api/roles/permisos.
+ */
+data class PermisosResponse(
+    @SerializedName("success")
+    val success: Boolean = false,
+
+    @SerializedName("permisos_agrupados")
+    val permisosAgrupados: Map<String, List<Permiso>> = emptyMap(),
+
+    @SerializedName("message")
+    val message: String? = null
+)
+
+/**
+ * Petición para crear un rol.
+ */
+data class CrearRolRequest(
+    @SerializedName("name")
+    val name: String,
+
+    @SerializedName("permissions")
+    val permissions: List<String> = emptyList()
+)

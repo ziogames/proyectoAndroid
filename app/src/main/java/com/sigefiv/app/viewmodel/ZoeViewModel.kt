@@ -54,6 +54,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import com.sigefiv.app.ServidorConfig
 
 data class ZoeMensaje(
     val texto: String,
@@ -1532,18 +1533,14 @@ class ZoeViewModel(
     }
 
     private fun obtenerUrlZoeWebSocket(): String {
-        val host = if (esEmulador()) {
-            "10.0.2.2"
-        } else {
-            "192.168.1.34"
-        }
+        val url = ServidorConfig.ZOE_WEBSOCKET_URL
 
-        android.util.Log.d(
+        Log.d(
             "ZOE_WS",
-            "Conectando al Gateway ZOE en $host:8001 (emulador=${esEmulador()})"
+            "URL WebSocket final: $url"
         )
 
-        return "ws://$host:8001/ws/zoe"
+        return url
     }
 
     private fun conectarZoeWebSocket() {

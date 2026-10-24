@@ -1,4 +1,3 @@
-
 package com.sigefiv.app.screens.chat.components
 
 import androidx.compose.foundation.background
@@ -46,6 +45,21 @@ fun ChatInputArea(
             .imePadding()
             .padding(horizontal = 8.dp, vertical = 5.dp)
     ) {
+
+        // 👇 AQUí CORREGIMOS EL ACCESO SEGURO A LA PROPIEDAD DEL USUARIO 👇
+        if (usuariosEscribiendo.isNotEmpty()) {
+            val nombres = usuariosEscribiendo.joinToString(", ") { usuario ->
+                usuario.name?.split(" ")?.firstOrNull() ?: "Vecino"
+            }
+            Text(
+                text = "$nombres escribiendo...",
+                color = Color.White.copy(alpha = 0.9f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(start = 12.dp, bottom = 6.dp)
+            )
+        }
+
         // Vista previa del mensaje que se responderá
         if (mensajeRespondido != null) {
             Surface(

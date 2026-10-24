@@ -123,36 +123,30 @@ class MovimientosViewModel(
         onResultado: (Movimiento?) -> Unit
     ) {
         viewModelScope.launch {
+            _mensaje.value = null
+
             try {
+                val respuesta = repository.obtenerMovimientoPorId(id)
 
-
-
-                val respuesta =
-                    repository.obtenerMovimientoPorId(id)
-
-
-
-                if (respuesta.success) {
-
-                    onResultado(
-                        respuesta.movimiento
-                    )
-
+                if (respuesta.success && respuesta.movimiento != null) {
+                    onResultado(respuesta.movimiento)
                 } else {
-
-
+                    _mensaje.value =
+                        "No se pudo cargar el movimiento. Verifica la respuesta de la API."
                     onResultado(null)
                 }
-
             } catch (e: Exception) {
-
-
                 e.printStackTrace()
+
+                _mensaje.value =
+                    "Error al cargar el movimiento: ${e.message ?: "error desconocido"}"
 
                 onResultado(null)
             }
         }
     }
+
+
     fun crearMovimiento(
         fecha: String,
         categoriaId: Int,

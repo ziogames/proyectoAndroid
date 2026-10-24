@@ -39,11 +39,11 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -62,16 +62,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sigefiv.app.data.model.RolDetalle
 import com.sigefiv.app.data.model.UsuarioListado
-import com.sigefiv.app.viewmodel.UsuarioViewModel
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
-
-// Colores semánticos y de contraste. Los colores de superficie y texto
-// se obtienen del MaterialTheme para soportar modo claro y oscuro.
+import com.sigefiv.app.viewmodel.UsuarioViewModel
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.ui.text.style.TextAlign
 private val VerdeClaroContraste = Color(0xFFCCFBF1)
 
-// Paleta Semántica de Estados
 private val ActivoBg = Color(0xFFDCFCE7)
 private val ActivoTexto = Color(0xFF15803D)
 private val ActivoBorde = Color(0xFF86EFAC)
@@ -97,69 +96,30 @@ fun UsuariosScreen(
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    var buscar by remember {
-        mutableStateOf("")
-    }
+    var buscar by remember { mutableStateOf("") }
 
     var usuarioPendienteCambio by remember {
         mutableStateOf<UsuarioListado?>(null)
     }
-
     var estadoPendienteCambio by remember {
         mutableStateOf<String?>(null)
     }
-
     var usuarioPendienteEliminacion by remember {
         mutableStateOf<UsuarioListado?>(null)
     }
-
     var usuarioPendienteCambioRol by remember {
         mutableStateOf<UsuarioListado?>(null)
     }
-
     var rolPendienteCambio by remember {
         mutableStateOf<String?>(null)
     }
 
     LaunchedEffect(Unit) {
         viewModel.cargarUsuarios()
+        viewModel.cargarRoles()
     }
 
-    /*
-     * MODAL DE ERROR
-     */
-    if (uiState.error != null) {
-        AlertDialog(
-            onDismissRequest = {
-                viewModel.limpiarError()
-            },
-            title = {
-                Text(
-                    text = "No se puede realizar la acción",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text(
-                    text = uiState.error
-                        ?: "No se pudo realizar el cambio."
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.limpiarError()
-                    }
-                ) {
-                    Text("Aceptar")
-                }
-            }
-        )
-    }
-
-    /*
-     * MODAL DE CONFIRMACIÓN ESTADO
-     */
+    // Confirmación de cambio de estado.
     if (
         usuarioPendienteCambio != null &&
         estadoPendienteCambio != null
@@ -174,17 +134,14 @@ fun UsuariosScreen(
             },
             title = {
                 Text(
-                    text = "Confirmar cambio",
+                    text = "Confirmar cambio de estado",
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
-                    text = "¿Deseas cambiar el estado de " +
-                            "${usuario.name} a " +
-                            nuevoEstado.replaceFirstChar {
-                                it.uppercase()
-                            } + "?"
+                    "¿Deseas cambiar el estado de ${usuario.name} a " +
+                            "${nuevoEstado.replaceFirstChar { it.uppercase() }}?"
                 )
             },
             confirmButton = {
@@ -214,9 +171,7 @@ fun UsuariosScreen(
         )
     }
 
-    /*
-     * MODAL DE CONFIRMACIÓN DE CAMBIO DE ROL
-     */
+    // Confirmación de cambio de rol.
     if (
         usuarioPendienteCambioRol != null &&
         rolPendienteCambio != null
@@ -236,10 +191,7 @@ fun UsuariosScreen(
                 )
             },
             text = {
-                Text(
-                    text = "¿Deseas cambiar el rol de " +
-                            "${usuario.name} a $nuevoRol?"
-                )
+                Text("¿Deseas asignar el rol $nuevoRol a ${usuario.name}?")
             },
             confirmButton = {
                 Button(
@@ -268,9 +220,7 @@ fun UsuariosScreen(
         )
     }
 
-    /*
-     * MODAL DE CONFIRMACIÓN DE ELIMINACIÓN
-     */
+    // Confirmación de eliminación.
     if (usuarioPendienteEliminacion != null) {
         val usuario = usuarioPendienteEliminacion!!
 
@@ -286,16 +236,14 @@ fun UsuariosScreen(
             },
             text = {
                 Text(
-                    text = "¿Estás seguro de que deseas eliminar " +
-                            "${usuario.name}? Esta acción no se puede deshacer."
+                    "¿Estás seguro de que deseas eliminar a ${usuario.name}? " +
+                            "Esta acción no se puede deshacer."
                 )
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.eliminarUsuario(
-                            usuarioId = usuario.id
-                        )
+                        viewModel.eliminarUsuario(usuario.id)
                         usuarioPendienteEliminacion = null
                     }
                 ) {
@@ -314,252 +262,258 @@ fun UsuariosScreen(
         )
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colorPrincipal)
-    ) {
-        Scaffold(
-            containerColor = Color.Transparent
-        ) { paddingValues ->
-            Column(
+    // Diálogo de error.
+    if (uiState.error != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.limpiarError() },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.ErrorOutline,
+                    contentDescription = null,
+                    tint = BloqueadoTexto
+                )
+            },
+            title = {
+                Text(
+                    text = "No se pudo completar la acción",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(uiState.error ?: "Ocurrió un error inesperado.")
+            },
+            confirmButton = {
+                Button(onClick = { viewModel.limpiarError() }) {
+                    Text("Aceptar")
+                }
+            }
+        )
+    }
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Encabezado.
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    // Aplicamos solo el padding bottom del scaffold para no duplicar el padding de la barra superior
-                    .padding(bottom = paddingValues.calculateBottomPadding())
+                    .fillMaxWidth()
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                colorPrincipal,
+                                colorPrincipalOscuro
+                            )
+                        )
+                    )
+                    .statusBarsPadding()
+                    .padding(horizontal = 18.dp, vertical = 18.dp)
             ) {
-                /*
-                 * ENCABEZADO TIPO DASHBOARD
-                 */
-                Surface(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    shadowElevation = 6.dp,
-                    color = Color.Transparent
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        colorPrincipal,
-                                        colorPrincipalOscuro
-                                    )
-                                )
-                            )
-                            .statusBarsPadding()
-                            .padding(
-                                horizontal = 20.dp,
-                                vertical = 12.dp // Reducido a 12.dp para disminuir espacio vertical
-                            )
+                    Surface(
+                        onClick = onBackClick,
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.18f),
+                        modifier = Modifier.size(44.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = Color.White
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Gestión de usuarios",
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = "Control de accesos de SIGEFIV",
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.88f)
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.White.copy(alpha = 0.18f),
+                        border = BorderStroke(
+                            1.dp,
+                            Color.White.copy(alpha = 0.25f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(
+                                horizontal = 12.dp,
+                                vertical = 7.dp
+                            ),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Surface(
-                                onClick = onBackClick,
-                                shape = CircleShape,
-                                color = Color.White.copy(alpha = 0.18f),
-                                modifier = Modifier.size(42.dp)
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = "Volver",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.width(16.dp))
-
-                            Column(
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = "Gestión de Usuarios",
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "Panel de control de accesos SIGEFIV",
-                                    fontSize = 12.sp,
-                                    color = Color.White.copy(alpha = 0.85f)
-                                )
-                            }
-
-                            // BADGE DE CONTEO
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = Color.White.copy(alpha = 0.2f),
-                                border = BorderStroke(
-                                    1.dp,
-                                    Color.White.copy(alpha = 0.3f)
-                                )
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(
-                                        horizontal = 12.dp,
-                                        vertical = 6.dp
-                                    ),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "${uiState.usuarios.size}",
-                                        color = Color.White,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "total",
-                                        color = Color.White.copy(alpha = 0.8f),
-                                        fontSize = 11.sp
-                                    )
-                                }
-                            }
+                            Text(
+                                text = uiState.usuarios.size.toString(),
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "usuarios",
+                                color = Color.White.copy(alpha = 0.85f),
+                                fontSize = 10.sp
+                            )
                         }
                     }
                 }
+            }
 
-                /*
-                 * CUERPO PRINCIPAL
-                 */
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(horizontal = 16.dp)
-                ) {
-                    Spacer(modifier = Modifier.height(18.dp))
+            // Contenido principal.
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Spacer(modifier = Modifier.height(18.dp))
 
-                    /*
-                     * BARRA DE BÚSQUEDA
-                     */
-                    OutlinedTextField(
-                        value = buscar,
-                        onValueChange = { buscar = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        placeholder = {
-                            Text(
-                                text = "Buscar por nombre, apellido o correo...",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 14.sp
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Buscar",
-                                tint = colorPrincipal,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        },
-                        shape = RoundedCornerShape(20.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            focusedBorderColor = colorPrincipal,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                Text(
+                    text = "Directorio de usuarios",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Busca personas y administra sus permisos y estados.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                OutlinedTextField(
+                    value = buscar,
+                    onValueChange = { buscar = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = {
+                        Text(
+                            text = "Nombre o correo electrónico",
+                            fontSize = 14.sp
                         )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Buscar",
+                            tint = colorPrincipal
+                        )
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = colorPrincipal,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                     )
+                )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                    when {
-                        uiState.cargando -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
+                when {
+                    uiState.cargando -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    CircularProgressIndicator(
-                                        color = colorPrincipal,
-                                        strokeWidth = 3.dp
-                                    )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Text(
-                                        text = "Cargando directorio...",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 13.sp
-                                    )
-                                }
+                                CircularProgressIndicator(
+                                    color = colorPrincipal,
+                                    strokeWidth = 3.dp
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Cargando usuarios...",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
+                    }
 
-                        uiState.error != null -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        imageVector = Icons.Default.ErrorOutline,
-                                        contentDescription = null,
-                                        tint = BloqueadoTexto,
-                                        modifier = Modifier.size(48.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = uiState.error ?: "Error al obtener usuarios",
-                                        color = BloqueadoTexto,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-                        }
+                    uiState.usuarios.isEmpty() -> {
+                        EstadoVacioUsuarios(
+                            titulo = "No hay usuarios",
+                            descripcion = "Todavía no hay usuarios para mostrar.",
+                            colorPrincipal = colorPrincipal,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
 
-                        uiState.usuarios.isEmpty() -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        imageVector = Icons.Default.PersonSearch,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(54.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "No se encontraron usuarios registrados",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 14.sp
-                                    )
-                                }
-                            }
-                        }
-
-                        else -> {
-                            val usuariosFiltrados = if (buscar.isBlank()) {
+                    else -> {
+                        val usuariosFiltrados =
+                            if (buscar.isBlank()) {
                                 uiState.usuarios
                             } else {
                                 uiState.usuarios.filter { usuario ->
-                                    usuario.name.contains(buscar, ignoreCase = true) ||
-                                            usuario.email.contains(buscar, ignoreCase = true)
+                                    usuario.name.contains(
+                                        buscar.trim(),
+                                        ignoreCase = true
+                                    ) || usuario.email.contains(
+                                        buscar.trim(),
+                                        ignoreCase = true
+                                    )
                                 }
                             }
 
+                        if (usuariosFiltrados.isEmpty()) {
+                            EstadoVacioUsuarios(
+                                titulo = "Sin resultados",
+                                descripcion = "Prueba con otro nombre o correo.",
+                                colorPrincipal = colorPrincipal,
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else {
+                            Text(
+                                text = "${usuariosFiltrados.size} resultado(s)",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
                             LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                                 contentPadding = PaddingValues(bottom = 24.dp)
                             ) {
                                 items(
                                     items = usuariosFiltrados,
-                                    key = { usuario -> usuario.id }
+                                    key = { it.id }
                                 ) { usuario ->
                                     UsuarioTarjetaProfional(
                                         usuario = usuario,
+                                        rolesDisponibles = uiState.roles,
+                                        colorPrincipal = colorPrincipal,
                                         onGuardarEstado = { nuevoEstado ->
                                             usuarioPendienteCambio = usuario
                                             estadoPendienteCambio = nuevoEstado
@@ -583,20 +537,75 @@ fun UsuariosScreen(
 }
 
 @Composable
+private fun EstadoVacioUsuarios(
+    titulo: String,
+    descripcion: String,
+    colorPrincipal: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = colorPrincipal.copy(alpha = 0.10f),
+                modifier = Modifier.size(76.dp)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = colorPrincipal,
+                        modifier = Modifier.size(38.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Text(
+                text = titulo,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = descripcion,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
 private fun UsuarioTarjetaProfional(
     usuario: UsuarioListado,
+    rolesDisponibles: List<RolDetalle>,
+    colorPrincipal: Color,
     onGuardarEstado: (String) -> Unit,
     onGuardarRol: (String) -> Unit,
     onEliminarUsuario: () -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
-
     val nombre = usuario.name.ifBlank { "Usuario" }
     val inicial = nombre.trim().firstOrNull()?.uppercase() ?: "U"
 
-    val rol = usuario.roles
+    val rolActual = usuario.roles
         .firstOrNull()
         ?.name
         ?.takeIf { it.isNotBlank() }
@@ -606,61 +615,74 @@ private fun UsuarioTarjetaProfional(
         mutableStateOf(usuario.estado ?: "pendiente")
     }
 
-    var menuEstadoAbierto by remember { mutableStateOf(false) }
-
-    var rolSeleccionado by remember(usuario.id, rol) {
-        mutableStateOf(rol)
+    var menuEstadoAbierto by remember(usuario.id) {
+        mutableStateOf(false)
     }
 
-    var menuRolAbierto by remember { mutableStateOf(false) }
-
-    val (bgColor, textColor, borderColor) = when (estadoSeleccionado.lowercase()) {
-        "activo" -> Triple(ActivoBg, ActivoTexto, ActivoBorde)
-        "bloqueado" -> Triple(BloqueadoBg, BloqueadoTexto, BloqueadoBorde)
-        else -> Triple(PendienteBg, PendienteTexto, PendienteBorde)
+    var rolSeleccionado by remember(usuario.id, rolActual) {
+        mutableStateOf(rolActual)
     }
+
+    var menuRolAbierto by remember(usuario.id) {
+        mutableStateOf(false)
+    }
+
+    val (bgColor, textColor, borderColor) =
+        when (estadoSeleccionado.lowercase()) {
+            "activo" -> Triple(ActivoBg, ActivoTexto, ActivoBorde)
+            "bloqueado" -> Triple(BloqueadoBg, BloqueadoTexto, BloqueadoBorde)
+            else -> Triple(PendienteBg, PendienteTexto, PendienteBorde)
+        }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
+            // Datos del usuario.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                /*
-                 * AVATAR CON ANILLO DE ESTADO
-                 */
                 Box {
                     Surface(
-                        modifier = Modifier.size(54.dp),
+                        modifier = Modifier.size(50.dp),
                         shape = CircleShape,
                         color = VerdeClaroContraste,
-                        border = BorderStroke(2.dp, colorPrincipal.copy(alpha = 0.2f))
+                        border = BorderStroke(
+                            2.dp,
+                            colorPrincipal.copy(alpha = 0.20f)
+                        )
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 text = inicial,
-                                fontSize = 22.sp,
+                                fontSize = 21.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colorPrincipal
                             )
                         }
                     }
 
-                    // Punto indicador de estado
                     Box(
                         modifier = Modifier
-                            .size(16.dp)
+                            .align(Alignment.BottomEnd)
+                            .size(14.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surface)
                             .padding(2.dp)
-                            .align(Alignment.BottomEnd)
                     ) {
                         Box(
                             modifier = Modifier
@@ -671,86 +693,106 @@ private fun UsuarioTarjetaProfional(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
                         text = nombre,
-                        fontSize = 16.sp,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(5.dp))
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Email,
                             contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
                         )
+
                         Spacer(modifier = Modifier.width(5.dp))
+
                         Text(
                             text = usuario.email,
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            /*
-             * SECCIÓN INFERIOR: ROL + ESTADO + GUARDAR
-             */
+            // Selector de rol y botón guardar en su propia fila.
+            Text(
+                text = "ROL DEL USUARIO",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 0.7.sp
+            )
+
+            Spacer(modifier = Modifier.height(7.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // SELECTOR DE ROL
-                Box {
+                Box(modifier = Modifier.weight(1f)) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant
+                        ),
                         modifier = Modifier
+                            .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .clickable { menuRolAbierto = true }
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(
+                                horizontal = 12.dp,
+                                vertical = 11.dp
+                            ),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Shield,
                                 contentDescription = null,
-                                modifier = Modifier.size(13.dp),
-                                tint = colorPrincipal
+                                tint = colorPrincipal,
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
                             Text(
                                 text = rolSeleccionado,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colorPrincipal,
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            Spacer(modifier = Modifier.width(2.dp))
+
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = "Cambiar rol",
-                                tint = colorPrincipal,
-                                modifier = Modifier.size(17.dp)
+                                contentDescription = "Seleccionar rol",
+                                tint = colorPrincipal
                             )
                         }
                     }
@@ -759,147 +801,205 @@ private fun UsuarioTarjetaProfional(
                         expanded = menuRolAbierto,
                         onDismissRequest = { menuRolAbierto = false }
                     ) {
-                        listOf("Administrador", "Tesorero", "Secretario", "Consulta").forEach { opcionRol ->
+                        if (rolesDisponibles.isEmpty()) {
                             DropdownMenuItem(
                                 text = {
-                                    Text(
-                                        text = opcionRol,
-                                        fontWeight = if (opcionRol == rolSeleccionado) FontWeight.Bold else FontWeight.Normal
-                                    )
+                                    Text("Cargando roles...")
                                 },
-                                onClick = {
-                                    rolSeleccionado = opcionRol
-                                    menuRolAbierto = false
-                                }
+                                enabled = false,
+                                onClick = {}
                             )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(6.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // BOTÓN GUARDAR ROL
-                    Surface(
-                        onClick = { onGuardarRol(rolSeleccionado) },
-                        shape = CircleShape,
-                        color = colorPrincipal,
-                        shadowElevation = 2.dp,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Save,
-                                contentDescription = "Guardar rol",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    /*
-                     * SELECTOR DE ESTADO
-                     */
-                    Box {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = bgColor,
-                            border = BorderStroke(1.dp, borderColor),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { menuEstadoAbierto = true }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = estadoSeleccionado.replaceFirstChar { it.uppercase() },
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = textColor
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    imageVector = Icons.Default.ArrowDropDown,
-                                    contentDescription = "Cambiar estado",
-                                    tint = textColor,
-                                    modifier = Modifier.size(18.dp)
+                        } else {
+                            rolesDisponibles.forEach { opcionRol ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = opcionRol.name,
+                                            fontWeight = if (
+                                                opcionRol.name == rolSeleccionado
+                                            ) {
+                                                FontWeight.Bold
+                                            } else {
+                                                FontWeight.Normal
+                                            }
+                                        )
+                                    },
+                                    onClick = {
+                                        rolSeleccionado = opcionRol.name
+                                        menuRolAbierto = false
+                                    }
                                 )
                             }
                         }
-
-                        DropdownMenu(
-                            expanded = menuEstadoAbierto,
-                            onDismissRequest = { menuEstadoAbierto = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Activo", fontWeight = FontWeight.SemiBold, color = ActivoTexto) },
-                                onClick = {
-                                    estadoSeleccionado = "activo"
-                                    menuEstadoAbierto = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Pendiente", fontWeight = FontWeight.SemiBold, color = PendienteTexto) },
-                                onClick = {
-                                    estadoSeleccionado = "pendiente"
-                                    menuEstadoAbierto = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Bloqueado", fontWeight = FontWeight.SemiBold, color = BloqueadoTexto) },
-                                onClick = {
-                                    estadoSeleccionado = "bloqueado"
-                                    menuEstadoAbierto = false
-                                }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // BOTÓN GUARDAR ESTADO
-                    Surface(
-                        onClick = { onGuardarEstado(estadoSeleccionado) },
-                        shape = CircleShape,
-                        color = colorPrincipal,
-                        shadowElevation = 2.dp,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Save,
-                                contentDescription = "Guardar",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    // BOTÓN ELIMINAR USUARIO
-                    Surface(
-                        onClick = onEliminarUsuario,
-                        shape = CircleShape,
-                        color = BloqueadoTexto,
-                        shadowElevation = 2.dp,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Eliminar usuario",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
                     }
                 }
+
+                BotonAccionCircular(
+                    descripcion = "Guardar rol",
+                    color = colorPrincipal,
+                    onClick = { onGuardarRol(rolSeleccionado) }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Save,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(15.dp))
+
+            // Selector de estado y acciones en una segunda fila.
+            Text(
+                text = "ESTADO DE LA CUENTA",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 0.7.sp
+            )
+
+            Spacer(modifier = Modifier.height(7.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = bgColor,
+                        border = BorderStroke(1.dp, borderColor),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { menuEstadoAbierto = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(
+                                horizontal = 12.dp,
+                                vertical = 11.dp
+                            ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = estadoSeleccionado.replaceFirstChar {
+                                    it.uppercase()
+                                },
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = textColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Seleccionar estado",
+                                tint = textColor
+                            )
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = menuEstadoAbierto,
+                        onDismissRequest = { menuEstadoAbierto = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "Activo",
+                                    color = ActivoTexto,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            },
+                            onClick = {
+                                estadoSeleccionado = "activo"
+                                menuEstadoAbierto = false
+                            }
+                        )
+
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "Pendiente",
+                                    color = PendienteTexto,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            },
+                            onClick = {
+                                estadoSeleccionado = "pendiente"
+                                menuEstadoAbierto = false
+                            }
+                        )
+
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "Bloqueado",
+                                    color = BloqueadoTexto,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            },
+                            onClick = {
+                                estadoSeleccionado = "bloqueado"
+                                menuEstadoAbierto = false
+                            }
+                        )
+                    }
+                }
+
+                BotonAccionCircular(
+                    descripcion = "Guardar estado",
+                    color = colorPrincipal,
+                    onClick = { onGuardarEstado(estadoSeleccionado) }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Save,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+
+                BotonAccionCircular(
+                    descripcion = "Eliminar usuario",
+                    color = BloqueadoTexto,
+                    onClick = onEliminarUsuario
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BotonAccionCircular(
+    descripcion: String,
+    color: Color,
+    onClick: () -> Unit,
+    contenido: @Composable () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = color,
+        shadowElevation = 2.dp,
+        modifier = Modifier.size(42.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            contenido()
         }
     }
 }

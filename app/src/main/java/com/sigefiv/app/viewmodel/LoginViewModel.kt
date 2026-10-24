@@ -123,7 +123,8 @@ class LoginViewModel(
                             nombre = usuario.name,
                             seudonimo = usuario.seudonimo,
                             rol = usuario.rol,
-                            bienvenidaVista = usuario.bienvenidaVista
+                            bienvenidaVista = usuario.bienvenidaVista,
+                            permisos = usuario.permisos
                         )
 
                         FcmTokenManager.registrarToken(appContext)
@@ -284,7 +285,8 @@ class LoginViewModel(
                             nombre = usuario.name,
                             seudonimo = usuario.seudonimo,
                             rol = usuario.rol,
-                            bienvenidaVista = usuario.bienvenidaVista
+                            bienvenidaVista = usuario.bienvenidaVista,
+                            permisos = usuario.permisos
                         )
 
                         FcmTokenManager.registrarToken(appContext)

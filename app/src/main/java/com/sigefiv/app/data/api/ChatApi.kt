@@ -33,7 +33,13 @@ interface ChatApi {
         @Part("mensaje") mensaje: RequestBody?,
         @Part archivo: MultipartBody.Part
     ): Response<ChatEnviarResponse>
-
+    @Multipart
+    @POST("chat")
+    suspend fun enviarChatVecinalConArchivo(
+        @Part archivo: MultipartBody.Part,
+        @Part("mensaje") mensaje: RequestBody?,
+        @Part("reply_to_id") replyToId: RequestBody?
+    ): Response<ChatEnviarResponse>
     @POST("chat/presencia")
     suspend fun actualizarPresencia(): Response<ChatPresenciaResponse>
 

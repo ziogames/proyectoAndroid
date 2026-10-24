@@ -6,14 +6,15 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import com.sigefiv.app.ServidorConfig
 
 object ApiClient {
 
    // private const val BASE_URL =
  //  "http://10.0.2.2:8080/api/"
 
-    private const val BASE_URL =
-      "http://192.168.1.34:8080/api/"
+    private val BASE_URL: String
+        get() = ServidorConfig.API_BASE_URL
 
     private fun createRetrofit(
         context: Context

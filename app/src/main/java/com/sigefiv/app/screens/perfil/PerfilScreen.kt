@@ -88,7 +88,7 @@ import androidx.compose.foundation.Image
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URL
-
+import com.sigefiv.app.ServidorConfig
 /*
 |--------------------------------------------------------------------------
 | COLORES CORPORATIVOS SIGEFIV
@@ -948,16 +948,31 @@ private fun PerfilSeparador() {
 }
 
 @Composable
-private fun ImagenPerfil(foto: String?, modifier: Modifier = Modifier) {
-    var bitmap by remember(foto) { mutableStateOf<Bitmap?>(null) }
+private fun ImagenPerfil(
+    foto: String?,
+    modifier: Modifier = Modifier
+) {
+    var bitmap by remember(foto) {
+        mutableStateOf<Bitmap?>(null)
+    }
 
     LaunchedEffect(foto) {
         bitmap = null
+
         if (!foto.isNullOrBlank()) {
             bitmap = withContext(Dispatchers.IO) {
                 try {
-                    val urlCorregida = foto.replace("localhost", "192.168.1.34")
-                    BitmapFactory.decodeStream(URL(urlCorregida).openStream())
+                    val urlCorregida = foto.replace(
+                        "localhost",
+                        ServidorConfig.API_BASE_URL
+                            .substringBefore("/api/")
+                            .removePrefix("http://")
+                            .removePrefix("https://")
+                    )
+
+                    BitmapFactory.decodeStream(
+                        URL(urlCorregida).openStream()
+                    )
                 } catch (e: Exception) {
                     null
                 }
@@ -966,6 +981,10 @@ private fun ImagenPerfil(foto: String?, modifier: Modifier = Modifier) {
     }
 
     if (bitmap != null) {
-        Image(bitmap = bitmap!!.asImageBitmap(), contentDescription = "Foto de perfil", modifier = modifier)
+        Image(
+            bitmap = bitmap!!.asImageBitmap(),
+            contentDescription = "Foto de perfil",
+            modifier = modifier
+        )
     }
 }

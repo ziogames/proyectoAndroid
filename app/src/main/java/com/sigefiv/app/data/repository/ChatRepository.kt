@@ -10,6 +10,8 @@ import com.sigefiv.app.data.model.ChatReaccionResponse
 import com.sigefiv.app.data.model.ChatResponse
 import retrofit2.Response
 import com.sigefiv.app.data.model.ChatSimpleResponse
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 
 // 🚨 Excepción personalizada para transportar los datos de baneo de ZOE al ViewModel
 class ZoeException(
@@ -51,6 +53,22 @@ class ChatRepository(
         }
     }
 
+    /**
+     * 📎 Enviar archivo multimedia (foto o video) adjunto al chat vecinal
+     */
+    /**
+     * 📎 Enviar archivo multimedia (foto o video) exclusivo para el Chat Vecinal
+     */
+    suspend fun enviarChatVecinalConArchivo(
+        archivo: MultipartBody.Part,
+        mensaje: RequestBody?,
+        replyToId: RequestBody?
+    ): Result<ChatEnviarResponse> {
+        return ejecutar {
+            api.enviarChatVecinalConArchivo(archivo, mensaje, replyToId)
+        }
+    }
+
     suspend fun actualizarPresencia(): Result<ChatPresenciaResponse> {
         return ejecutar {
             api.actualizarPresencia()
@@ -80,13 +98,18 @@ class ChatRepository(
     }
 
     /**
-     * ❤️ Agregar o quitar una reacción de un mensaje.
+    -
+    ❤️ Agregar o quitar una reacción de un mensaje.
      *
-     * Si el usuario ya tiene ese emoji:
-     *      → Laravel elimina la reacción.
+    - Si el usuario ya tiene ese emoji:
+
+    -      → Laravel elimina la reacción.
+
      *
-     * Si no la tiene:
-     *      → Laravel agrega la reacción.
+    - Si no la tiene:
+
+    -      → Laravel agrega la reacción.
+
      */
     suspend fun reaccionar(
         chatMessageId: Int,
@@ -103,7 +126,8 @@ class ChatRepository(
     }
 
     /**
-     * ❤️ Obtener las reacciones de un mensaje.
+    -
+    ❤️ Obtener las reacciones de un mensaje.
      */
     suspend fun obtenerReacciones(
         chatMessageId: Int

@@ -74,6 +74,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.graphicsLayer
+import com.sigefiv.app.ServidorConfig
 
 @Composable
 fun DetalleMovimientoScreen(
@@ -337,7 +338,7 @@ private fun InformacionGeneralCard(
         mutableStateOf(false)
     }
     val urlComprobante = movimiento.comprobante?.let {
-        "http://192.168.1.34:8080/storage/$it"
+        "${ServidorConfig.API_BASE_URL.substringBefore("/api/")}/storage/$it"
     }
     Column(
         modifier = Modifier

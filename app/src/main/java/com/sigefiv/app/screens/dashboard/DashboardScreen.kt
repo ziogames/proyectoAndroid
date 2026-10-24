@@ -138,6 +138,9 @@ fun DashboardScreen(
     val seudonimo by sessionManager.seudonimo.collectAsState(initial = null)
     val rol by sessionManager.rol.collectAsState(initial = null)
 
+    val permisos by sessionManager.permisos.collectAsState(initial = emptySet())
+    val puedeUsarZoe = "zoe.llamada" in permisos
+
 
     val nombreMostrar =
         seudonimo?.trim()?.takeIf { it.isNotEmpty() }
@@ -258,14 +261,16 @@ fun DashboardScreen(
                     |--------------------------------------------------------------------------
                     */
 
-                    IconButton(
-                        onClick = onSigiClick
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.SmartToy,
-                            contentDescription = "ZOE inteligente",
-                            tint = Blanco
-                        )
+                    if (puedeUsarZoe) {
+                        IconButton(
+                            onClick = onSigiClick
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.SmartToy,
+                                contentDescription = "ZOE inteligente",
+                                tint = Blanco
+                            )
+                        }
                     }
 
                     /*

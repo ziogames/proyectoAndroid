@@ -15,8 +15,10 @@ import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +31,8 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -37,7 +41,6 @@ import com.sigefiv.app.data.model.ChatArchivoPayload
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 import java.util.Locale
-import androidx.compose.material.icons.outlined.Group
 
 // ============================================================
 // COLORES COMPARTIDOS PARA EL CHAT
@@ -179,53 +182,89 @@ fun TarjetaMovimientoInteligente(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TarjetaArchivoMensaje(archivo: ChatArchivoPayload) {
-    val c = coloresChat()
     val context = LocalContext.current
     var mostrarImagenAmpliada by remember { mutableStateOf(false) }
 
     val urlCorregida = archivo.url?.replace("localhost", "10.0.2.2")
-    val esImagen = archivo.mime?.startsWith("image/") == true
+    val esImagenOVid = archivo.mime?.startsWith("image/") == true || archivo.mime?.startsWith("video/") == true
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        if (esImagen && !urlCorregida.isNullOrBlank()) {
+        if (esImagenOVid && !urlCorregida.isNullOrBlank()) {
+            // Diseño profesional limpio para Fotos y Videos
             AsyncImage(
                 model = urlCorregida,
-                contentDescription = archivo.nombre ?: "Imagen adjunta",
+                contentDescription = archivo.nombre ?: "Archivo adjunto",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .heightIn(max = 300.dp) // Limita la altura para no romper el chat
                     .clip(RoundedCornerShape(8.dp))
+                    .background(LocalContentColor.current.copy(alpha = 0.1f))
                     .clickable { mostrarImagenAmpliada = true },
                 contentScale = ContentScale.Crop
             )
-            Spacer(modifier = Modifier.height(6.dp))
-        }
 
-        if (!archivo.texto.isNullOrBlank()) {
-            Text(text = archivo.texto, color = c.textoPrincipal, fontSize = 14.sp, lineHeight = 19.sp)
-            Spacer(modifier = Modifier.height(4.dp))
-        }
+            // Leyenda justo debajo de la imagen, adopta el color del tema automáticamente
+            if (!archivo.texto.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = archivo.texto,
+                    color = LocalContentColor.current,
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp
+                )
+            }
+        } else {
+            // Diseño para documentos que no son imágenes (ej. PDFs, Word, sin URL válida)
+            if (!archivo.texto.isNullOrBlank()) {
+                Text(
+                    text = archivo.texto,
+                    color = LocalContentColor.current,
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
 
-        Surface(
-            shape = RoundedCornerShape(6.dp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-            modifier = Modifier.fillMaxWidth().padding(top = 2.dp).combinedClickable(
-                onClick = {
-                    if (!esImagen && !urlCorregida.isNullOrBlank()) {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlCorregida))
-                        context.startActivity(intent)
-                    }
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = LocalContentColor.current.copy(alpha = 0.08f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 2.dp)
+                    .combinedClickable(
+                        onClick = {
+                            if (!urlCorregida.isNullOrBlank()) {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlCorregida))
+                                context.startActivity(intent)
+                            }
+                        }
+                    )
+            ) {
+                Row(
+                    modifier = Modifier.padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.AttachFile,
+                        contentDescription = null,
+                        tint = LocalContentColor.current.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = archivo.nombre ?: "Archivo adjunto",
+                        color = LocalContentColor.current,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
-            )
-        ) {
-            Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.AttachFile, contentDescription = null, tint = colorPrincipal(), modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(text = archivo.nombre ?: "Archivo adjunto", color = colorPrincipal(), fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
             }
         }
     }
 
+    // Modal de imagen ampliada a pantalla completa
     if (mostrarImagenAmpliada && !urlCorregida.isNullOrBlank()) {
         Dialog(onDismissRequest = { mostrarImagenAmpliada = false }) {
             Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
@@ -233,12 +272,15 @@ fun TarjetaArchivoMensaje(archivo: ChatArchivoPayload) {
                     AsyncImage(
                         model = urlCorregida,
                         contentDescription = archivo.nombre ?: "Imagen ampliada",
-                        modifier = Modifier.fillMaxSize().padding(top = 35.dp, bottom = 35.dp),
+                        modifier = Modifier.fillMaxSize().padding(vertical = 35.dp),
                         contentScale = ContentScale.Fit
                     )
                     IconButton(
                         onClick = { mostrarImagenAmpliada = false },
-                        modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).background(Color.Black.copy(alpha = 0.55f), CircleShape)
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .background(Color.Black.copy(alpha = 0.55f), CircleShape)
                     ) {
                         Icon(Icons.Outlined.Close, contentDescription = "Cerrar imagen", tint = Color.White)
                     }
@@ -283,6 +325,7 @@ fun TarjetaTotalInteligente(totalSuma: Double?, lineaOriginal: String) {
         }
     }
 }
+
 @Composable
 fun ChatEmptyState() {
     val c = coloresChat()
@@ -312,7 +355,7 @@ fun ChatEmptyState() {
         Text(
             text = "Aún no hay mensajes.\nSé el primero en escribir.",
             color = c.textoSecundario,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = TextAlign.Center,
             fontSize = 13.sp
         )
     }

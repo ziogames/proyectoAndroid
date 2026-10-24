@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.sigefiv.app.data.model.RolDetalle
+import com.sigefiv.app.data.repository.RolRepository
 
 data class UsuariosUiState(
     val cargando: Boolean = false,
@@ -16,11 +18,13 @@ data class UsuariosUiState(
     val eliminandoUsuario: Boolean = false,
     val usuarios: List<UsuarioListado> = emptyList(),
     val error: String? = null,
-    val mensaje: String? = null
+    val mensaje: String? = null,
+    val roles: List<RolDetalle> = emptyList(),
 )
 
 class UsuarioViewModel(
-    private val repository: UsuarioRepository
+    private val repository: UsuarioRepository,
+    private val rolRepository: RolRepository
 ) : ViewModel() {
 
     private val _uiState =
@@ -304,5 +308,15 @@ class UsuarioViewModel(
             _uiState.value.copy(
                 error = null
             )
+    }
+    fun cargarRoles() {
+        viewModelScope.launch {
+            rolRepository.obtenerRoles()
+                .onSuccess { rolesObtenidos ->
+                    _uiState.value = _uiState.value.copy(
+                        roles = rolesObtenidos
+                    )
+                }
+        }
     }
 }
