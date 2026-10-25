@@ -129,6 +129,7 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
+import com.sigefiv.app.components.LinkableText
 
 /*
 |--------------------------------------------------------------------------
@@ -1154,16 +1155,19 @@ private fun ZoeRespuestaFormateada(
         }
     }
 
+
     if (movimientos.isEmpty()) {
-        Text(
+        LinkableText(
             text = texto,
-            color = MaterialTheme.colorScheme.onSurface,
+            modifier = modifier,
+            textColor = MaterialTheme.colorScheme.onSurface,
+            linkColor = Color(0xFF4FC3F7),
             fontSize = 14.5.sp,
-            lineHeight = 19.sp,
-            modifier = modifier
+            lineHeight = 19.sp
         )
         return
     }
+
 
     val esEgreso = tipoMovimiento == "Egreso"
     val esIngreso = tipoMovimiento == "Ingreso"
