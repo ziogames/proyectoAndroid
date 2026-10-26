@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,11 +18,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,7 +100,9 @@ fun EmprendimientoFormScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedButton(
-                        modifier = Modifier.weight(1f).heightIn(min = 50.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 50.dp),
                         onClick = { onAction(EmprendimientoFormAction.SaveAsDraft) },
                         enabled = !state.isLoading,
                         shape = RoundedCornerShape(14.dp),
@@ -118,7 +120,9 @@ fun EmprendimientoFormScreen(
                     }
 
                     Button(
-                        modifier = Modifier.weight(1f).heightIn(min = 50.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 50.dp),
                         onClick = { onAction(EmprendimientoFormAction.Publish) },
                         enabled = !state.isLoading,
                         shape = RoundedCornerShape(14.dp),
@@ -171,15 +175,28 @@ fun EmprendimientoFormScreen(
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Words, // Ej: "Mi Gran Negocio"
+                        capitalization = KeyboardCapitalization.Words,
                         imeAction = ImeAction.Next
                     )
                 )
 
-                CategoriaDropdown(
-                    categorias = state.categorias,
-                    selectedCategoriaId = state.categoriaId,
-                    onSelected = { onAction(EmprendimientoFormAction.UpdateCategoria(it)) }
+                OutlinedTextField(
+                    value = state.palabrasClave,
+                    onValueChange = { onAction(EmprendimientoFormAction.UpdatePalabrasClave(it)) },
+                    label = { Text("Palabras clave o productos *") },
+                    placeholder = { Text("Ej. marcianos, helados, tortas, cerrajería") },
+                    supportingText = {
+                        Text("Estas palabras se usarán para que los vecinos puedan buscar tu emprendimiento.")
+                    },
+                    leadingIcon = { Icon(Icons.Default.LocalOffer, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = false,
+                    maxLines = 2,
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        imeAction = ImeAction.Next
+                    )
                 )
 
                 OutlinedTextField(
@@ -195,7 +212,7 @@ fun EmprendimientoFormScreen(
                     maxLines = 8,
                     shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences, // Mayúscula después de cada punto
+                        capitalization = KeyboardCapitalization.Sentences,
                         imeAction = ImeAction.Default
                     )
                 )
@@ -248,7 +265,7 @@ fun EmprendimientoFormScreen(
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Phone, // Muestra el teclado de marcación
+                        keyboardType = KeyboardType.Phone,
                         imeAction = ImeAction.Next
                     )
                 )
@@ -449,67 +466,6 @@ private fun FormSection(
             }
             HorizontalDivider(color = colors.outlineVariant)
             content()
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CategoriaDropdown(
-    categorias: List<CategoriaUi>,
-    selectedCategoriaId: Long?,
-    onSelected: (Long) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val colors = MaterialTheme.colorScheme
-    val selectedName =
-        categorias.find { it.id == selectedCategoriaId }?.name ?: "Seleccione una categoría *"
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        OutlinedTextField(
-            value = selectedName,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Categoría") },
-            leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
-            trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = colors.primary,
-                focusedLabelColor = colors.primary,
-                cursorColor = colors.primary
-            )
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            containerColor = colors.surface
-        ) {
-            categorias.forEach { categoria ->
-                DropdownMenuItem(
-                    text = { Text(categoria.name) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Label,
-                            contentDescription = null,
-                            tint = colors.primary
-                        )
-                    },
-                    onClick = {
-                        onSelected(categoria.id)
-                        expanded = false
-                    }
-                )
-            }
         }
     }
 }

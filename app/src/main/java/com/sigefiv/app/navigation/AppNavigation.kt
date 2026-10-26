@@ -1341,13 +1341,18 @@ fun AppNavigation(
                             state = state,
                             onBackClick = { retroceder() },
                             onNuevoEmprendimientoClick = {
+                                emprendimientoFormViewModel.resetForm()
                                 navegarA(AppScreen.EMPRENDIMIENTO_FORM)
                             },
                             onEditarEmprendimientoClick = { id ->
+                                emprendimientoFormViewModel.cargarEmprendimiento(id)
                                 navegarA(AppScreen.EMPRENDIMIENTO_FORM)
                             },
                             onCambiarEstadoClick = { id, nuevoEstado ->
                                 emprendimientosListViewModel.cambiarEstado(id, nuevoEstado)
+                            },
+                            onEliminarEmprendimientoClick = { id -> // 👈 Añadido para procesar la eliminación
+                                emprendimientosListViewModel.eliminarEmprendimiento(id)
                             }
                         )
                     }

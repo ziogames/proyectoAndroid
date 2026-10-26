@@ -1,4 +1,3 @@
-
 package com.sigefiv.app.screens.emprendimiento
 
 import androidx.compose.foundation.BorderStroke
@@ -9,7 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,7 +32,8 @@ fun EmprendimientosListScreen(
     onBackClick: () -> Unit,
     onNuevoEmprendimientoClick: () -> Unit,
     onEditarEmprendimientoClick: (Long) -> Unit,
-    onCambiarEstadoClick: (Long, String) -> Unit
+    onCambiarEstadoClick: (Long, String) -> Unit,
+    onEliminarEmprendimientoClick: (Long) -> Unit // 👈 Callback para eliminar el negocio
 ) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -229,6 +229,9 @@ fun EmprendimientosListScreen(
                                     },
                                     onCambiarEstado = { nuevoEstado ->
                                         onCambiarEstadoClick(item.id, nuevoEstado)
+                                    },
+                                    onEliminarClick = {
+                                        onEliminarEmprendimientoClick(item.id)
                                     }
                                 )
                             }
@@ -322,7 +325,8 @@ private fun EmptyEmprendimientos(
 fun EmprendimientoCard(
     item: EmprendimientoItemUi,
     onEditarClick: () -> Unit,
-    onCambiarEstado: (String) -> Unit
+    onCambiarEstado: (String) -> Unit,
+    onEliminarClick: () -> Unit
 ) {
     val isPublished = item.status.equals("published", ignoreCase = true)
     val isDraft = item.status.equals("draft", ignoreCase = true)
@@ -343,6 +347,37 @@ fun EmprendimientoCard(
         isPublished -> SigefivGreenLight
         isDraft -> Color(0xFFE2E8F0)
         else -> Color(0xFFFEF3C7)
+    }
+
+    // 🛑 Estado local para el diálogo de confirmación de eliminación
+    var mostrarDialogoEliminar by remember { mutableStateOf(false) }
+
+    if (mostrarDialogoEliminar) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoEliminar = false },
+            title = {
+                Text(text = "Eliminar emprendimiento", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text(text = "¿Estás seguro de que deseas eliminar \"${item.nombre}\"? Esta acción no se puede deshacer.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        mostrarDialogoEliminar = false
+                        onEliminarClick()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = SigefivRed)
+                ) {
+                    Text("Sí, eliminar", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { mostrarDialogoEliminar = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     Card(
@@ -366,7 +401,7 @@ fun EmprendimientoCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
                     modifier = Modifier.size(52.dp),
@@ -404,7 +439,7 @@ fun EmprendimientoCard(
                         )
                         Spacer(Modifier.width(5.dp))
                         Text(
-                            text = item.categoria,
+                            text = item.categoria ?: "",
                             style = MaterialTheme.typography.labelMedium,
                             color = SigefivGreen,
                             fontWeight = FontWeight.SemiBold
@@ -414,28 +449,46 @@ fun EmprendimientoCard(
 
                 Spacer(Modifier.width(8.dp))
 
-                Surface(
-                    shape = RoundedCornerShape(9.dp),
-                    color = statusBackground
-                ) {
-                    Row(
-                        modifier = Modifier.padding(
-                            horizontal = 9.dp,
-                            vertical = 6.dp
-                        ),
-                        verticalAlignment = Alignment.CenterVertically
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Etiqueta de Estado
+                    Surface(
+                        shape = RoundedCornerShape(9.dp),
+                        color = statusBackground
                     ) {
-                        Surface(
-                            modifier = Modifier.size(6.dp),
-                            shape = RoundedCornerShape(50),
-                            color = statusColor
-                        ) {}
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = statusText,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = statusColor,
-                            fontWeight = FontWeight.Bold
+                        Row(
+                            modifier = Modifier.padding(
+                                horizontal = 9.dp,
+                                vertical = 6.dp
+                            ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                modifier = Modifier.size(6.dp),
+                                shape = RoundedCornerShape(50),
+                                color = statusColor
+                            ) {}
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = statusText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = statusColor,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.width(4.dp))
+
+                    // 🗑️ Botón de Eliminar (Papelera sutil al lado del estado)
+                    IconButton(
+                        onClick = { mostrarDialogoEliminar = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Eliminar",
+                            tint = SigefivRed,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }

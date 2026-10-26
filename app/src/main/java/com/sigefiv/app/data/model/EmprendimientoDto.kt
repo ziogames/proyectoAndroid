@@ -1,8 +1,6 @@
-
 package com.sigefiv.app.data.model
 
 import com.google.gson.annotations.SerializedName
-import com.sigefiv.app.data.api.EmprendimientoCategoriaDto
 
 data class EmprendimientoDto(
     @SerializedName("id")
@@ -11,17 +9,14 @@ data class EmprendimientoDto(
     @SerializedName("user_id")
     val userId: Long,
 
-    @SerializedName("categoria_id")
-    val categoriaId: Long,
-
-    @SerializedName("categoria")
-    val categoria: EmprendimientoCategoriaDto? = null,
-
     @SerializedName("name")
     val name: String,
 
     @SerializedName("slug")
     val slug: String?,
+
+    @SerializedName("keywords")
+    val keywords: String, // 👈 Añadido para el manejo por palabras clave
 
     @SerializedName("description")
     val description: String?,

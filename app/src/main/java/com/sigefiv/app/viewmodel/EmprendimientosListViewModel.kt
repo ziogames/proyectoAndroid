@@ -12,15 +12,14 @@ import kotlinx.coroutines.launch
 data class EmprendimientoItemUi(
     val id: Long,
     val nombre: String,
-    val categoria: String,
-    val status: String,
+    val categoria: String?, // 👈 Cambiado a String? para admitir nulos de forma segura
     val description: String?,
     val phone: String,
+    val showWhatsapp: Boolean,
     val modality: String,
     val attentionZone: String?,
     val schedule: String?,
-    val showWhatsapp: Boolean,
-    val primaryPhotoUrl: String?
+    val status: String
 )
 
 data class EmprendimientosListState(
@@ -36,34 +35,33 @@ class EmprendimientosListViewModel(
     private val _state = MutableStateFlow(EmprendimientosListState())
     val state: StateFlow<EmprendimientosListState> = _state.asStateFlow()
 
-    init {
-        cargarMisEmprendimientos()
-    }
-
     fun cargarMisEmprendimientos() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
+
             repository.getMisEmprendimientos().fold(
-                onSuccess = { listDto ->
-                    val items = listDto.map { dto ->
+                onSuccess = { listaDto ->
+                    val itemsUi = listaDto.map { dto ->
                         EmprendimientoItemUi(
                             id = dto.id,
                             nombre = dto.name,
-                            categoria = dto.categoria?.name ?: "Categoría #${dto.categoriaId}",
-                            status = dto.status,
+                            // 🔍 Si keywords es null, asignamos un texto por defecto o cadena vacía de forma segura
+                            categoria = dto.keywords ?: "Sin palabras clave",
                             description = dto.description,
                             phone = dto.phone,
+                            showWhatsapp = dto.showWhatsapp,
                             modality = dto.modality,
                             attentionZone = dto.attentionZone,
                             schedule = dto.schedule,
-                            showWhatsapp = dto.showWhatsapp,
-                            primaryPhotoUrl = dto.photos?.firstOrNull()?.path
+                            status = dto.status
                         )
                     }
-                    _state.update { it.copy(isLoading = false, emprendimientos = items) }
+                    _state.update { it.copy(isLoading = false, emprendimientos = itemsUi) }
                 },
-                onFailure = { error ->
-                    _state.update { it.copy(isLoading = false, errorMessage = error.localizedMessage ?: "Error al cargar") }
+                onFailure = { err ->
+                    _state.update {
+                        it.copy(isLoading = false, errorMessage = err.localizedMessage ?: "Error al cargar negocios")
+                    }
                 }
             )
         }
@@ -73,10 +71,26 @@ class EmprendimientosListViewModel(
         viewModelScope.launch {
             repository.updateStatus(id, mapOf("status" to nuevoEstado)).fold(
                 onSuccess = {
-                    cargarMisEmprendimientos() // Recarga la lista para ver el cambio reflejado
+                    cargarMisEmprendimientos() // Recargamos la lista para reflejar el cambio
                 },
-                onFailure = { error ->
-                    _state.update { it.copy(errorMessage = error.localizedMessage ?: "Error al cambiar estado") }
+                onFailure = { err ->
+                    _state.update { it.copy(errorMessage = "No se pudo cambiar el estado: ${err.localizedMessage}")}
+                }
+            )
+        }
+    }
+    // 🗑️ Método para eliminar un emprendimiento por su ID
+    fun eliminarEmprendimiento(id: Long) {
+        viewModelScope.launch {
+            repository.eliminarEmprendimiento(id).fold(
+                onSuccess = {
+                    // Recargamos la lista actual para que desaparezca la tarjeta borrada
+                    cargarMisEmprendimientos()
+                },
+                onFailure = { err ->
+                    _state.update {
+                        it.copy(errorMessage = "No se pudo eliminar el negocio: ${err.localizedMessage}")
+                    }
                 }
             )
         }

@@ -6,7 +6,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sigefiv.app.data.api.ApiClient
 import com.sigefiv.app.data.repository.EmprendimientoRepository
-import com.sigefiv.app.screens.emprendimiento.CategoriaUi
 import com.sigefiv.app.screens.emprendimiento.EmprendimientoFormAction
 import com.sigefiv.app.screens.emprendimiento.EmprendimientoFormState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,33 +24,13 @@ class EmprendimientoFormViewModel(application: Application) : AndroidViewModel(a
     private val _state = MutableStateFlow(EmprendimientoFormState())
     val state: StateFlow<EmprendimientoFormState> = _state.asStateFlow()
 
-    init {
-        loadCategorias()
-    }
-
-    private fun loadCategorias() {
-        viewModelScope.launch {
-            repository.obtenerCategorias().fold(
-                onSuccess = { list ->
-                    val uiList = list.map { CategoriaUi(it.id, it.name) }
-                    _state.update { it.copy(categorias = uiList) }
-                },
-                onFailure = { error ->
-                    // 👈 AHORA SÍ VEREMOS QUÉ ESTÁ PASANDO
-                    android.util.Log.e("ZOE_DEBUG", "Error REAL al cargar categorías: ", error)
-
-                    _state.update {
-                        it.copy(errorMessage = "Error de categorías: ${error.message}")
-                    }
-                }
-            )
-        }
-    }
+    // 🆔 Almacena el ID si estamos editando (null si es nuevo)
+    private var emprendimientoIdEnEdicion: Long? = null
 
     fun onAction(action: EmprendimientoFormAction) {
         when (action) {
             is EmprendimientoFormAction.UpdateNombre -> _state.update { it.copy(nombre = action.nombre) }
-            is EmprendimientoFormAction.UpdateCategoria -> _state.update { it.copy(categoriaId = action.categoriaId) }
+            is EmprendimientoFormAction.UpdatePalabrasClave -> _state.update { it.copy(palabrasClave = action.palabrasClave) }
             is EmprendimientoFormAction.UpdateDescripcion -> _state.update { it.copy(descripcion = action.descripcion) }
             is EmprendimientoFormAction.UpdateTelefono -> _state.update { it.copy(telefono = action.telefono) }
             is EmprendimientoFormAction.ToggleWhatsapp -> _state.update { it.copy(usarWhatsapp = action.usar) }
@@ -91,10 +70,11 @@ class EmprendimientoFormViewModel(application: Application) : AndroidViewModel(a
         viewModelScope.launch {
             _state.update { it.copy(isGeneratingWithZoe = true, errorMessage = null) }
 
-            // Pasamos el nombre y la descripción actual de la pantalla
+            val borrador = _state.value.descripcion.ifBlank { _state.value.palabrasClave }
+
             repository.generarDescripcionZoe(
                 _state.value.nombre,
-                _state.value.descripcion ?: ""
+                borrador
             ).fold(
                 onSuccess = { desc ->
                     _state.update { it.copy(descripcion = desc, isGeneratingWithZoe = false) }
@@ -106,10 +86,42 @@ class EmprendimientoFormViewModel(application: Application) : AndroidViewModel(a
         }
     }
 
+    // 📥 Carga los datos del negocio existente en el formulario para editarlos
+    fun cargarEmprendimiento(id: Long) {
+        emprendimientoIdEnEdicion = id
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, errorMessage = null) }
+
+            repository.obtenerEmprendimientoPorId(id).fold(
+                onSuccess = { item ->
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            nombre = item.name ?: "",
+                            palabrasClave = item.keywords ?: "", // 🛡️ Protegido contra nulos
+                            descripcion = item.description ?: "",
+                            telefono = item.phone ?: "",
+                            usarWhatsapp = item.showWhatsapp,
+                            modalidad = item.modality ?: "ambos",
+                            zonaAtencion = item.attentionZone ?: "",
+                            horario = item.schedule ?: "",
+                            status = item.status ?: "draft"
+                        )
+                    }
+                },
+                onFailure = { err ->
+                    _state.update { it.copy(isLoading = false, errorMessage = "Error al cargar el negocio: ${err.localizedMessage}") }
+                }
+            )
+        }
+    }
+
     private fun saveEmprendimiento(targetStatus: String) {
         val st = _state.value
-        if (st.nombre.isBlank() || st.telefono.isBlank() || st.categoriaId == null) {
-            _state.update { it.copy(errorMessage = "Completa los campos obligatorios: Nombre, Categoría y Teléfono.") }
+        if (st.nombre.isBlank() || st.palabrasClave.isBlank() || st.telefono.isBlank()) {
+            _state.update {
+                it.copy(errorMessage = "Completa los campos obligatorios: Nombre, Palabras clave y Teléfono.")
+            }
             return
         }
 
@@ -117,26 +129,35 @@ class EmprendimientoFormViewModel(application: Application) : AndroidViewModel(a
             _state.update { it.copy(isLoading = true, errorMessage = null) }
 
             val campos = mapOf(
-                "categoria_id" to st.categoriaId.toString(),
-                "name" to st.nombre,
-                "description" to (st.descripcion ?: ""),
-                "phone" to st.telefono,
+                "name" to st.nombre.trim(),
+                "keywords" to st.palabrasClave.trim(),
+                "description" to st.descripcion.trim(),
+                "phone" to st.telefono.trim(),
                 "show_whatsapp" to if (st.usarWhatsapp) "1" else "0",
                 "modality" to st.modalidad,
-                "attention_zone" to (st.zonaAtencion ?: ""),
-                "schedule" to (st.horario ?: ""),
+                "attention_zone" to st.zonaAtencion.trim(),
+                "schedule" to st.horario.trim(),
                 "status" to targetStatus
             )
 
             val urisFotos = st.fotos.map { Uri.parse(it) }
+            val idActual = emprendimientoIdEnEdicion
 
-            repository.crearEmprendimiento(campos, urisFotos).fold(
+            val resultado = if (idActual == null || idActual == 0L) {
+                // Crear nuevo
+                repository.crearEmprendimiento(campos, urisFotos)
+            } else {
+                // Actualizar existente
+                repository.actualizarEmprendimiento(idActual, campos, urisFotos)
+            }
+
+            resultado.fold(
                 onSuccess = {
                     _state.update {
                         it.copy(
                             isLoading = false,
                             status = targetStatus,
-                            successMessage = if (targetStatus == "published") "¡Emprendimiento publicado con éxito!" else "Borrador guardado correctamente."
+                            successMessage = if (targetStatus == "published") "¡Emprendimiento guardado y publicado con éxito!" else "Borrador guardado correctamente."
                         )
                     }
                 },
@@ -145,5 +166,11 @@ class EmprendimientoFormViewModel(application: Application) : AndroidViewModel(a
                 }
             )
         }
+    }
+
+    // 🧹 Limpia el formulario para registrar un negocio totalmente nuevo
+    fun resetForm() {
+        emprendimientoIdEnEdicion = null
+        _state.value = EmprendimientoFormState()
     }
 }
