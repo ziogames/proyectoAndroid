@@ -11,6 +11,7 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.FileOutputStream
+import retrofit2.Response
 
 class EmprendimientoRepository(
     private val api: EmprendimientoApi,
@@ -162,4 +163,22 @@ class EmprendimientoRepository(
             Result.failure(e)
         }
     }
+    // 🌐 NUEVO: Obtener el directorio público de emprendimientos de todos los vecinos
+    suspend fun obtenerEmprendimientosPublicos(categoria: String? = null): List<EmprendimientoDto> {
+        return try {
+            val response = api.getEmprendimientosPublicos(categoria)
+            response.emprendimientos // 👈 Extraemos la lista interna
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun toggleFavorito(id: Int): Response<com.sigefiv.app.data.api.FavoritoResponseWrapper> {
+        return api.toggleFavorito(id)
+    }
+
+    suspend fun getMisFavoritos(): com.sigefiv.app.data.api.EmprendimientosPublicosResponse {
+        return api.getMisFavoritos()
+    }
+
 }

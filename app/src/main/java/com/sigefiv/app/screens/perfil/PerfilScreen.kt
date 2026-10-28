@@ -61,6 +61,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -82,13 +83,13 @@ import androidx.compose.ui.unit.sp
 import android.graphics.BitmapFactory
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
-
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URL
 import com.sigefiv.app.ServidorConfig
+
 /*
 |--------------------------------------------------------------------------
 | COLORES CORPORATIVOS SIGEFIV
@@ -116,7 +117,7 @@ fun PerfilScreen(
     onAsambleasClick: () -> Unit = {},
     onPeriodosClick: () -> Unit = {},
     onMiCuentaClick: () -> Unit = {},
-    onMisEmprendimientosClick: () -> Unit = {}, // 👈 NUEVO CALLBACK PARA EMPRENDIMIENTOS
+    onMisEmprendimientosClick: () -> Unit = {},
 
     nombre: String = "Freddy Antayhua Saavedra",
     seudonimo: String? = null,
@@ -130,6 +131,8 @@ fun PerfilScreen(
 
     onGuardarPerfil: (seudonimo: String?) -> Unit = {},
     onSeleccionarFoto: (Uri) -> Unit = {},
+    onActualizarPassword: (String, String, String, () -> Unit) -> Unit = { _, _, _, _ -> },
+    cargandoPassword: Boolean = false,
 
     guardando: Boolean = false,
     subiendoFoto: Boolean = false
@@ -149,6 +152,13 @@ fun PerfilScreen(
             fotoSeleccionada = uri
         }
     }
+
+    var mostrarDialogoPassword by remember { mutableStateOf(false) }
+    var mostrarAvisoGoogle by remember { mutableStateOf(false) }
+    var passwordActual by remember { mutableStateOf("") }
+    var nuevaPassword by remember { mutableStateOf("") }
+    var confirmarPassword by remember { mutableStateOf("") }
+    var errorPassword by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(seudonimo, modoEdicion) {
         if (!modoEdicion) {
@@ -380,10 +390,17 @@ fun PerfilScreen(
 
                                 Surface(
                                     shape = RoundedCornerShape(20.dp),
-                                    color = Blanco
+                                    color = Blanco,
+                                    modifier = Modifier.clickable {
+                                        if (esGoogle) {
+                                            mostrarAvisoGoogle = true
+                                        } else {
+                                            mostrarDialogoPassword = true
+                                        }
+                                    }
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         if (esGoogle) {
@@ -394,9 +411,17 @@ fun PerfilScreen(
                                                 color = Color(0xFFEA4335)
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Key,
+                                                contentDescription = null,
+                                                tint = colorPrincipal,
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
                                         }
                                         Text(
-                                            text = if (esGoogle) "Google" else "Clave",
+                                            text = if (esGoogle) "Google" else "Cambiar Clave",
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.onSurface
@@ -429,11 +454,6 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            /*
-            |--------------------------------------------------------------------------
-            | EDICIÓN DEL PERFIL
-            |--------------------------------------------------------------------------
-            */
             if (modoEdicion) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -550,11 +570,6 @@ fun PerfilScreen(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | INFORMACIÓN PERSONAL
-            |--------------------------------------------------------------------------
-            */
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -622,11 +637,6 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            /*
-            |--------------------------------------------------------------------------
-            | MIS EMPRENDIMIENTOS (ACCESO AL NUEVO MÓDULO)
-            |--------------------------------------------------------------------------
-            */
             PerfilSeccionTitulo(
                 icon = Icons.Outlined.Storefront,
                 iconBg = FondoIconoMorado,
@@ -684,11 +694,6 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            /*
-            |--------------------------------------------------------------------------
-            | SEGURIDAD DE LA CUENTA
-            |--------------------------------------------------------------------------
-            */
             PerfilSeccionTitulo(
                 icon = Icons.Outlined.Lock,
                 iconBg = VerdeSuave,
@@ -788,11 +793,6 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            /*
-            |--------------------------------------------------------------------------
-            | SOBRE SIGEFIV
-            |--------------------------------------------------------------------------
-            */
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -819,6 +819,157 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DIÁLOGO ÚNICO PARA CAMBIAR CONTRASEÑA
+    |--------------------------------------------------------------------------
+    */
+    if (mostrarDialogoPassword) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {
+                if (!cargandoPassword) {
+                    mostrarDialogoPassword = false
+                    passwordActual = ""
+                    nuevaPassword = ""
+                    confirmarPassword = ""
+                    errorPassword = null
+                }
+            },
+            title = {
+                Text(text = "Cambiar contraseña", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Introduce tu contraseña actual y la nueva clave.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    OutlinedTextField(
+                        value = passwordActual,
+                        onValueChange = { passwordActual = it },
+                        label = { Text("Contraseña actual") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = nuevaPassword,
+                        onValueChange = { nuevaPassword = it },
+                        label = { Text("Nueva contraseña") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Validaciones en tiempo real (Checks visuales)
+                    val tieneMinimo8 = nuevaPassword.length >= 8
+                    val tieneMayuscula = nuevaPassword.any { it.isUpperCase() }
+                    val tieneEspecial = nuevaPassword.any { "!@#$%^&*()_+-=[]{}|;':\",./<>?".contains(it) }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        ItemValidacionRequisito(texto = "Mínimo 8 caracteres", cumplido = tieneMinimo8)
+                        ItemValidacionRequisito(texto = "Al menos una letra mayúscula", cumplido = tieneMayuscula)
+                        ItemValidacionRequisito(texto = "Al menos un carácter especial (!@#$%^&*)", cumplido = tieneEspecial)
+                    }
+
+                    OutlinedTextField(
+                        value = confirmarPassword,
+                        onValueChange = { confirmarPassword = it },
+                        label = { Text("Confirmar nueva contraseña") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (!errorPassword.isNullOrBlank()) {
+                        Text(text = errorPassword!!, color = Color(0xFFDC2626), fontSize = 12.sp)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val tieneMinimo8 = nuevaPassword.length >= 8
+                        val tieneMayuscula = nuevaPassword.any { it.isUpperCase() }
+                        val tieneEspecial = nuevaPassword.any { "!@#$%^&*()_+-=[]{}|;':\",./<>?".contains(it) }
+
+                        if (!tieneMinimo8 || !tieneMayuscula || !tieneEspecial) {
+                            errorPassword = "La contraseña debe cumplir con todos los requisitos de seguridad."
+                            return@Button
+                        }
+                        if (nuevaPassword != confirmarPassword) {
+                            errorPassword = "Las contraseñas nuevas no coinciden."
+                            return@Button
+                        }
+                        errorPassword = null
+
+                        // 🚀 LLAMADA REAL AL VIEWMODEL
+                        onActualizarPassword(passwordActual, nuevaPassword, confirmarPassword) {
+                            mostrarDialogoPassword = false
+                            passwordActual = ""
+                            nuevaPassword = ""
+                            confirmarPassword = ""
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = colorPrincipal),
+                    enabled = !cargandoPassword
+                ) {
+                    Text(if (cargandoPassword) "Actualizando..." else "Actualizar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        mostrarDialogoPassword = false
+                        passwordActual = ""
+                        nuevaPassword = ""
+                        confirmarPassword = ""
+                        errorPassword = null
+                    },
+                    enabled = !cargandoPassword
+                ) {
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        )
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DIÁLOGO AVISO CUANDO ES CUENTA GOOGLE
+    |--------------------------------------------------------------------------
+    */
+    if (mostrarAvisoGoogle) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { mostrarAvisoGoogle = false },
+            title = { Text(text = "Acceso con Google", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    text = "Tu cuenta está vinculada directamente con Google. No es necesario gestionar una contraseña local en SIGEFIV.",
+                    fontSize = 14.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { mostrarAvisoGoogle = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = colorPrincipal)
+                ) {
+                    Text("Entendido")
+                }
+            }
+        )
     }
 }
 
@@ -985,6 +1136,27 @@ private fun ImagenPerfil(
             bitmap = bitmap!!.asImageBitmap(),
             contentDescription = "Foto de perfil",
             modifier = modifier
+        )
+    }
+}
+
+@Composable
+private fun ItemValidacionRequisito(texto: String, cumplido: Boolean) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            imageVector = if (cumplido) Icons.Outlined.CheckCircle else Icons.Outlined.Check,
+            contentDescription = null,
+            tint = if (cumplido) Color(0xFF15803D) else Color(0xFF94A3B8),
+            modifier = Modifier.size(15.dp)
+        )
+        Text(
+            text = texto,
+            fontSize = 11.sp,
+            color = if (cumplido) Color(0xFF15803D) else Color(0xFF64748B),
+            fontWeight = if (cumplido) FontWeight.SemiBold else FontWeight.Normal
         )
     }
 }

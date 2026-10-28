@@ -134,6 +134,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import coil.compose.AsyncImage
 import android.graphics.BitmapFactory
 import androidx.compose.ui.graphics.asImageBitmap
+import com.sigefiv.app.data.SessionManager
 
 
 
@@ -442,6 +443,19 @@ fun AppSIGEFIV(
         NotificacionEventBus.evento.collect {
             // La notificación se gestiona mediante Firebase.
             // No mostrar banner interno.
+        }
+    }
+    // 🔥 NUEVOS ESTADOS PARA LA ALERTA DE EXPULSIÓN EN TIEMPO REAL
+    var mostrarAlertaExpulsion by remember { mutableStateOf(false) }
+    var tituloExpulsion by remember { mutableStateOf("") }
+    var mensajeExpulsionDialogo by remember { mutableStateOf("") }
+
+    // 🔥 ESCUCHA EN TIEMPO REAL DEL EVENTO DE EXPULSIÓN (DESDE FCM)
+    LaunchedEffect(Unit) {
+        NotificacionEventBus.eventoExpulsion.collect { evento ->
+            tituloExpulsion = evento.titulo
+            mensajeExpulsionDialogo = evento.mensaje
+            mostrarAlertaExpulsion = true // Abre el diálogo de inmediato
         }
     }
 
@@ -1097,6 +1111,54 @@ fun AppSIGEFIV(
                     }
                 ) {
                     Text("Entendido")
+                }
+            }
+        )
+    }
+    // ============================================================
+    // 🔥 DIÁLOGO FLOTANTE DE EXPULSIÓN / CAMBIO DE ROL EN TIEMPO REAL
+    // ============================================================
+    if (mostrarAlertaExpulsion) {
+        AlertDialog(
+            onDismissRequest = {
+                // Bloqueado para obligar al usuario a leer el aviso
+            },
+            title = {
+                Text(
+                    text = tituloExpulsion,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Text(
+                    text = mensajeExpulsionDialogo,
+                    fontSize = 15.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        mostrarAlertaExpulsion = false
+
+                        // 1. Cerramos la sesión localmente de forma síncrona/global
+                        val sessionManager = SessionManager(context)
+                        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            sessionManager.cerrarSesion()
+                        }
+
+                        // 2. 🔥 Forzamos el cambio de pantalla al Login de inmediato
+                        pantalla = PantallaInicial.LOGIN
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = VerdePrincipal
+                    )
+                ) {
+                    Text(
+                        text = "Entendido e iniciar sesión",
+                        color = Blanco,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         )

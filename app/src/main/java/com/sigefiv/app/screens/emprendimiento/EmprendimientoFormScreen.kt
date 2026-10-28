@@ -1,5 +1,6 @@
 package com.sigefiv.app.screens.emprendimiento
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,11 +18,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import coil.compose.rememberAsyncImagePainter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -568,7 +571,7 @@ fun PhotoSelectorSection(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            fotos.forEachIndexed { index, _ ->
+            fotos.forEachIndexed { index, photoPath ->
                 Box(
                     modifier = Modifier
                         .size(76.dp)
@@ -580,18 +583,13 @@ fun PhotoSelectorSection(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(colors.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Image,
-                            contentDescription = "Fotografía ${index + 1}",
-                            tint = colors.onSurfaceVariant
-                        )
-                    }
+                    // Carga la miniatura de la foto seleccionada utilizando Coil
+                    Image(
+                        painter = rememberAsyncImagePainter(model = photoPath),
+                        contentDescription = "Fotografía ${index + 1}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
 
                     IconButton(
                         onClick = { onRemovePhoto(index) },

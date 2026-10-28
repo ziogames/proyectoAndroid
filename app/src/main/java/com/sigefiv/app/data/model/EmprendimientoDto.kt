@@ -16,7 +16,7 @@ data class EmprendimientoDto(
     val slug: String?,
 
     @SerializedName("keywords")
-    val keywords: String, // 👈 Añadido para el manejo por palabras clave
+    val keywords: String?,
 
     @SerializedName("description")
     val description: String?,
@@ -41,6 +41,10 @@ data class EmprendimientoDto(
 
     @SerializedName("photos")
     val photos: List<EmprendimientoFotoDto>? = emptyList(),
+
+    // 💖 NUEVO: Campo para leer si el usuario autenticado lo tiene marcado como favorito
+    @SerializedName("es_favorito")
+    val esFavorito: Boolean?,
 
     @SerializedName("created_at")
     val createdAt: String?,

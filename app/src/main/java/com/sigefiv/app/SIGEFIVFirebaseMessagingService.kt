@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.sigefiv.app.data.SessionManager
 import com.sigefiv.app.notifications.NotificacionEventBus
 import com.sigefiv.app.screens.mascota.MascotaControlador
 import com.sigefiv.app.screens.mascota.MascotaEstado
@@ -34,9 +35,9 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
             1001
 
         /*
-         * Datos utilizados para abrir una pantalla
-         * específica desde una notificación.
-         */
+        - Datos utilizados para abrir una pantalla
+        - específica desde una notificación.
+        */
         const val EXTRA_TIPO =
             "tipo"
 
@@ -47,8 +48,8 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     /**
-     * Se ejecuta cuando Firebase genera un nuevo token
-     * o cuando el token actual cambia.
+    - Se ejecuta cuando Firebase genera un nuevo token
+    - o cuando el token actual cambia.
      */
     override fun onNewToken(token: String) {
 
@@ -63,22 +64,11 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
             TAG,
             token
         )
-
-        /*
-        |--------------------------------------------------------------------------
-        | Registro del nuevo token
-        |--------------------------------------------------------------------------
-        |
-        | El token se registra después del login mediante
-        | FcmTokenManager.
-        |
-        |--------------------------------------------------------------------------
-        */
     }
 
     /**
-     * Se ejecuta cuando llega un mensaje FCM mientras
-     * la aplicación está en primer plano.
+    - Se ejecuta cuando llega un mensaje FCM mientras
+    - la aplicación está en primer plano.
      */
     override fun onMessageReceived(
         remoteMessage: RemoteMessage
@@ -133,10 +123,34 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                 ?: "Tienes una nueva notificación."
 
         /*
-         * Recuperamos los datos enviados por Laravel.
-         */
+        - Recuperamos los datos enviados por Laravel.
+        */
         val tipo =
             remoteMessage.data["tipo"]
+
+        // ============================================================
+        // 🔥 DETECCIÓN EN TIEMPO REAL: CAMBIO DE ROL O EXPIRACIÓN DE SESIÓN
+        // ============================================================
+        if (
+            tipo?.equals("cambio_rol", ignoreCase = true) == true ||
+            tipo?.equals("sesion_expirada", ignoreCase = true) == true
+        ) {
+            Log.d(TAG, "SEGURIDAD FCM: Alerta de cambio de rol o baneo recibida.")
+
+            // 1. NO cerramos la sesión aquí todavía.
+            // Primero lanzamos el evento para que la MainActivity dibuje el diálogo ineludible.
+            kotlinx.coroutines.runBlocking {
+                NotificacionEventBus.publicarAlertaExpulsion(
+                    titulo = titulo,
+                    mensaje = mensaje.ifBlank {
+                        "Tus privilegios o estado en la comunidad han sido actualizados por la administración. Por seguridad, tu sesión se cerrará para refrescar tu acceso."
+                    }
+                )
+            }
+
+            return // Detenemos el flujo para que no procese como notificación normal
+        }
+
         if (
             tipo?.equals(
                 "movimiento_actualizado",
@@ -149,7 +163,6 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                     ?.toIntOrNull()
 
             // Actualización silenciosa de movimientos.
-            // No debe hacer reaccionar a la mascota.
             kotlinx.coroutines.runBlocking {
                 NotificacionEventBus.publicarMovimientoActualizado(
                     movimientoId = movimientoId
@@ -163,13 +176,10 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
 
         val notificacionId =
             remoteMessage.data["notificacion_id"]
+
         // ============================================================
         // REACCIÓN DE ZOE A EVENTOS DE SIGEFIV
         // ============================================================
-
-        // ============================================================
-// REACCIÓN DE ZOE A EVENTOS DE SIGEFIV
-// ============================================================
 
         when {
             tipo?.equals("ingreso", ignoreCase = true) == true -> {
@@ -266,20 +276,7 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                 mensaje = mensaje
             )
         }
-        /*
-   * Si FCM ya trae notification,
-   * Android/Firebase se encargará de mostrarla
-   * cuando la aplicación esté en segundo plano.
-   *
-   * Si es data-only, nosotros la mostramos.
-   */
-        /*
-   * ZOE MASCOTA utiliza la mascota y su burbuja
-   * como interfaz visual.
-   *
-   * No mostramos una notificación nativa de Android
-   * para evitar duplicar el mensaje.
-   */
+
         if (
             tipo?.equals(
                 "zoe_mascota",
@@ -300,8 +297,8 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     /**
-     * Crea el canal de notificaciones requerido
-     * por Android 8.0 o superior.
+    - Crea el canal de notificaciones requerido
+    - por Android 8.0 o superior.
      */
     private fun crearCanalNotificaciones() {
 
@@ -356,12 +353,7 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     /**
-     * Muestra una notificación nativa de Android.
-     *
-     * Además de mostrar el mensaje, conserva
-     * tipo y asamblea_id para que MainActivity
-     * pueda decidir qué pantalla abrir cuando
-     * el usuario toque la notificación.
+    - Muestra una notificación nativa de Android.
      */
     private fun mostrarNotificacion(
         titulo: String,
@@ -382,11 +374,7 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                             Intent.FLAG_ACTIVITY_CLEAR_TOP or
                             Intent.FLAG_ACTIVITY_SINGLE_TOP
 
-                /*
-                 * Información enviada por Laravel.
-                 */
                 if (!tipo.isNullOrBlank()) {
-
                     putExtra(
                         EXTRA_TIPO,
                         tipo
@@ -394,14 +382,12 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                 }
 
                 if (!asambleaId.isNullOrBlank()) {
-
                     putExtra(
                         EXTRA_ASAMBLEA_ID,
                         asambleaId
                     )
                 }
                 if (!notificacionId.isNullOrBlank()) {
-
                     putExtra(
                         EXTRA_NOTIFICACION_ID,
                         notificacionId
@@ -409,15 +395,11 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                 }
             }
 
-        /*
-         * Usamos un requestCode diferente para cada
-         * asamblea para evitar que Android reutilice
-         * accidentalmente un PendingIntent anterior.
-         */
         val requestCode =
             asambleaId
                 ?.toIntOrNull()
                 ?: NOTIFICATION_ID
+
         Log.d(
             TAG,
             "CREANDO NOTIFICACIÓN - tipo=$tipo asamblea_id=$asambleaId"
@@ -430,11 +412,7 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                 PendingIntent.FLAG_UPDATE_CURRENT or
                         PendingIntent.FLAG_IMMUTABLE
             )
-        val esAsamblea =
-            tipo?.equals(
-                "asamblea",
-                ignoreCase = true
-            ) == true
+
         val notification =
             NotificationCompat.Builder(
                 this,
@@ -476,11 +454,9 @@ class SIGEFIVFirebaseMessagingService : FirebaseMessagingService() {
                 )
 
         } catch (e: SecurityException) {
-
             Log.e(
                 TAG,
-                "No se pudo mostrar la notificación. " +
-                        "Probablemente falta el permiso POST_NOTIFICATIONS.",
+                "No se pudo mostrar la notificación. Probablemente falta el permiso POST_NOTIFICATIONS.",
                 e
             )
         }

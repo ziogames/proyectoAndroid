@@ -59,6 +59,7 @@ class LoginViewModel(
 
     init {
         verificarSesionExistente()
+        observarCambiosDeSesion() // 🔥 NUEVO: Escucha reactiva ante revocación de token (401)
     }
 
     /*
@@ -79,6 +80,23 @@ class LoginViewModel(
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+            }
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | OBSERVADOR REACTIVO DE SESIÓN (EXPIRACIÓN / REVOCACIÓN 401)
+    |--------------------------------------------------------------------------
+    */
+    private fun observarCambiosDeSesion() {
+        viewModelScope.launch {
+            sessionManager.token.collect { tokenGuardado ->
+                if (tokenGuardado.isNullOrBlank()) {
+                    // Si el interceptor borró la sesión por un 401 o cierre manual, botamos al login
+                    _token.value = null
+                    _loginCorrecto.value = false
+                }
             }
         }
     }
@@ -186,16 +204,16 @@ class LoginViewModel(
             try {
 
                 /*
-                 * 1. Convertimos el Google ID Token en credencial Firebase.
-                 */
+                - Convertimos el Google ID Token en credencial Firebase.
+                */
                 val credential = GoogleAuthProvider.getCredential(
                     idToken,
                     null
                 )
 
                 /*
-                 * 2. Iniciamos sesión en Firebase.
-                 */
+                - 2. Iniciamos sesión en Firebase.
+                */
                 withContext(Dispatchers.IO) {
                     Tasks.await(
                         firebaseAuth.signInWithCredential(credential)
@@ -203,8 +221,8 @@ class LoginViewModel(
                 }
 
                 /*
-                 * 3. Obtenemos el usuario directamente desde FirebaseAuth.
-                 */
+                - 3. Obtenemos el usuario directamente desde FirebaseAuth.
+                */
                 val firebaseUser = firebaseAuth.currentUser
 
                 if (firebaseUser == null) {
@@ -222,10 +240,9 @@ class LoginViewModel(
                 )
 
                 /*
-                 * 4. Solicitamos el Firebase ID Token.
-                 *
-                 * Primero intentamos obtener un token actualizado.
-                 */
+                - 4. Solicitamos el Firebase ID Token.
+                - Primero intentamos obtener un token actualizado.
+                */
                 val firebaseTokenResult = withContext(Dispatchers.IO) {
                     Tasks.await(
                         firebaseUser.getIdToken(true)
@@ -241,8 +258,8 @@ class LoginViewModel(
                 )
 
                 /*
-                 * Nunca mostramos el token completo por seguridad.
-                 */
+                - Nunca mostramos el token completo por seguridad.
+                */
                 if (firebaseIdToken.isNullOrBlank()) {
                     _mensaje.value =
                         "Firebase autenticó la cuenta, pero no pudo generar el token de sesión."
@@ -255,8 +272,8 @@ class LoginViewModel(
                 }
 
                 /*
-                 * 5. Enviamos el Firebase ID Token a Laravel.
-                 */
+                - 5. Enviamos el Firebase ID Token a Laravel.
+                */
                 println(
                     "SIGEFIV AUTH: enviando Firebase ID Token a Laravel"
                 )
@@ -266,8 +283,8 @@ class LoginViewModel(
                 )
 
                 /*
-                 * 6. Laravel devuelve el token Sanctum.
-                 */
+                - 6. Laravel devuelve el token Sanctum.
+                */
                 if (respuesta.success) {
 
                     val tokenRecibido = respuesta.token
@@ -382,8 +399,8 @@ class LoginViewModel(
                 }
 
                 /*
-                 * Cerramos también la sesión de Firebase.
-                 */
+                - Cerramos también la sesión de Firebase.
+                */
                 firebaseAuth.signOut()
 
             } finally {

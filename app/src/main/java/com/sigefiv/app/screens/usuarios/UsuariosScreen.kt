@@ -1,5 +1,6 @@
 package com.sigefiv.app.screens.usuarios
 
+import android.app.Activity
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,10 +25,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.PersonSearch
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
@@ -38,7 +41,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -48,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,18 +63,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sigefiv.app.data.model.RolDetalle
 import com.sigefiv.app.data.model.UsuarioListado
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 import com.sigefiv.app.viewmodel.UsuarioViewModel
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.ui.text.style.TextAlign
+
 private val VerdeClaroContraste = Color(0xFFCCFBF1)
 
 private val ActivoBg = Color(0xFFDCFCE7)
@@ -93,6 +101,17 @@ fun UsuariosScreen(
         SeasonalTheme.getSeason()
     )
     val colorPrincipalOscuro = colorPrincipal.copy(alpha = 0.88f)
+
+    // Íconos de barra de estado en blanco sobre el encabezado verde
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window
+            if (window != null) {
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            }
+        }
+    }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -290,18 +309,26 @@ fun UsuariosScreen(
         )
     }
 
+    val usuariosFiltrados = remember(uiState.usuarios, buscar) {
+        if (buscar.isBlank()) {
+            uiState.usuarios
+        } else {
+            uiState.usuarios.filter { usuario ->
+                usuario.name.contains(buscar.trim(), ignoreCase = true) ||
+                        usuario.email.contains(buscar.trim(), ignoreCase = true)
+            }
+        }
+    }
+
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Encabezado.
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            // Encabezado verde unificado con buscador integrado
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp))
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(
@@ -311,223 +338,223 @@ fun UsuariosScreen(
                         )
                     )
                     .statusBarsPadding()
-                    .padding(horizontal = 18.dp, vertical = 18.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        onClick = onBackClick,
-                        shape = CircleShape,
-                        color = Color.White.copy(alpha = 0.18f),
-                        modifier = Modifier.size(44.dp)
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = Color.White
+                        Surface(
+                            onClick = onBackClick,
+                            shape = CircleShape,
+                            color = Color.White.copy(alpha = 0.16f),
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Volver",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Gestión de usuarios",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
                             )
+                            Text(
+                                text = "Control de accesos y roles de SIGEFIV",
+                                fontSize = 11.sp,
+                                color = Color.White.copy(alpha = 0.85f)
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color.White.copy(alpha = 0.16f),
+                            border = BorderStroke(
+                                1.dp,
+                                Color.White.copy(alpha = 0.25f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(
+                                    horizontal = 10.dp,
+                                    vertical = 5.dp
+                                ),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Text(
+                                    text = uiState.usuarios.size.toString(),
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "usuarios",
+                                    color = Color.White.copy(alpha = 0.90f),
+                                    fontSize = 11.sp
+                                )
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Gestión de usuarios",
-                            fontSize = 21.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.height(3.dp))
-                        Text(
-                            text = "Control de accesos de SIGEFIV",
-                            fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.88f)
-                        )
-                    }
-
-                    Surface(
+                    // Buscador integrado en la franja superior
+                    OutlinedTextField(
+                        value = buscar,
+                        onValueChange = { buscar = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = {
+                            Text(
+                                text = "Buscar por nombre o correo...",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Buscar",
+                                tint = colorPrincipal,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            if (buscar.isNotEmpty()) {
+                                IconButton(onClick = { buscar = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Limpiar búsqueda",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        },
                         shape = RoundedCornerShape(14.dp),
-                        color = Color.White.copy(alpha = 0.18f),
-                        border = BorderStroke(
-                            1.dp,
-                            Color.White.copy(alpha = 0.25f)
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.Transparent
                         )
+                    )
+                }
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(10.dp))
+
+            when {
+                uiState.cargando -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
                     ) {
                         Column(
-                            modifier = Modifier.padding(
-                                horizontal = 12.dp,
-                                vertical = 7.dp
-                            ),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
-                                text = uiState.usuarios.size.toString(),
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
+                            CircularProgressIndicator(
+                                color = colorPrincipal,
+                                strokeWidth = 3.dp
                             )
+                            Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "usuarios",
-                                color = Color.White.copy(alpha = 0.85f),
-                                fontSize = 10.sp
+                                text = "Cargando usuarios...",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
-            }
 
-            // Contenido principal.
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Spacer(modifier = Modifier.height(18.dp))
-
-                Text(
-                    text = "Directorio de usuarios",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Busca personas y administra sus permisos y estados.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                OutlinedTextField(
-                    value = buscar,
-                    onValueChange = { buscar = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    placeholder = {
-                        Text(
-                            text = "Nombre o correo electrónico",
-                            fontSize = 14.sp
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Buscar",
-                            tint = colorPrincipal
-                        )
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedBorderColor = colorPrincipal,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                uiState.usuarios.isEmpty() -> {
+                    EstadoVacioUsuarios(
+                        titulo = "No hay usuarios",
+                        descripcion = "Todavía no hay usuarios para mostrar.",
+                        colorPrincipal = colorPrincipal,
+                        modifier = Modifier.weight(1f)
                     )
-                )
+                }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                usuariosFiltrados.isEmpty() -> {
+                    EstadoVacioUsuarios(
+                        titulo = "Sin resultados",
+                        descripcion = "Prueba con otro nombre o correo.",
+                        colorPrincipal = colorPrincipal,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
-                when {
-                    uiState.cargando -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .weight(1f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                CircularProgressIndicator(
-                                    color = colorPrincipal,
-                                    strokeWidth = 3.dp
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = "Cargando usuarios...",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-
-                    uiState.usuarios.isEmpty() -> {
-                        EstadoVacioUsuarios(
-                            titulo = "No hay usuarios",
-                            descripcion = "Todavía no hay usuarios para mostrar.",
-                            colorPrincipal = colorPrincipal,
-                            modifier = Modifier.weight(1f)
+                else -> {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Directorio",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${usuariosFiltrados.size} resultado(s)",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    else -> {
-                        val usuariosFiltrados =
-                            if (buscar.isBlank()) {
-                                uiState.usuarios
-                            } else {
-                                uiState.usuarios.filter { usuario ->
-                                    usuario.name.contains(
-                                        buscar.trim(),
-                                        ignoreCase = true
-                                    ) || usuario.email.contains(
-                                        buscar.trim(),
-                                        ignoreCase = true
-                                    )
-                                }
-                            }
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                        if (usuariosFiltrados.isEmpty()) {
-                            EstadoVacioUsuarios(
-                                titulo = "Sin resultados",
-                                descripcion = "Prueba con otro nombre o correo.",
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(bottom = 24.dp)
+                    ) {
+                        items(
+                            items = usuariosFiltrados,
+                            key = { it.id }
+                        ) { usuario ->
+                            UsuarioTarjetaProfional(
+                                usuario = usuario,
+                                rolesDisponibles = uiState.roles,
                                 colorPrincipal = colorPrincipal,
-                                modifier = Modifier.weight(1f)
-                            )
-                        } else {
-                            Text(
-                                text = "${usuariosFiltrados.size} resultado(s)",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                                contentPadding = PaddingValues(bottom = 24.dp)
-                            ) {
-                                items(
-                                    items = usuariosFiltrados,
-                                    key = { it.id }
-                                ) { usuario ->
-                                    UsuarioTarjetaProfional(
-                                        usuario = usuario,
-                                        rolesDisponibles = uiState.roles,
-                                        colorPrincipal = colorPrincipal,
-                                        onGuardarEstado = { nuevoEstado ->
-                                            usuarioPendienteCambio = usuario
-                                            estadoPendienteCambio = nuevoEstado
-                                        },
-                                        onGuardarRol = { nuevoRol ->
-                                            usuarioPendienteCambioRol = usuario
-                                            rolPendienteCambio = nuevoRol
-                                        },
-                                        onEliminarUsuario = {
-                                            usuarioPendienteEliminacion = usuario
-                                        }
-                                    )
+                                onGuardarEstado = { nuevoEstado ->
+                                    usuarioPendienteCambio = usuario
+                                    estadoPendienteCambio = nuevoEstado
+                                },
+                                onGuardarRol = { nuevoRol ->
+                                    usuarioPendienteCambioRol = usuario
+                                    rolPendienteCambio = nuevoRol
+                                },
+                                onEliminarUsuario = {
+                                    usuarioPendienteEliminacion = usuario
                                 }
-                            }
+                            )
                         }
                     }
                 }
@@ -557,21 +584,19 @@ private fun EstadoVacioUsuarios(
             Surface(
                 shape = CircleShape,
                 color = colorPrincipal.copy(alpha = 0.10f),
-                modifier = Modifier.size(76.dp)
+                modifier = Modifier.size(72.dp)
             ) {
-                Box(
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = null,
                         tint = colorPrincipal,
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(36.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = titulo,
@@ -581,7 +606,7 @@ private fun EstadoVacioUsuarios(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
                 text = descripcion,
@@ -636,40 +661,40 @@ private fun UsuarioTarjetaProfional(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f)
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
-            // Datos del usuario.
+            // Cabecera compacta: Avatar + Nombre/Correo + Botón Eliminar en esquina superior derecha
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box {
                     Surface(
-                        modifier = Modifier.size(50.dp),
+                        modifier = Modifier.size(42.dp),
                         shape = CircleShape,
                         color = VerdeClaroContraste,
                         border = BorderStroke(
-                            2.dp,
-                            colorPrincipal.copy(alpha = 0.20f)
+                            1.5.dp,
+                            colorPrincipal.copy(alpha = 0.25f)
                         )
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 text = inicial,
-                                fontSize = 21.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colorPrincipal
                             )
@@ -679,10 +704,10 @@ private fun UsuarioTarjetaProfional(
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .size(14.dp)
+                            .size(12.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surface)
-                            .padding(2.dp)
+                            .padding(1.5.dp)
                     ) {
                         Box(
                             modifier = Modifier
@@ -693,11 +718,9 @@ private fun UsuarioTarjetaProfional(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = nombre,
                         style = MaterialTheme.typography.titleSmall,
@@ -707,44 +730,55 @@ private fun UsuarioTarjetaProfional(
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    Spacer(modifier = Modifier.height(5.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Email,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(13.dp)
                         )
 
-                        Spacer(modifier = Modifier.width(5.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
 
                         Text(
                             text = usuario.email,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Botón eliminar sutil en la esquina superior derecha
+                Surface(
+                    onClick = onEliminarUsuario,
+                    shape = CircleShape,
+                    color = BloqueadoBg.copy(alpha = 0.85f),
+                    border = BorderStroke(1.dp, BloqueadoBorde.copy(alpha = 0.6f)),
+                    modifier = Modifier.size(34.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Eliminar usuario",
+                            tint = BloqueadoTexto,
+                            modifier = Modifier.size(17.dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Selector de rol y botón guardar en su propia fila.
-            Text(
-                text = "ROL DEL USUARIO",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = 0.7.sp
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 10.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
             )
 
-            Spacer(modifier = Modifier.height(7.dp))
-
+            // Fila 1: Selector de Rol compacto + Guardar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -752,21 +786,21 @@ private fun UsuarioTarjetaProfional(
             ) {
                 Box(modifier = Modifier.weight(1f)) {
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
                         border = BorderStroke(
                             1.dp,
                             MaterialTheme.colorScheme.outlineVariant
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .clickable { menuRolAbierto = true }
                     ) {
                         Row(
                             modifier = Modifier.padding(
-                                horizontal = 12.dp,
-                                vertical = 11.dp
+                                horizontal = 10.dp,
+                                vertical = 8.dp
                             ),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -774,16 +808,24 @@ private fun UsuarioTarjetaProfional(
                                 imageVector = Icons.Default.Shield,
                                 contentDescription = null,
                                 tint = colorPrincipal,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
 
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            Text(
+                                text = "Rol:",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Spacer(modifier = Modifier.width(5.dp))
 
                             Text(
                                 text = rolSeleccionado,
                                 modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -792,7 +834,8 @@ private fun UsuarioTarjetaProfional(
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = "Seleccionar rol",
-                                tint = colorPrincipal
+                                tint = colorPrincipal,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
@@ -803,9 +846,7 @@ private fun UsuarioTarjetaProfional(
                     ) {
                         if (rolesDisponibles.isEmpty()) {
                             DropdownMenuItem(
-                                text = {
-                                    Text("Cargando roles...")
-                                },
+                                text = { Text("Cargando roles...") },
                                 enabled = false,
                                 onClick = {}
                             )
@@ -841,26 +882,16 @@ private fun UsuarioTarjetaProfional(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Save,
-                        contentDescription = null,
+                        contentDescription = "Guardar rol",
                         tint = Color.White,
-                        modifier = Modifier.size(19.dp)
+                        modifier = Modifier.size(17.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(15.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Selector de estado y acciones en una segunda fila.
-            Text(
-                text = "ESTADO DE LA CUENTA",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = 0.7.sp
-            )
-
-            Spacer(modifier = Modifier.height(7.dp))
-
+            // Fila 2: Selector de Estado compacto + Guardar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -868,27 +899,44 @@ private fun UsuarioTarjetaProfional(
             ) {
                 Box(modifier = Modifier.weight(1f)) {
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(10.dp),
                         color = bgColor,
                         border = BorderStroke(1.dp, borderColor),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .clickable { menuEstadoAbierto = true }
                     ) {
                         Row(
                             modifier = Modifier.padding(
-                                horizontal = 12.dp,
-                                vertical = 11.dp
+                                horizontal = 10.dp,
+                                vertical = 8.dp
                             ),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(textColor)
+                            )
+
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            Text(
+                                text = "Estado:",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = textColor.copy(alpha = 0.85f)
+                            )
+
+                            Spacer(modifier = Modifier.width(5.dp))
+
                             Text(
                                 text = estadoSeleccionado.replaceFirstChar {
                                     it.uppercase()
                                 },
                                 modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
                                 color = textColor,
                                 maxLines = 1,
@@ -898,7 +946,8 @@ private fun UsuarioTarjetaProfional(
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = "Seleccionar estado",
-                                tint = textColor
+                                tint = textColor,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
@@ -958,22 +1007,9 @@ private fun UsuarioTarjetaProfional(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Save,
-                        contentDescription = null,
+                        contentDescription = "Guardar estado",
                         tint = Color.White,
-                        modifier = Modifier.size(19.dp)
-                    )
-                }
-
-                BotonAccionCircular(
-                    descripcion = "Eliminar usuario",
-                    color = BloqueadoTexto,
-                    onClick = onEliminarUsuario
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(19.dp)
+                        modifier = Modifier.size(17.dp)
                     )
                 }
             }
@@ -990,10 +1026,10 @@ private fun BotonAccionCircular(
 ) {
     Surface(
         onClick = onClick,
-        shape = CircleShape,
+        shape = RoundedCornerShape(10.dp),
         color = color,
-        shadowElevation = 2.dp,
-        modifier = Modifier.size(42.dp)
+        shadowElevation = 1.dp,
+        modifier = Modifier.size(36.dp)
     ) {
         Box(
             contentAlignment = Alignment.Center,

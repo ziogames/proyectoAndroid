@@ -42,11 +42,32 @@ interface EmprendimientoApi {
     suspend fun eliminarEmprendimiento(
         @Path("id") id: Long
     ): Response<Unit>
+
     @POST("zoe/generate-description")
     suspend fun generarDescripcionZoe(
         @Body body: Map<String, String>
     ): Response<ZoeDescriptionResponse>
+
+    // 🌐 Ruta pública corregida para apuntar al endpoint que creamos en Laravel
+    @GET("emprendimientos/publicos")
+    suspend fun getEmprendimientosPublicos(
+        @Query("categoria") categoria: String? = null
+    ): EmprendimientosPublicosResponse
+
+    @GET("emprendimientos/favoritos")
+    suspend fun getMisFavoritos(): EmprendimientosPublicosResponse
+
+    @POST("emprendimientos/{id}/favorito")
+    suspend fun toggleFavorito(
+        @Path("id") id: Int
+    ): Response<FavoritoResponseWrapper>
 }
+
+// 📦 Clase contenedora para mapear la respuesta JSON del directorio público
+data class EmprendimientosPublicosResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("emprendimientos") val emprendimientos: List<EmprendimientoDto>
+)
 
 data class EmprendimientoCategoriaDto(
     @SerializedName("id") val id: Long,
@@ -61,4 +82,9 @@ data class EmprendimientoResponseWrapper(
 
 data class ZoeDescriptionResponse(
     @SerializedName("description") val description: String
+)
+data class FavoritoResponseWrapper(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("es_favorito") val esFavorito: Boolean,
+    @SerializedName("message") val message: String
 )

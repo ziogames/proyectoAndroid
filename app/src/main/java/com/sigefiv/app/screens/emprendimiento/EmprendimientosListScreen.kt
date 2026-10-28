@@ -1,6 +1,7 @@
 package com.sigefiv.app.screens.emprendimiento
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -33,7 +34,8 @@ fun EmprendimientosListScreen(
     onNuevoEmprendimientoClick: () -> Unit,
     onEditarEmprendimientoClick: (Long) -> Unit,
     onCambiarEstadoClick: (Long, String) -> Unit,
-    onEliminarEmprendimientoClick: (Long) -> Unit // 👈 Callback para eliminar el negocio
+    onEliminarEmprendimientoClick: (Long) -> Unit,
+    onItemClick: (Long) -> Unit // 👈 NUEVO: Callback para navegar al detalle completo del negocio
 ) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -224,6 +226,7 @@ fun EmprendimientosListScreen(
                             ) { item ->
                                 EmprendimientoCard(
                                     item = item,
+                                    onCardClick = { onItemClick(item.id) }, // 👈 Al hacer clic en la tarjeta va al detalle
                                     onEditarClick = {
                                         onEditarEmprendimientoClick(item.id)
                                     },
@@ -324,6 +327,7 @@ private fun EmptyEmprendimientos(
 @Composable
 fun EmprendimientoCard(
     item: EmprendimientoItemUi,
+    onCardClick: () -> Unit, // 👈 Se añade el evento de clic general en la tarjeta
     onEditarClick: () -> Unit,
     onCambiarEstado: (String) -> Unit,
     onEliminarClick: () -> Unit
@@ -349,7 +353,6 @@ fun EmprendimientoCard(
         else -> Color(0xFFFEF3C7)
     }
 
-    // 🛑 Estado local para el diálogo de confirmación de eliminación
     var mostrarDialogoEliminar by remember { mutableStateOf(false) }
 
     if (mostrarDialogoEliminar) {
@@ -381,7 +384,9 @@ fun EmprendimientoCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onCardClick), // 👈 Permite hacer clic en toda la tarjeta para ver el detalle
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -444,13 +449,28 @@ fun EmprendimientoCard(
                             color = SigefivGreen,
                             fontWeight = FontWeight.SemiBold
                         )
+
+                        // 👇 NUEVO: Insignia visual de calificación promedio en la tarjeta
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = Color(0xFFFFC107)
+                        )
+                        Spacer(Modifier.width(2.dp))
+                        Text(
+                            text = "4.8", // O puedes enlazar item.calificacionPromedio si lo tienes en tu modelo UI
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 
                 Spacer(Modifier.width(8.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Etiqueta de Estado
                     Surface(
                         shape = RoundedCornerShape(9.dp),
                         color = statusBackground
@@ -479,7 +499,6 @@ fun EmprendimientoCard(
 
                     Spacer(Modifier.width(4.dp))
 
-                    // 🗑️ Botón de Eliminar (Papelera sutil al lado del estado)
                     IconButton(
                         onClick = { mostrarDialogoEliminar = true },
                         modifier = Modifier.size(36.dp)

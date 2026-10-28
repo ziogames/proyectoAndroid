@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.SmartToy
+import androidx.compose.material.icons.outlined.Storefront // 👈 Importado para el icono de Negocios
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -122,6 +123,7 @@ fun DashboardScreen(
     onNotificacionesClick: () -> Unit = {},
     onMovimientosClick: () -> Unit = {},
     onAsambleasClick: () -> Unit = {},
+    onEmprendimientosClick: () -> Unit = {}, // 👈 Callback añadido para Emprendimientos/Negocios
     onPeriodosClick: () -> Unit = {},
     onMiCuentaClick: () -> Unit = {},
     onSigiClick: () -> Unit = {},
@@ -250,13 +252,6 @@ fun DashboardScreen(
 
                     /*
                     |--------------------------------------------------------------------------
-                    | SIGI
-                    |--------------------------------------------------------------------------
-                    */
-
-
-                    /*
-                    |--------------------------------------------------------------------------
                     | ZOE INTELIGENTE
                     |--------------------------------------------------------------------------
                     */
@@ -348,6 +343,7 @@ fun DashboardScreen(
             SigefivBottomBar(
                 onInicioClick = {},
                 onAsambleasClick = onAsambleasClick,
+                onEmprendimientosClick = onEmprendimientosClick, // 👈 Vinculado aquí
                 onPeriodosClick = onPeriodosClick,
                 onMiCuentaClick = onMiCuentaClick
             )
@@ -1200,6 +1196,8 @@ private fun SigefivBottomBar(
 
     onAsambleasClick: () -> Unit = {},
 
+    onEmprendimientosClick: () -> Unit = {}, // 👈 Nuevo parámetro añadido
+
     onPeriodosClick: () -> Unit = {},
 
     onMiCuentaClick: () -> Unit = {}
@@ -1292,6 +1290,47 @@ private fun SigefivBottomBar(
 
                 Text(
                     text = "Asamblea"
+                )
+            },
+
+            colors = NavigationBarItemDefaults.colors(
+
+                unselectedIconColor = Blanco.copy(
+                    alpha = 0.75f
+                ),
+
+                unselectedTextColor = Blanco.copy(
+                    alpha = 0.75f
+                )
+            )
+        )
+
+        /*
+        |--------------------------------------------------------------------------
+        | 🛍️ NEGOCIOS (EMPRENDIMIENTOS) - NUEVO BOTÓN
+        |--------------------------------------------------------------------------
+        */
+
+        NavigationBarItem(
+
+            selected = false,
+
+            onClick = onEmprendimientosClick,
+
+            icon = {
+
+                Icon(
+
+                    imageVector = Icons.Outlined.Storefront,
+
+                    contentDescription = "Negocios"
+                )
+            },
+
+            label = {
+
+                Text(
+                    text = "Negocios"
                 )
             },
 

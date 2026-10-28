@@ -5,17 +5,18 @@ import com.google.gson.JsonObject
 
 data class ZoeConsultaRequest(
     val usuario_id: Int,
+    val seudonimo: String? = null, // 👈 NUEVO CAMPO AÑADIDO
     val nombre_usuario: String,
     val mensaje: String
 )
 
 /**
  * Request exclusivo para el nuevo ZOE AI.
- *
  * No modifica el ZOE actual.
  */
 data class ZoeAIConsultaRequest(
     val usuario_id: Int,
+    val seudonimo: String? = null, // 👈 NUEVO CAMPO AÑADIDO
     val nombre_usuario: String,
     val mensaje: String
 )

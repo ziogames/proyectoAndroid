@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -284,9 +286,6 @@ fun NuevoIngresoScreen(
     |--------------------------------------------------------------------------
     | FECHA INICIAL DEL MOVIMIENTO
     |--------------------------------------------------------------------------
-    | Si el período abierto es el mes actual, usamos hoy.
-    | Si el período abierto es anterior al mes actual, usamos el último día
-    | de ese período. Internamente mantenemos yyyy-MM-dd para el backend.
     */
     val fechaPredeterminada = remember(periodoInicio, periodoFin, fechaInicial) {
         fechaInicial ?: run {
@@ -451,6 +450,8 @@ fun NuevoIngresoScreen(
                 .fillMaxSize()
                 .background(fondoPantalla)
                 .padding(innerPadding)
+                .imePadding()             // <-- Ajuste automático para el teclado
+                .navigationBarsPadding()  // <-- Evita solapamiento con la barra inferior
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -472,7 +473,6 @@ fun NuevoIngresoScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
 
-                    // Imagen diferente automáticamente para claro / oscuro
                     Image(
                         painter = painterResource(
                             id = R.drawable.ingreso_banner
@@ -482,7 +482,6 @@ fun NuevoIngresoScreen(
                         contentScale = ContentScale.Crop
                     )
 
-                    // Contenido encima de la imagen
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
@@ -495,7 +494,6 @@ fun NuevoIngresoScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
 
-                        // Icono izquierdo
                         Box(
                             modifier = Modifier
                                 .size(64.dp)
@@ -518,7 +516,6 @@ fun NuevoIngresoScreen(
                             modifier = Modifier.width(16.dp)
                         )
 
-                        // Información del período
                         Column(
                             modifier = Modifier.weight(1f)
                         ) {
@@ -565,6 +562,7 @@ fun NuevoIngresoScreen(
                     }
                 }
             }
+
             /*
             |--------------------------------------------------------------------------
             | FECHA DE INGRESO
@@ -598,9 +596,6 @@ fun NuevoIngresoScreen(
             |--------------------------------------------------------------------------
             | SELECTOR DE CATEGORÍA
             |--------------------------------------------------------------------------
-
-             SELECT CATEGORÍA CORREGIDO
-            --------------------------------------------------------------------------
             */
             Box(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
@@ -862,7 +857,6 @@ fun NuevoIngresoScreen(
             )
 
             // COMPROBANTE
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
@@ -1003,6 +997,7 @@ fun NuevoIngresoScreen(
                     }
                 }
             }
+
             // OBSERVACIONES
             OutlinedTextField(
                 value = observaciones,
@@ -1067,7 +1062,6 @@ fun NuevoIngresoScreen(
                     onClick = {
                         val montoNumerico = monto.replace(",", ".").toDoubleOrNull()
                         if (categoriaSeleccionada != null && concepto.isNotBlank() && montoNumerico != null && montoNumerico > 0.0) {
-                            // fecha se mantiene internamente como yyyy-MM-dd para el backend.
                             onGuardar(
                                 fecha,
                                 categoriaSeleccionada!!.id,
@@ -1182,4 +1176,3 @@ private fun coloresCampoIngreso(): androidx.compose.material3.TextFieldColors {
         disabledContainerColor = fondo
     )
 }
-

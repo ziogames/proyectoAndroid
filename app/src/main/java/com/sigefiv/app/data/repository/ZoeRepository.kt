@@ -29,20 +29,16 @@ class ZoeRepository(
         val usuarioId = sessionManager.userId.first()
             ?: throw IllegalStateException("No hay usuario autenticado")
 
+        // 1. Obtenemos el seudónimo y el nombre directamente del SessionManager
         val seudonimo = sessionManager.seudonimo.first()
         val nombre = sessionManager.nombre.first()
 
-        val nombreUsuario =
-            when {
-                !seudonimo.isNullOrBlank() -> seudonimo
-                !nombre.isNullOrBlank() -> nombre
-                else -> "vecino"
-            }
-
+        // 2. Lo enviamos explícitamente en el request hacia n8n
         return api.consultarZoeN8n(
             ZoeConsultaRequest(
                 usuario_id = usuarioId,
-                nombre_usuario = nombreUsuario,
+                seudonimo = seudonimo?.takeIf { it.isNotBlank() }, // 👈 Aquí va "patopato"
+                nombre_usuario = nombre ?: "vecino",
                 mensaje = mensaje
             )
         )

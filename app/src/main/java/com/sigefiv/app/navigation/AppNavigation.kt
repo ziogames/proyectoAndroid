@@ -138,6 +138,9 @@ import com.sigefiv.app.data.repository.EmprendimientoRepository
 import com.sigefiv.app.screens.emprendimiento.EmprendimientosListScreen
 import com.sigefiv.app.screens.emprendimiento.EmprendimientoFormScreen
 import com.sigefiv.app.screens.roles.NuevoRolScreen
+import com.sigefiv.app.screens.emprendimiento.EmprendimientosScreen
+import com.sigefiv.app.viewmodel.EmprendimientoViewModel
+import com.sigefiv.app.screens.emprendimiento.EmprendimientoFormAction
 
 enum class AppScreen(val drawerRoute: String) {
     DASHBOARD("dashboard"),
@@ -168,7 +171,11 @@ enum class AppScreen(val drawerRoute: String) {
     ENVIAR_NOTIFICACION("notificaciones"),
     CONFIRMAR_NOTIFICACION("notificaciones"),
     MIS_EMPRENDIMIENTOS("perfil"),
-    EMPRENDIMIENTO_FORM("perfil")
+    EMPRENDIMIENTO_FORM("perfil"),
+    DIRECTORIO_EMPRENDIMIENTOS("dashboard"), // 👈 NUEVA RUTA PÚBLICA
+    FAVORITOS_EMPRENDIMIENTOS("dashboard"), // 👈 NUEVA RUTA PARA FAVORITOS
+    DETALLE_EMPRENDIMIENTO("perfil"),         // 👈 NUEVO
+    OPINIONES_EMPRENDIMIENTO("perfil")       // 👈 NUEVO
 }
 
 @Composable
@@ -200,6 +207,8 @@ fun AppNavigation(
             RolRepository(ApiClient.rolApi(context))
         )
     }
+    // 👇 Añade esta línea para observar el estado del ViewModel
+    val usuarioUiState by usuarioViewModel.uiState.collectAsState()
     val cajaViewModel = remember { CajaViewModel(CajaRepository(ApiClient.cajaApi(context))) }
     val actividadViewModel = remember {
         ActividadViewModel(
@@ -231,7 +240,11 @@ fun AppNavigation(
     val emprendimientosListViewModel: EmprendimientosListViewModel = remember { EmprendimientosListViewModel(emprendimientoRepository) }
 
     val emprendimientoFormViewModel: EmprendimientoFormViewModel = remember { EmprendimientoFormViewModel(context.applicationContext as Application) }
-
+    val emprendimientoViewModel = remember {
+        EmprendimientoViewModel(
+            EmprendimientoRepository(ApiClient.emprendimientoApi(context), context)
+        )
+    }
     fun puede(permiso: String): Boolean {
         return permisosUsuario.any {
             it.trim().equals(permiso, ignoreCase = true)
@@ -292,6 +305,7 @@ fun AppNavigation(
     var mascotaX by remember { mutableStateOf(0f) }
 
     var mascotaY by remember { mutableStateOf(0f) }
+    var emprendimientoIdSeleccionado by remember { mutableStateOf<Int?>(null) }
 
     val mascotaScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
@@ -621,15 +635,12 @@ fun AppNavigation(
                             context = context,
                             dashboardViewModel = dashboardViewModel,
                             movimientosViewModel = movimientosViewModel,
-
                             notificacionesNoLeidas = notificacionesNoLeidas,
-
                             onNotificacionesClick = {
                                 if (puede("notificaciones.index")) {
                                     navegarA(AppScreen.NOTIFICACIONES)
                                 }
                             },
-
                             onMovimientosClick = {
                                 if (puedeVerMovimientos) {
                                     navegarA(AppScreen.MOVIMIENTOS)
@@ -637,6 +648,9 @@ fun AppNavigation(
                             },
                             onAsambleasClick = {
                                 abrirAsamblea()
+                            },
+                            onEmprendimientosClick = {
+                                navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS) // 👈 AHORA ABRE EL DIRECTORIO DE TODOS LOS VECINOS
                             },
                             onPeriodosClick = {
                                 if (puede("periodos.index")) {
@@ -1026,6 +1040,18 @@ fun AppNavigation(
                             metodoAcceso = usuarioPerfil?.metodo_acceso,
                             guardando = guardandoPerfil,
                             subiendoFoto = subiendoFotoPerfil,
+
+                            // 👇 NUEVOS PARÁMETROS PARA EL CAMBIO DE CONTRASEÑA
+                            cargandoPassword = usuarioUiState.cambiandoPassword,
+                            onActualizarPassword = { actual, nueva, confirmar, onExito ->
+                                usuarioViewModel.actualizarPassword(
+                                    currentPassword = actual,
+                                    newPassword = nueva,
+                                    newPasswordConfirmation = confirmar,
+                                    onExito = onExito
+                                )
+                            },
+
                             onGuardarPerfil = { seudonimo ->
                                 perfilViewModel.actualizarPerfil(
                                     seudonimo = seudonimo,
@@ -1330,6 +1356,49 @@ fun AppNavigation(
                             }
                         )
                     }
+                    // 👇 DIRECTORIO PÚBLICO (Se abre al presionar "Negocios" en la barra inferior)
+                    AppScreen.DIRECTORIO_EMPRENDIMIENTOS -> {
+                        EmprendimientosScreen(
+                            viewModel = emprendimientoViewModel,
+                            onItemClick = { emprendimientoId ->
+                                emprendimientoIdSeleccionado = emprendimientoId
+                                navegarA(AppScreen.DETALLE_EMPRENDIMIENTO)
+                            },
+                            onFavoritosClick = {
+                                navegarA(AppScreen.FAVORITOS_EMPRENDIMIENTOS) // 👈 Abre la vista de favoritos
+                            }
+                        )
+                    }
+                    // 👇 NUEVA PANTALLA DE MIS FAVORITOS
+                    AppScreen.FAVORITOS_EMPRENDIMIENTOS -> {
+                        // 💖 Cargamos los favoritos actualizados al entrar a la pantalla
+                        LaunchedEffect(Unit) {
+                            emprendimientoViewModel.cargarFavoritos()
+                        }
+
+                        com.sigefiv.app.screens.emprendimiento.EmprendimientosFavoritosScreen(
+                            viewModel = emprendimientoViewModel,
+                            onBackClick = { retroceder() },
+                            onItemClick = { id ->
+                                emprendimientoIdSeleccionado = id
+                                navegarA(AppScreen.DETALLE_EMPRENDIMIENTO)
+                            },
+                            onContactarWhatsapp = { telefono ->
+                                val intent = android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse("https://api.whatsapp.com/send?phone=$telefono")
+                                )
+                                context.startActivity(intent)
+                            },
+                            onLlamar = { telefono ->
+                                val intent = android.content.Intent(
+                                    android.content.Intent.ACTION_DIAL,
+                                    android.net.Uri.parse("tel:$telefono")
+                                )
+                                context.startActivity(intent)
+                            }
+                        )
+                    }
                     AppScreen.MIS_EMPRENDIMIENTOS -> {
                         LaunchedEffect(Unit) {
                             emprendimientosListViewModel.cargarMisEmprendimientos()
@@ -1348,25 +1417,124 @@ fun AppNavigation(
                                 emprendimientoFormViewModel.cargarEmprendimiento(id)
                                 navegarA(AppScreen.EMPRENDIMIENTO_FORM)
                             },
+                            onItemClick = { id ->
+                                emprendimientoIdSeleccionado = id.toInt() // 👈 Convertimos el Long a Int aqui
+                                navegarA(AppScreen.DETALLE_EMPRENDIMIENTO)
+                            },
                             onCambiarEstadoClick = { id, nuevoEstado ->
                                 emprendimientosListViewModel.cambiarEstado(id, nuevoEstado)
                             },
-                            onEliminarEmprendimientoClick = { id -> // 👈 Añadido para procesar la eliminación
+                            onEliminarEmprendimientoClick = { id ->
                                 emprendimientosListViewModel.eliminarEmprendimiento(id)
                             }
                         )
                     }
                     AppScreen.EMPRENDIMIENTO_FORM -> {
                         val state by emprendimientoFormViewModel.state.collectAsState()
+
+                        // 📸 Lanzador nativo para seleccionar una imagen de la galería
+                        val imagePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                            contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+                        ) { uri: android.net.Uri? ->
+                            uri?.let { selectedUri ->
+                                // Añadimos la uri seleccionada a tu estado/ViewModel como String
+                                emprendimientoFormViewModel.onAction(
+                                    EmprendimientoFormAction.AddPhoto(selectedUri.toString())
+                                )
+                            }
+                        }
+
                         EmprendimientoFormScreen(
                             state = state,
                             onAction = { action -> emprendimientoFormViewModel.onAction(action) },
                             onPickImageClick = {
-                                // Selector de imágenes nativo
+                                // 📂 Abre la galería filtrando solo imágenes
+                                imagePickerLauncher.launch("image/*")
                             },
                             onNavigateBack = { retroceder() }
                         )
                     }
+                    // 👇 Dentro de AppScreen.DETALLE_EMPRENDIMIENTO en AppNavigation.kt:
+                    AppScreen.DETALLE_EMPRENDIMIENTO -> {
+                        val listaPublica = emprendimientoViewModel.emprendimientos
+                        val statePersonal by emprendimientosListViewModel.state.collectAsState()
+
+                        val negocioPublico = listaPublica.find { it.id == emprendimientoIdSeleccionado }
+                        val negocioPersonal = statePersonal.emprendimientos.find { it.id.toInt() == emprendimientoIdSeleccionado }
+
+                        val modeloDetalle = when {
+                            negocioPublico != null -> {
+                                com.sigefiv.app.data.model.EmprendimientoModel(
+                                    id = negocioPublico.id,
+                                    nombre = negocioPublico.nombre,
+                                    descripcion = negocioPublico.descripcion,
+                                    categoria = negocioPublico.categoria,
+                                    telefono = negocioPublico.telefono,
+                                    showWhatsapp = negocioPublico.showWhatsapp,
+                                    modalidad = negocioPublico.modalidad,
+                                    zonaAtencion = negocioPublico.zonaAtencion,
+                                    horario = negocioPublico.horario,
+                                    esFavorito = negocioPublico.esFavorito,
+                                    photos = negocioPublico.photos // 👈 Pasa las fotos públicas aquí
+                                )
+                            }
+                            negocioPersonal != null -> {
+                                com.sigefiv.app.data.model.EmprendimientoModel(
+                                    id = negocioPersonal.id.toInt(),
+                                    nombre = negocioPersonal.nombre, // 👈 Corregido de name a nombre
+                                    descripcion = negocioPersonal.description ?: "",
+                                    categoria = "General",
+                                    telefono = negocioPersonal.phone,
+                                    showWhatsapp = negocioPersonal.showWhatsapp,
+                                    modalidad = negocioPersonal.modality,
+                                    zonaAtencion = negocioPersonal.attentionZone,
+                                    horario = negocioPersonal.schedule,
+                                    esFavorito = false,
+                                    photos = emptyList()
+                                )
+                            }
+                            else -> null
+                        }
+
+                        if (modeloDetalle != null) {
+                            com.sigefiv.app.screens.emprendimiento.DetalleEmprendimientoScreen(
+                                emprendimiento = modeloDetalle,
+                                onBackClick = { retroceder() },
+                                onOpenOpiniones = {
+                                    navegarA(AppScreen.OPINIONES_EMPRENDIMIENTO)
+                                },
+                                onContactarWhatsapp = {
+                                    val intent = android.content.Intent(
+                                        android.content.Intent.ACTION_VIEW,
+                                        android.net.Uri.parse("https://api.whatsapp.com/send?phone=${modeloDetalle.telefono}")
+                                    )
+                                    context.startActivity(intent)
+                                },
+                                onLlamar = {
+                                    val intent = android.content.Intent(
+                                        android.content.Intent.ACTION_DIAL,
+                                        android.net.Uri.parse("tel:${modeloDetalle.telefono}")
+                                    )
+                                    context.startActivity(intent)
+                                }
+                            )
+                        } else {
+                            LaunchedEffect(Unit) {
+                                retroceder()
+                            }
+                        }
+                    }
+                    AppScreen.OPINIONES_EMPRENDIMIENTO -> {
+                        com.sigefiv.app.screens.emprendimiento.OpinionesScreen(
+                            nombreNegocio = "Panadería El Buen Sabor",
+                            onBackClick = { retroceder() },
+                            onEscribirOpinionClick = {
+                                // Lógica para abrir formulario de opinión o diálogo
+                            }
+                        )
+                    }
+                    // 👆 HASTA AQUÍ 👆
+
 
 
                 }

@@ -77,7 +77,20 @@ class UsuarioRepository(
             api.marcarBienvenidaVista()
         }
     }
-
+    suspend fun actualizarPassword(
+        currentPassword: String,
+        newPassword: String,
+        newPasswordConfirmation: String
+    ): Result<Map<String, Any>> {
+        val parametros = mapOf(
+            "current_password" to currentPassword,
+            "new_password" to newPassword,
+            "new_password_confirmation" to newPasswordConfirmation
+        )
+        return ejecutar {
+            api.actualizarPassword(parametros)
+        }
+    }
     private suspend fun <T> ejecutar(
         llamada: suspend () -> Response<T>
     ): Result<T> {
@@ -134,4 +147,5 @@ class UsuarioRepository(
             )
         }
     }
+
 }

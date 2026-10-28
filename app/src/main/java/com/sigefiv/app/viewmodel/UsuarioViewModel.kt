@@ -16,6 +16,7 @@ data class UsuariosUiState(
     val cambiandoEstado: Boolean = false,
     val cambiandoRol: Boolean = false,
     val eliminandoUsuario: Boolean = false,
+    val cambiandoPassword: Boolean = false, // 👈 NUEVO ESTADO
     val usuarios: List<UsuarioListado> = emptyList(),
     val error: String? = null,
     val mensaje: String? = null,
@@ -319,4 +320,44 @@ class UsuarioViewModel(
                 }
         }
     }
+    fun actualizarPassword(
+        currentPassword: String,
+        newPassword: String,
+        newPasswordConfirmation: String,
+        onExito: () -> Unit
+    ) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                cambiandoPassword = true,
+                error = null,
+                mensaje = null
+            )
+
+            repository.actualizarPassword(
+                currentPassword = currentPassword,
+                newPassword = newPassword,
+                newPasswordConfirmation = newPasswordConfirmation
+            )
+                .onSuccess { respuesta ->
+                    val mensajeServidor = respuesta["message"] as? String
+                        ?: "Contraseña actualizada correctamente."
+
+                    _uiState.value = _uiState.value.copy(
+                        cambiandoPassword = false, // 👈 APAGA LA CARGA
+                        mensaje = mensajeServidor,
+                        error = null
+                    )
+                    onExito()
+                }
+                .onFailure { excepcion ->
+                    // ⚠️ AQUÍ ESTABA EL DETALLE: Si fallaba, el botón se quedaba bloqueado
+                    _uiState.value = _uiState.value.copy(
+                        cambiandoPassword = false, // 👈 ¡CLAVE! Apaga la carga también en el error
+                        error = excepcion.message ?: "No se pudo actualizar la contraseña.",
+                        mensaje = null
+                    )
+                }
+        }
+    }
+
 }

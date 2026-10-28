@@ -18,10 +18,9 @@ class AuthInterceptor(
         val originalRequest = chain.request()
 
         /*
-         * El login con Google obtiene una nueva sesión.
-         *
-         * No enviamos un Bearer anterior en esta petición.
-         */
+        | El login con Google obtiene una nueva sesión.
+        | No enviamos un Bearer anterior en esta petición.
+        */
         val esLoginGoogle =
             originalRequest.url.encodedPath.endsWith("/auth/google")
 
@@ -88,14 +87,8 @@ class AuthInterceptor(
         )
 
         /*
-         * Enviar la petición al servidor.
-         *
-         * Los errores de red se registran aquí,
-         * pero NO se muestran como error global.
-         *
-         * Una petición individual puede fallar mientras
-         * otras peticiones de SIGEFIV siguen funcionando.
-         */
+        | Enviar la petición al servidor.
+        */
         val response: Response
 
         try {
@@ -110,17 +103,12 @@ class AuthInterceptor(
                         "${request.method} ${request.url} → ${e.message}"
             )
 
-            /*
-             * Propagar el error para que el ViewModel
-             * o Repository que realizó la operación
-             * pueda manejarlo correctamente.
-             */
             throw e
         }
 
         /*
-         * DIAGNÓSTICO
-         */
+        | DIAGNÓSTICO
+        */
         println(
             "SIGEFIV HTTP CODE: ${response.code}"
         )
@@ -134,12 +122,21 @@ class AuthInterceptor(
         )
 
         /*
-         * Manejo de errores HTTP del servidor.
-         *
-         * Solamente registramos el error aquí.
-         * No mostramos un mensaje global desde el interceptor.
-         */
+        | Manejo de errores HTTP del servidor.
+        */
         when (response.code) {
+
+            // 🔥 Si Laravel responde 401 (token revocado por el admin por baneo o cambio de rol)
+            401 -> {
+                println(
+                    "SIGEFIV SESIÓN EXPIRADA O REVOCADA (401): Limpiando sesión con cerrarSesion()..."
+                )
+
+                // Usamos el método real definido en tu SessionManager.kt
+                runBlocking {
+                    sessionManager.cerrarSesion()
+                }
+            }
 
             500, 502, 503, 504 -> {
 
@@ -151,8 +148,8 @@ class AuthInterceptor(
         }
 
         /*
-         * Leer el cuerpo únicamente para diagnóstico.
-         */
+        | Leer el cuerpo únicamente para diagnóstico.
+        */
         if (esLoginGoogle || response.code >= 400) {
 
             try {

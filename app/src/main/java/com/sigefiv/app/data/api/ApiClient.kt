@@ -10,8 +10,8 @@ import com.sigefiv.app.ServidorConfig
 
 object ApiClient {
 
-   // private const val BASE_URL =
- //  "http://10.0.2.2:8080/api/"
+    // private const val BASE_URL =
+    //  "http://10.0.2.2:8080/api/"
 
     private val BASE_URL: String
         get() = ServidorConfig.API_BASE_URL
@@ -27,7 +27,7 @@ object ApiClient {
             OkHttpClient.Builder()
                 .addInterceptor(
                     AuthInterceptor(
-                        sessionManager
+                        sessionManager // 🔥 Solucionado: solo pasamos el sessionManager como corresponde
                     )
                 )
                 .connectTimeout(10, TimeUnit.SECONDS)
@@ -45,9 +45,8 @@ object ApiClient {
     }
 
     /**
-     * Cliente utilizado actualmente para autenticación.
-     *
-     * Se mantiene para no romper el login existente.
+    - Cliente utilizado actualmente para autenticación.
+    - Se mantiene para no romper el login existente.
      */
     fun create(
         context: Context
@@ -58,7 +57,7 @@ object ApiClient {
     }
 
     /**
-     * Cliente para la API de Asambleas.
+    - Cliente para la API de Asambleas.
      */
     fun asambleaApi(
         context: Context
@@ -69,7 +68,7 @@ object ApiClient {
     }
 
     /**
-     * Cliente para la API del Chat Vecinal.
+    - Cliente para la API del Chat Vecinal.
      */
     fun chatApi(
         context: Context
@@ -80,7 +79,7 @@ object ApiClient {
     }
 
     /**
-     * Cliente para la API de Usuarios.
+    - Cliente para la API de Usuarios.
      */
     fun usuarioApi(
         context: Context
@@ -91,7 +90,7 @@ object ApiClient {
     }
 
     /**
-     * Cliente para la API de Caja.
+    - Cliente para la API de Caja.
      */
     fun cajaApi(
         context: Context
@@ -102,7 +101,7 @@ object ApiClient {
     }
 
     /**
-     * Cliente para la API de Roles.
+    - Cliente para la API de Roles.
      */
     fun rolApi(
         context: Context
@@ -113,10 +112,7 @@ object ApiClient {
     }
 
     /**
-     * Cliente para la API de Actividad de Usuarios.
-     */
-    /**
-     * Cliente para la API de Actividad de Usuarios.
+    - Cliente para la API de Actividad de Usuarios.
      */
     fun actividadApi(
         context: Context
@@ -126,14 +122,14 @@ object ApiClient {
     }
 
     /**
-     * Cliente para la API de Emprendimientos.
+    - Cliente para la API de Emprendimientos.
      */
     fun emprendimientoApi(context: Context): EmprendimientoApi {
         return createRetrofit(context).create(EmprendimientoApi::class.java)
-        // Nota: Asegúrate de usar la misma función base que usan tus otras APIs (getClient, getRetrofit, etc.)
     }
+
     /**
-     * Cliente para la API de ZOE (Asistente e Historial).
+    - Cliente para la API de ZOE (Asistente e Historial).
      */
     fun zoeApi(context: Context): ZoeApi {
         return createRetrofit(context).create(ZoeApi::class.java)
