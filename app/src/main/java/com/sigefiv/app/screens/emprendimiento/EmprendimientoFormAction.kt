@@ -2,6 +2,7 @@ package com.sigefiv.app.screens.emprendimiento
 
 sealed interface EmprendimientoFormAction {
     data class UpdateNombre(val nombre: String) : EmprendimientoFormAction
+    data class UpdateCategoria(val categoria: String) : EmprendimientoFormAction
     data class UpdatePalabrasClave(val palabrasClave: String) : EmprendimientoFormAction // 👈 Nuevo campo
     data class UpdateDescripcion(val descripcion: String) : EmprendimientoFormAction
     data class UpdateTelefono(val telefono: String) : EmprendimientoFormAction

@@ -141,6 +141,13 @@ import com.sigefiv.app.screens.roles.NuevoRolScreen
 import com.sigefiv.app.screens.emprendimiento.EmprendimientosScreen
 import com.sigefiv.app.viewmodel.EmprendimientoViewModel
 import com.sigefiv.app.screens.emprendimiento.EmprendimientoFormAction
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
+import java.io.File
+import com.sigefiv.app.screens.configuracion.ConfiguracionScreen
+import com.sigefiv.app.data.repository.ConfiguracionRepository
+import com.sigefiv.app.viewmodel.ConfiguracionViewModel
 
 enum class AppScreen(val drawerRoute: String) {
     DASHBOARD("dashboard"),
@@ -167,6 +174,8 @@ enum class AppScreen(val drawerRoute: String) {
     EDITAR_ROL("roles"),
     CAJA("caja"),
     ACTIVIDAD("actividad"),
+
+    BITACORA("bitacora"),
     NOTIFICACIONES("notificaciones"),
     ENVIAR_NOTIFICACION("notificaciones"),
     CONFIRMAR_NOTIFICACION("notificaciones"),
@@ -175,7 +184,13 @@ enum class AppScreen(val drawerRoute: String) {
     DIRECTORIO_EMPRENDIMIENTOS("dashboard"), // 👈 NUEVA RUTA PÚBLICA
     FAVORITOS_EMPRENDIMIENTOS("dashboard"), // 👈 NUEVA RUTA PARA FAVORITOS
     DETALLE_EMPRENDIMIENTO("perfil"),         // 👈 NUEVO
-    OPINIONES_EMPRENDIMIENTO("perfil")       // 👈 NUEVO
+    OPINIONES_EMPRENDIMIENTO("perfil"),
+
+    // 👇 NUEVAS RUTAS PARA INCIDENCIAS
+    MIS_REPORTES_VECINO("mis_reportes"),
+    GESTION_INCIDENCIAS_DIRECTIVA("gestion_incidencias"),
+    CREAR_REPORTE("mis_reportes"),
+    CONFIGURACION("configuracion")
 }
 
 @Composable
@@ -245,6 +260,20 @@ fun AppNavigation(
             EmprendimientoRepository(ApiClient.emprendimientoApi(context), context)
         )
     }
+    // 👇 AÑADE ESTAS LÍNEAS AQUÍ:
+    val incidenciasViewModel = remember {
+        com.sigefiv.app.viewmodel.IncidenciasViewModel(context.applicationContext as Application)
+    }
+    val listaIncidenciasVecino by incidenciasViewModel.incidenciasVecino.collectAsState()
+    val listaIncidenciasDirectiva by incidenciasViewModel.incidenciasDirectiva.collectAsState()
+    val cargandoIncidencias by incidenciasViewModel.cargando.collectAsState()
+    val configuracionRepository = remember {
+        ConfiguracionRepository(ApiClient.configuracionApi(context))
+    }
+    val configuracionViewModel = remember {
+        ConfiguracionViewModel(configuracionRepository)
+    }
+    val configUiState by configuracionViewModel.uiState.collectAsState()
     fun puede(permiso: String): Boolean {
         return permisosUsuario.any {
             it.trim().equals(permiso, ignoreCase = true)
@@ -604,9 +633,29 @@ fun AppNavigation(
                                 navegarA(AppScreen.NOTIFICACIONES)
                             }
                         }
+                        // 👇 AÑADE ESTAS DOS RUTAS AQUÍ:
+                        "mis_reportes" -> {
+                            navegarA(AppScreen.MIS_REPORTES_VECINO)
+                        }
+                        "gestion_incidencias" -> {
+                            navegarA(AppScreen.GESTION_INCIDENCIAS_DIRECTIVA)
+                        }
+                        // ---------------------------------
+                        "bitacora" -> {
+                            if (puede("bitacora.index")) {
+                                navegarA(AppScreen.BITACORA) // O AppScreen.BITACORA si creaste una separada
+                            }
+                        }
                         "actividad" -> {
                             actividadViewModel.cargarActividades()
                             navegarA(AppScreen.ACTIVIDAD)
+                        }
+                        "mis_reportes" -> navegarA(AppScreen.MIS_REPORTES_VECINO)
+                        "gestion_incidencias" -> navegarA(AppScreen.GESTION_INCIDENCIAS_DIRECTIVA)
+                        "configuracion" -> {
+                            if (puede("configuracion.index") || usuarioPerfil?.rol?.equals("administrador", true) == true) {
+                                navegarA(AppScreen.CONFIGURACION)
+                            }
                         }
                     }
                     scope.launch { drawerState.close() }
@@ -733,7 +782,6 @@ fun AppNavigation(
                         )
                     }
 
-
                     AppScreen.DETALLE_MOVIMIENTO -> {
                         movimientoSeleccionado?.let { mov ->
                             DetalleMovimientoScreen(
@@ -756,6 +804,9 @@ fun AppNavigation(
                                 },
                                 onAsambleasClick = {
                                     abrirAsamblea()
+                                },
+                                onEmprendimientosClick = {
+                                    navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS)
                                 },
                                 onPeriodosClick = {
                                     navegarA(AppScreen.PERIODOS)
@@ -867,6 +918,7 @@ fun AppNavigation(
                             },
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
                             onAsambleasClick = { },
+                            onEmprendimientosClick = { navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS) },
                             onPeriodosClick = { navegarA(AppScreen.PERIODOS) },
                             onMiCuentaClick = {
                                 perfilViewModel.cargarPerfil()
@@ -966,6 +1018,7 @@ fun AppNavigation(
                             },
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
                             onAsambleasClick = { abrirAsamblea() },
+                            onEmprendimientosClick = { navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS) },
                             onPeriodosClick = { },
                             onMiCuentaClick = {
                                 perfilViewModel.cargarPerfil()
@@ -984,14 +1037,24 @@ fun AppNavigation(
                                 periodoIdSeleccionado = periodoId
                                 navegarA(AppScreen.PERIODO_DETALLE)
                             },
-                            onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
-                            onMovimientosClick = { navegarA(AppScreen.ASAMBLEAS) },
-                            onAsambleasClick = { navegarA(AppScreen.PERIODOS) },
-                            onMasClick = {
+                            onInicioClick = {
+                                navegarA(AppScreen.DASHBOARD, limpiarPila = true)
+                            },
+                            onAsambleasClick = {
+                                abrirAsamblea()
+                            },
+                            onEmprendimientosClick = {
+                                navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS)
+                            },
+                            onPeriodosClick = {
+                                // Regresa a la lista general de años de períodos
+                                navegarA(AppScreen.PERIODOS)
+                            },
+                            onMiCuentaClick = {
                                 perfilViewModel.cargarPerfil()
                                 navegarA(AppScreen.PERFIL)
                             },
-                            onOpenDrawer = { scope.launch { drawerState.open() } }
+
                         )
                     }
 
@@ -1004,14 +1067,15 @@ fun AppNavigation(
                                 movimientoSeleccionado = mov
                                 navegarA(AppScreen.DETALLE_MOVIMIENTO)
                             },
-                            onMovimientosClick = { navegarA(AppScreen.ASAMBLEAS) },
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
-                            onMovimientosPrincipalClick = { navegarA(AppScreen.ASAMBLEAS) },
                             onAsambleasClick = { abrirAsamblea() },
+                            onEmprendimientosClick = { navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS) },
+                            onPeriodosClick = { navegarA(AppScreen.PERIODOS) },
                             onMiCuentaClick = {
                                 perfilViewModel.cargarPerfil()
                                 navegarA(AppScreen.PERFIL)
-                            }
+                            },
+                            onOpenDrawer = { scope.launch { drawerState.open() } }
                         )
                     }
 
@@ -1020,6 +1084,7 @@ fun AppNavigation(
                             onBackClick = { retroceder() },
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
                             onAsambleasClick = { abrirAsamblea() },
+                            onEmprendimientosClick = { navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS) },
                             onPeriodosClick = {
                                 if (puede("periodos.index")) {
                                     navegarA(AppScreen.PERIODOS)
@@ -1181,6 +1246,11 @@ fun AppNavigation(
                             onBackClick = { retroceder() },
                             onOpenDrawer = { scope.launch { drawerState.open() } },
                             darkTheme = darkTheme
+                        )
+                    }
+                    AppScreen.BITACORA -> {
+                        com.sigefiv.app.screens.bitacora.BitacoraScreen(
+                            onBackClick = { retroceder() }
                         )
                     }
 
@@ -1384,9 +1454,15 @@ fun AppNavigation(
                                 navegarA(AppScreen.DETALLE_EMPRENDIMIENTO)
                             },
                             onContactarWhatsapp = { telefono ->
+                                val mensaje = "Hola, vi tu negocio en mis favoritos de SIGEFIV y quisiera hacer una consulta."
+                                val mensajeCodificado = java.net.URLEncoder.encode(mensaje, "UTF-8")
+                                val telefonoLimpio = telefono.replace(Regex("[^0-9]"), "")
+                                val telefonoConPais = if (telefonoLimpio.length == 9) "51$telefonoLimpio" else telefonoLimpio
+
+                                val url = "https://api.whatsapp.com/send?phone=$telefonoConPais&text=$mensajeCodificado"
                                 val intent = android.content.Intent(
                                     android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse("https://api.whatsapp.com/send?phone=$telefono")
+                                    android.net.Uri.parse(url)
                                 )
                                 context.startActivity(intent)
                             },
@@ -1462,6 +1538,16 @@ fun AppNavigation(
                         val negocioPublico = listaPublica.find { it.id == emprendimientoIdSeleccionado }
                         val negocioPersonal = statePersonal.emprendimientos.find { it.id.toInt() == emprendimientoIdSeleccionado }
 
+                        // 🔍 Cargamos las opiniones cada vez que cambia el ID seleccionado
+                        LaunchedEffect(emprendimientoIdSeleccionado) {
+                            emprendimientoIdSeleccionado?.let {
+                                emprendimientoViewModel.cargarOpiniones(it)
+                            }
+                        }
+
+                        // 🌟 Obtenemos el estado actual directamente del ViewModel
+                        val opinionesData = emprendimientoViewModel.opinionesState
+
                         val modeloDetalle = when {
                             negocioPublico != null -> {
                                 com.sigefiv.app.data.model.EmprendimientoModel(
@@ -1475,13 +1561,13 @@ fun AppNavigation(
                                     zonaAtencion = negocioPublico.zonaAtencion,
                                     horario = negocioPublico.horario,
                                     esFavorito = negocioPublico.esFavorito,
-                                    photos = negocioPublico.photos // 👈 Pasa las fotos públicas aquí
+                                    photos = negocioPublico.photos
                                 )
                             }
                             negocioPersonal != null -> {
                                 com.sigefiv.app.data.model.EmprendimientoModel(
                                     id = negocioPersonal.id.toInt(),
-                                    nombre = negocioPersonal.nombre, // 👈 Corregido de name a nombre
+                                    nombre = negocioPersonal.nombre,
                                     descripcion = negocioPersonal.description ?: "",
                                     categoria = "General",
                                     telefono = negocioPersonal.phone,
@@ -1499,14 +1585,22 @@ fun AppNavigation(
                         if (modeloDetalle != null) {
                             com.sigefiv.app.screens.emprendimiento.DetalleEmprendimientoScreen(
                                 emprendimiento = modeloDetalle,
+                                promedio = opinionesData?.promedio ?: 0.0f,     // 👈 Promedio real dinámico
+                                totalOpiniones = opinionesData?.total ?: 0,   // 👈 Total real dinámico
                                 onBackClick = { retroceder() },
                                 onOpenOpiniones = {
                                     navegarA(AppScreen.OPINIONES_EMPRENDIMIENTO)
                                 },
                                 onContactarWhatsapp = {
+                                    val mensaje = "Hola, vi tu negocio '${modeloDetalle.nombre}' en SIGEFIV y quisiera consultar más información."
+                                    val mensajeCodificado = java.net.URLEncoder.encode(mensaje, "UTF-8")
+                                    val telefonoLimpio = modeloDetalle.telefono.replace(Regex("[^0-9]"), "")
+                                    val telefonoConPais = if (telefonoLimpio.length == 9) "51$telefonoLimpio" else telefonoLimpio
+
+                                    val url = "https://api.whatsapp.com/send?phone=$telefonoConPais&text=$mensajeCodificado"
                                     val intent = android.content.Intent(
                                         android.content.Intent.ACTION_VIEW,
-                                        android.net.Uri.parse("https://api.whatsapp.com/send?phone=${modeloDetalle.telefono}")
+                                        android.net.Uri.parse(url)
                                     )
                                     context.startActivity(intent)
                                 },
@@ -1525,18 +1619,162 @@ fun AppNavigation(
                         }
                     }
                     AppScreen.OPINIONES_EMPRENDIMIENTO -> {
+                        val listaPublica = emprendimientoViewModel.emprendimientos
+                        val statePersonal by emprendimientosListViewModel.state.collectAsState()
+
+                        val negocioPublico = listaPublica.find { it.id == emprendimientoIdSeleccionado }
+                        val negocioPersonal = statePersonal.emprendimientos.find { it.id.toInt() == emprendimientoIdSeleccionado }
+
+                        val nombreNegocio = negocioPublico?.nombre ?: negocioPersonal?.nombre ?: "Emprendimiento"
+
+                        val opinionesData = emprendimientoViewModel.opinionesState
+                        val cargandoOps = emprendimientoViewModel.cargandoOpiniones
+
+                        // Cargar las opiniones reales al abrir la pantalla
+                        LaunchedEffect(emprendimientoIdSeleccionado) {
+                            emprendimientoIdSeleccionado?.let {
+                                emprendimientoViewModel.cargarOpiniones(it)
+                            }
+                        }
+
+                        // 👇 PEGA ESTO AQUÍ: Cálculo dinámico de la distribución por estrella
+                        val opinionesList = opinionesData?.opiniones ?: emptyList()
+                        val totalOps = opinionesData?.total ?: 1 // Evitamos división por cero
+
+                        val distribucionReal = (5 downTo 1).associateWith { estrella ->
+                            if (totalOps > 0) {
+                                val count = opinionesList.count { it.calificacion == estrella }
+                                ((count.toFloat() / totalOps) * 100).toInt()
+                            } else {
+                                0
+                            }
+                        }
+                        // 👆 HASTA AQUÍ
+
                         com.sigefiv.app.screens.emprendimiento.OpinionesScreen(
-                            nombreNegocio = "Panadería El Buen Sabor",
+                            nombreNegocio = nombreNegocio,
+                            promedioEstrellas = opinionesData?.promedio ?: 0.0f,
+                            totalOpiniones = opinionesData?.total ?: 0,
+                            distribucionPorcentaje = distribucionReal, // 👈 Y pásalo aquí
+                            opiniones = opinionesList,
+                            userOpinion = opinionesData?.userOpinion,
+                            cargando = cargandoOps,
                             onBackClick = { retroceder() },
-                            onEscribirOpinionClick = {
-                                // Lógica para abrir formulario de opinión o diálogo
+                            onEnviarOpinion = { calificacion, comentario ->
+                                emprendimientoIdSeleccionado?.let { id ->
+                                    emprendimientoViewModel.enviarOpinion(id, calificacion, comentario) {
+                                        // ¡Opinión publicada con éxito!
+                                    }
+                                }
                             }
                         )
                     }
-                    // 👆 HASTA AQUÍ 👆
+                    // 👇 NUEVA PANTALLA: MIS REPORTES (VECINO)
+                    // 👇 NUEVA PANTALLA: MIS REPORTES (VECINO)
+                    AppScreen.MIS_REPORTES_VECINO -> {
+                        LaunchedEffect(Unit) {
+                            // 🛡️ El backend obtiene el ID automáticamente por el token de Sanctum
+                            incidenciasViewModel.cargarMisReportesParaVecino()
+                        }
 
+                        com.sigefiv.app.screens.incidencias.MisReportesVecinoScreen(
+                            listaIncidencias = listaIncidenciasVecino,
+                            isRefreshing = cargandoIncidencias,
+                            // 🔄 Recarga usando la nueva función limpia sin requerir pasar el ID manualmente
+                            onRefresh = {
+                                incidenciasViewModel.cargarMisReportesParaVecino()
+                            },
+                            onNuevoReporteClick = {
+                                navegarA(AppScreen.CREAR_REPORTE) // 🚀 Redirige al formulario de nuevo reporte
+                            },
+                            onBackClick = { retroceder() }
+                        )
+                    }
+                    // 👇 AÑADE ESTE BLOQUE NUEVO JUSTO AQUÍ:
+                    AppScreen.CREAR_REPORTE -> {
+                        var imagenSeleccionadaUri by remember { mutableStateOf<Uri?>(null) }
+                        var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
+                        // 📸 Lanzador para tomar la foto con la cámara (Sin 'const')
+                        val AUTHORITY = "${context.packageName}.fileprovider"
 
+                        val tomarFotoLauncher = rememberLauncherForActivityResult(
+                            contract = ActivityResultContracts.TakePicture()
+                        ) { exito ->
+                            if (exito) {
+                                tempPhotoUri?.let { uri ->
+                                    imagenSeleccionadaUri = uri
+                                }
+                            }
+                        }
+
+                        // 📂 Lanzador para elegir de la galería
+                        val galeriaLauncher = rememberLauncherForActivityResult(
+                            contract = ActivityResultContracts.GetContent()
+                        ) { uri ->
+                            uri?.let { imagenSeleccionadaUri = it }
+                        }
+
+                        com.sigefiv.app.screens.incidencias.CrearReporteScreen(
+                            onEnviarReporte = { titulo, categoria, mensaje, uri ->
+                                incidenciasViewModel.crearIncidencia(
+                                    titulo = titulo,
+                                    categoria = categoria,
+                                    mensaje = mensaje,
+                                    imagenUri = uri,
+                                    onResultado = { exito, _ ->
+                                        if (exito) {
+                                            retroceder() // Vuelve a mis reportes y recarga
+                                        }
+                                    }
+                                )
+                            },
+                            onTomarFoto = {
+                                // Creamos un archivo temporal seguro en el caché para la cámara
+                                val archivoTemp = File(context.cacheDir, "incidencia_camara_${System.currentTimeMillis()}.jpg")
+                                val uriTemp = androidx.core.content.FileProvider.getUriForFile(context, AUTHORITY, archivoTemp)
+                                tempPhotoUri = uriTemp
+                                tomarFotoLauncher.launch(uriTemp)
+                            },
+                            onElegirGaleria = {
+                                galeriaLauncher.launch("image/*")
+                            },
+                            imagenUri = imagenSeleccionadaUri,
+                            onEliminarImagen = { imagenSeleccionadaUri = null },
+                            cargando = cargandoIncidencias,
+                            onBackClick = { retroceder() }
+                        )
+                    }
+
+                    // 👇 NUEVA PANTALLA: GESTIÓN DE INCIDENCIAS (DIRECTIVA)
+                    AppScreen.GESTION_INCIDENCIAS_DIRECTIVA -> {
+                        LaunchedEffect(Unit) {
+                            incidenciasViewModel.cargarIncidenciasDirectiva()
+                        }
+
+                        com.sigefiv.app.screens.incidencias.GestionIncidenciasDirectivaScreen(
+                            listaIncidencias = listaIncidenciasDirectiva,
+                            isRefreshing = cargandoIncidencias,
+                            onCambiarEstado = { idIncidencia, nuevoEstado ->
+                                incidenciasViewModel.cambiarEstadoIncidencia(idIncidencia, nuevoEstado, esVistaDirectiva = true)
+                            },
+                            onBackClick = { retroceder() }
+                        )
+                    }
+                    AppScreen.CONFIGURACION -> {
+                        LaunchedEffect(Unit) {
+                            configuracionViewModel.cargarConfiguracion()
+                        }
+
+                        ConfiguracionScreen(
+                            configuracionInicial = configUiState.configuracion,
+                            cargando = configUiState.cargando || configUiState.guardando,
+                            onGuardarConfiguracion = { configActualizada ->
+                                configuracionViewModel.guardarConfiguracion(configActualizada)
+                            },
+                            onBackClick = { retroceder() }
+                        )
+                    }
                 }
             }
             // ============================================================

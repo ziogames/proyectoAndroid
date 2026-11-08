@@ -4,20 +4,22 @@ import com.google.gson.Gson
 import com.sigefiv.app.data.api.ChatApi
 import com.sigefiv.app.data.model.ChatEscribiendoRequest
 import com.sigefiv.app.data.model.ChatEnviarResponse
+import com.sigefiv.app.data.model.ChatMensajeOperacionResponse
 import com.sigefiv.app.data.model.ChatNuevosResponse
 import com.sigefiv.app.data.model.ChatPresenciaResponse
 import com.sigefiv.app.data.model.ChatReaccionResponse
 import com.sigefiv.app.data.model.ChatResponse
-import retrofit2.Response
 import com.sigefiv.app.data.model.ChatSimpleResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import retrofit2.Response
 
-// 🚨 Excepción personalizada para transportar los datos de baneo de ZOE al ViewModel
+// 🚨 Excepción personalizada para transportar advertencias y bloqueos de ZOE al ViewModel
 class ZoeException(
     message: String,
     val esBloqueoPermanente: Boolean,
-    val detalle: String?
+    val detalle: String?,
+    val strikes: Int = 0
 ) : Exception(message)
 
 // Modelo para capturar la estructura de error enviada por Laravel/ZOE
@@ -25,6 +27,8 @@ data class ZoeErrorResponse(
     val success: Boolean?,
     val message: String?,
     val detalle: String?,
+    val strikes: Int?,
+    val bloqueado: Boolean?,
     val es_bloqueo_permanente: Boolean?
 )
 
@@ -40,7 +44,7 @@ class ChatRepository(
 
     suspend fun enviarMensaje(
         mensaje: String,
-        replyToId: Int? = null // 💬 Soporte opcional para enviar el ID del mensaje citado
+        replyToId: Int? = null
     ): Result<ChatEnviarResponse> {
         return ejecutar {
             val mapa = mutableMapOf("mensaje" to mensaje)
@@ -54,8 +58,33 @@ class ChatRepository(
     }
 
     /**
-     * 📎 Enviar archivo multimedia (foto o video) adjunto al chat vecinal
+     * ✏️ Editar un mensaje propio (límite 15 minutos en el backend).
      */
+    suspend fun editarMensaje(
+        mensajeId: Int,
+        nuevoTexto: String
+    ): Result<ChatMensajeOperacionResponse> {
+        return ejecutar {
+            api.editarMensaje(
+                mensajeId = mensajeId,
+                request = mapOf("mensaje" to nuevoTexto)
+            )
+        }
+    }
+
+    /**
+     * 🗑️ Eliminar un mensaje (Soft Delete estilo WhatsApp o moderación de directiva).
+     */
+    suspend fun eliminarMensaje(
+        mensajeId: Int
+    ): Result<ChatMensajeOperacionResponse> {
+        return ejecutar {
+            api.eliminarMensaje(
+                mensajeId = mensajeId
+            )
+        }
+    }
+
     /**
      * 📎 Enviar archivo multimedia (foto o video) exclusivo para el Chat Vecinal
      */
@@ -66,6 +95,29 @@ class ChatRepository(
     ): Result<ChatEnviarResponse> {
         return ejecutar {
             api.enviarChatVecinalConArchivo(archivo, mensaje, replyToId)
+        }
+    }
+
+    /**
+     * 🤖 Invocar directamente al Webhook de ZOE en n8n cuando se menciona a @Zoe en el chat vecinal
+     */
+    suspend fun consultarWebhookZoe(usuarioId: Int, mensaje: String): Result<Unit> {
+        return try {
+            val payload = mapOf(
+                "usuario_id" to usuarioId,
+                "mensaje" to mensaje,
+                "origen" to "chat_vecinal"
+            )
+
+            val response = api.invocarWebhookZoe(payload)
+
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Error al conectar con ZOE (${response.code()})"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(e.message ?: "No se pudo invocar el webhook de ZOE"))
         }
     }
 
@@ -98,18 +150,7 @@ class ChatRepository(
     }
 
     /**
-    -
-    ❤️ Agregar o quitar una reacción de un mensaje.
-     *
-    - Si el usuario ya tiene ese emoji:
-
-    -      → Laravel elimina la reacción.
-
-     *
-    - Si no la tiene:
-
-    -      → Laravel agrega la reacción.
-
+     * ❤️ Agregar o quitar una reacción de un mensaje.
      */
     suspend fun reaccionar(
         chatMessageId: Int,
@@ -126,8 +167,7 @@ class ChatRepository(
     }
 
     /**
-    -
-    ❤️ Obtener las reacciones de un mensaje.
+     * ❤️ Obtener las reacciones de un mensaje.
      */
     suspend fun obtenerReacciones(
         chatMessageId: Int
@@ -139,102 +179,6 @@ class ChatRepository(
         }
     }
 
-    private suspend fun <T> ejecutar(
-        llamada: suspend () -> Response<T>
-    ): Result<T> {
-
-        return try {
-
-            val response = llamada()
-
-            if (response.isSuccessful) {
-
-                val body = response.body()
-
-                if (body != null) {
-                    Result.success(body)
-                } else {
-                    Result.failure(
-                        Exception(
-                            "El servidor no devolvió datos."
-                        )
-                    )
-                }
-
-            } else {
-
-                val mensaje =
-                    when (response.code()) {
-
-                        401 ->
-                            "La sesión ha expirado. Inicia sesión nuevamente."
-
-                        403 ->
-                            "No tienes permiso para acceder al Chat Vecinal."
-
-                        404 ->
-                            "El Chat Vecinal no fue encontrado."
-
-                        422 -> {
-
-                            // 🚨 CAPTURAMOS EL JSON DE ERROR ENVIADO POR ZOE
-                            val errorBody =
-                                response.errorBody()?.string()
-
-                            val zoeError = try {
-
-                                if (!errorBody.isNullOrEmpty()) {
-
-                                    Gson().fromJson(
-                                        errorBody,
-                                        ZoeErrorResponse::class.java
-                                    )
-
-                                } else {
-                                    null
-                                }
-
-                            } catch (e: Exception) {
-                                null
-                            }
-
-                            val mensajeZoe =
-                                zoeError?.message
-                                    ?: "Tu mensaje ha sido bloqueado por ZOE."
-
-                            val esBloqueo =
-                                zoeError?.es_bloqueo_permanente == true ||
-                                        zoeError?.detalle == "bloqueo"
-
-                            // 🚨 Devolvemos la excepción con la bandera real de baneo de Laravel
-                            return Result.failure(
-                                ZoeException(
-                                    mensajeZoe,
-                                    esBloqueo,
-                                    zoeError?.detalle
-                                )
-                            )
-                        }
-
-                        else ->
-                            "Error del servidor (${response.code()})."
-                    }
-
-                Result.failure(
-                    Exception(mensaje)
-                )
-            }
-
-        } catch (e: Exception) {
-
-            Result.failure(
-                Exception(
-                    e.message
-                        ?: "No se pudo conectar con el servidor."
-                )
-            )
-        }
-    }
     suspend fun marcarLeido(mensajeId: Int): Result<ChatSimpleResponse> {
         return ejecutar {
             api.marcarLeido(
@@ -243,5 +187,90 @@ class ChatRepository(
                 )
             )
         }
+    }
+
+    private suspend fun <T> ejecutar(
+        llamada: suspend () -> Response<T>
+    ): Result<T> {
+        return try {
+            val response = llamada()
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    Result.success(body)
+                } else {
+                    Result.failure(Exception("El servidor no devolvió datos."))
+                }
+            } else {
+                // 🚨 Parsear respuesta JSON de error (ZOE moderación / bloqueo)
+                val errorBody = response.errorBody()?.string()
+                val zoeError = try {
+                    if (!errorBody.isNullOrEmpty()) {
+                        Gson().fromJson(errorBody, ZoeErrorResponse::class.java)
+                    } else {
+                        null
+                    }
+                } catch (e: Exception) {
+                    null
+                }
+
+                val mensajeServidor = zoeError?.message
+
+                when (response.code()) {
+                    401 -> Result.failure(Exception("La sesión ha expirado. Inicia sesión nuevamente."))
+
+                    // 🚨 403: Puede ser falta de permisos o la 3.ª FALTA (BLOQUEO PERMANENTE)
+                    403 -> {
+                        val esBloqueo = zoeError?.es_bloqueo_permanente == true ||
+                                zoeError?.bloqueado == true ||
+                                zoeError?.detalle == "bloqueo"
+
+                        if (esBloqueo) {
+                            Result.failure(
+                                ZoeException(
+                                    message = mensajeServidor ?: "Tu cuenta ha sido bloqueada por infringir las normas de convivencia.",
+                                    esBloqueoPermanente = true,
+                                    detalle = zoeError?.detalle ?: "bloqueo",
+                                    strikes = zoeError?.strikes ?: 3
+                                )
+                            )
+                        } else {
+                            Result.failure(Exception(mensajeServidor ?: "No tienes permiso para acceder al Chat Vecinal."))
+                        }
+                    }
+
+                    404 -> Result.failure(Exception("El recurso solicitado no fue encontrado."))
+
+                    // ⚠️ 422: ADVERTENCIAS 1 Y 2 DE ZOE O VALIDACIÓN
+                    422 -> {
+                        if (zoeError != null && (!zoeError.detalle.isNullEmptyOrBlank() || zoeError.strikes != null)) {
+                            val esBloqueo = zoeError.es_bloqueo_permanente == true || zoeError.detalle == "bloqueo"
+
+                            Result.failure(
+                                ZoeException(
+                                    message = mensajeServidor ?: "Tu mensaje ha sido bloqueado por ZOE.",
+                                    esBloqueoPermanente = esBloqueo,
+                                    detalle = zoeError.detalle,
+                                    strikes = zoeError.strikes ?: 0
+                                )
+                            )
+                        } else {
+                            Result.failure(Exception(mensajeServidor ?: "Los datos enviados no son válidos."))
+                        }
+                    }
+
+                    else -> Result.failure(Exception(mensajeServidor ?: "Error del servidor (${response.code()})."))
+                }
+            }
+        } catch (e: ZoeException) {
+            Result.failure(e)
+        } catch (e: Exception) {
+            Result.failure(Exception(e.message ?: "No se pudo conectar con el servidor."))
+        }
+    }
+
+    private fun String?.isNullEmptyOrBlank(): Boolean {
+        return this.isNullOrEmpty() || this.isBlank()
     }
 }

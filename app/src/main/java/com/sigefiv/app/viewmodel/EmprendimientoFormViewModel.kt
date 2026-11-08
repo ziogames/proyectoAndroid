@@ -30,6 +30,7 @@ class EmprendimientoFormViewModel(application: Application) : AndroidViewModel(a
     fun onAction(action: EmprendimientoFormAction) {
         when (action) {
             is EmprendimientoFormAction.UpdateNombre -> _state.update { it.copy(nombre = action.nombre) }
+            is EmprendimientoFormAction.UpdateCategoria -> _state.update { it.copy(categoria = action.categoria) } // 👈 Resuelve el error de exhaustividad
             is EmprendimientoFormAction.UpdatePalabrasClave -> _state.update { it.copy(palabrasClave = action.palabrasClave) }
             is EmprendimientoFormAction.UpdateDescripcion -> _state.update { it.copy(descripcion = action.descripcion) }
             is EmprendimientoFormAction.UpdateTelefono -> _state.update { it.copy(telefono = action.telefono) }
@@ -98,7 +99,8 @@ class EmprendimientoFormViewModel(application: Application) : AndroidViewModel(a
                         it.copy(
                             isLoading = false,
                             nombre = item.name ?: "",
-                            palabrasClave = item.keywords ?: "", // 🛡️ Protegido contra nulos
+                            categoria = item.categoria ?: "Servicios", // 👈 Precarga la categoría guardada
+                            palabrasClave = item.keywords ?: "",
                             descripcion = item.description ?: "",
                             telefono = item.phone ?: "",
                             usarWhatsapp = item.showWhatsapp,
@@ -130,6 +132,7 @@ class EmprendimientoFormViewModel(application: Application) : AndroidViewModel(a
 
             val campos = mapOf(
                 "name" to st.nombre.trim(),
+                "categoria" to st.categoria.ifBlank { "Servicios" }, // 👈 Envío de la categoría a la API
                 "keywords" to st.palabrasClave.trim(),
                 "description" to st.descripcion.trim(),
                 "phone" to st.telefono.trim(),
@@ -144,10 +147,8 @@ class EmprendimientoFormViewModel(application: Application) : AndroidViewModel(a
             val idActual = emprendimientoIdEnEdicion
 
             val resultado = if (idActual == null || idActual == 0L) {
-                // Crear nuevo
                 repository.crearEmprendimiento(campos, urisFotos)
             } else {
-                // Actualizar existente
                 repository.actualizarEmprendimiento(idActual, campos, urisFotos)
             }
 

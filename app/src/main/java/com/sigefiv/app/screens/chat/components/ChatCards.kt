@@ -41,6 +41,7 @@ import com.sigefiv.app.data.model.ChatArchivoPayload
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 import java.util.Locale
+import com.sigefiv.app.ServidorConfig
 
 // ============================================================
 // COLORES COMPARTIDOS PARA EL CHAT
@@ -185,7 +186,7 @@ fun TarjetaArchivoMensaje(archivo: ChatArchivoPayload) {
     val context = LocalContext.current
     var mostrarImagenAmpliada by remember { mutableStateOf(false) }
 
-    val urlCorregida = archivo.url?.replace("localhost", "10.0.2.2")
+    val urlCorregida = ServidorConfig.normalizarUrlArchivo(archivo.url)
     val esImagenOVid = archivo.mime?.startsWith("image/") == true || archivo.mime?.startsWith("video/") == true
 
     Column(modifier = Modifier.fillMaxWidth()) {

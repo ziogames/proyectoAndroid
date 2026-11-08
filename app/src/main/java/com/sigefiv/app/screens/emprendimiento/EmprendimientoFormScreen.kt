@@ -169,6 +169,7 @@ fun EmprendimientoFormScreen(
                 subtitle = "Cuéntales a los vecinos qué ofreces",
                 icon = Icons.Default.Store
             ) {
+                // 1. Nombre
                 OutlinedTextField(
                     value = state.nombre,
                     onValueChange = { onAction(EmprendimientoFormAction.UpdateNombre(it)) },
@@ -183,6 +184,47 @@ fun EmprendimientoFormScreen(
                     )
                 )
 
+                // 2. Selector Desplegable de Categoría (Dropdown)
+                var categoriaExpanded by remember { mutableStateOf(false) }
+                val categoriasDisponibles = listOf("Comida", "Servicios", "Belleza", "Construcción", "Comercio")
+
+                ExposedDropdownMenuBox(
+                    expanded = categoriaExpanded,
+                    onExpandedChange = { categoriaExpanded = !categoriaExpanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = state.categoria.ifBlank { "Selecciona una categoría" },
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Rubro o categoría *") },
+                        leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoriaExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = categoriaExpanded,
+                        onDismissRequest = { categoriaExpanded = false }
+                    ) {
+                        categoriasDisponibles.forEach { opcion ->
+                            DropdownMenuItem(
+                                text = { Text(opcion) },
+                                onClick = {
+                                    onAction(EmprendimientoFormAction.UpdateCategoria(opcion))
+                                    categoriaExpanded = false
+                                },
+                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                            )
+                        }
+                    }
+                }
+
+                // 3. Palabras Clave
                 OutlinedTextField(
                     value = state.palabrasClave,
                     onValueChange = { onAction(EmprendimientoFormAction.UpdatePalabrasClave(it)) },
@@ -202,6 +244,7 @@ fun EmprendimientoFormScreen(
                     )
                 )
 
+                // 4. Descripción
                 OutlinedTextField(
                     value = state.descripcion,
                     onValueChange = { onAction(EmprendimientoFormAction.UpdateDescripcion(it)) },
@@ -583,7 +626,6 @@ fun PhotoSelectorSection(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Carga la miniatura de la foto seleccionada utilizando Coil
                     Image(
                         painter = rememberAsyncImagePainter(model = photoPath),
                         contentDescription = "Fotografía ${index + 1}",

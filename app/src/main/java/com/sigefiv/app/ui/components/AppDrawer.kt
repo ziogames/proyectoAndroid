@@ -27,9 +27,10 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
-
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +49,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.sigefiv.app.R
+import androidx.compose.material.icons.outlined.Settings
+
 /*
 |--------------------------------------------------------------------------
 | PALETA DE COLORES - SIDEBAR SIGEFIV
@@ -75,10 +78,6 @@ fun AppDrawer(
     // =========================================================
     // LÓGICA DE PERMISOS (@can / RBAC de Spatie)
     // =========================================================
-// =========================================================
-// LÓGICA DE PERMISOS
-// =========================================================
-
     val esAdmin =
         rol?.trim()?.equals("Administrador", ignoreCase = true) == true
 
@@ -93,11 +92,11 @@ fun AppDrawer(
     fun puedeCualquiera(vararg listaPermisos: String): Boolean {
         return listaPermisos.any { puede(it) }
     }
+
     ModalDrawerSheet(
         modifier = Modifier.width(300.dp),
         drawerContainerColor = MaterialTheme.colorScheme.surface
     ) {
-
         Column(
             modifier = Modifier
                 .fillMaxHeight()
@@ -107,13 +106,11 @@ fun AppDrawer(
             // =========================================================
             // CABECERA VERDE ESMERALDA
             // =========================================================
-
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
             ) {
-
                 Image(
                     painter = painterResource(
                         id = if (darkTheme) {
@@ -136,7 +133,6 @@ fun AppDrawer(
                             end = 20.dp
                         )
                 ) {
-
                     Text(
                         text = "SIGEFIV",
                         style = MaterialTheme.typography.headlineMedium,
@@ -174,7 +170,6 @@ fun AppDrawer(
                     )
 
                     if (!rol.isNullOrBlank()) {
-
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Surface(
@@ -185,7 +180,6 @@ fun AppDrawer(
                             },
                             shape = RoundedCornerShape(6.dp)
                         ) {
-
                             Text(
                                 text = rol,
                                 color = Color.White,
@@ -201,16 +195,12 @@ fun AppDrawer(
                 }
             }
 
-            Spacer(
-                modifier = Modifier.height(8.dp)
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
             // =========================================================
             // INICIO
             // =========================================================
-
             if (puede("dashboard")) {
-
                 DrawerSectionTitle("INICIO")
 
                 DrawerItem(
@@ -226,7 +216,6 @@ fun AppDrawer(
             // =========================================================
             // COMUNIDAD
             // =========================================================
-
             DrawerSectionTitle("COMUNIDAD")
 
             if (puede("chat.index")) {
@@ -240,90 +229,66 @@ fun AppDrawer(
                 )
             }
 
+            if (puede("misreportes.index")) {
+                DrawerItem(
+                    title = "Mis Reportes",
+                    icon = Icons.Default.ListAlt,
+                    route = "mis_reportes",
+                    currentScreen = currentScreen,
+                    darkTheme = darkTheme,
+                    onNavigate = onNavigate
+                )
+            }
+
             // ---------------------------------------------------------
             // NOTIFICACIONES
             // ---------------------------------------------------------
             if (puede("notificaciones.index")) {
-            NavigationDrawerItem(
-                label = {
-                    Text(
-                        text = "Notificaciones",
-                        fontWeight =
-                            if (currentScreen == "notificaciones") {
-                                FontWeight.Bold
-                            } else {
-                                FontWeight.Normal
-                            }
-                    )
-                },
-                icon = {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = "Notificaciones"
-                    )
-                },
-                badge = {
-                    if (noLeidas > 0) {
-
-                        Surface(
-                            color = MaterialTheme.colorScheme.error,
-                            shape = RoundedCornerShape(50)
-                        ) {
-
-                            Text(
-                                text = if (noLeidas > 99) {
-                                    "99+"
-                                } else {
-                                    noLeidas.toString()
-                                },
-                                color = Color.White,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(
-                                    horizontal = 7.dp,
-                                    vertical = 2.dp
+                NavigationDrawerItem(
+                    label = {
+                        Text(
+                            text = "Notificaciones",
+                            fontWeight = if (currentScreen == "notificaciones") FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Notificaciones"
+                        )
+                    },
+                    badge = {
+                        if (noLeidas > 0) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.error,
+                                shape = RoundedCornerShape(50)
+                            ) {
+                                Text(
+                                    text = if (noLeidas > 99) "99+" else noLeidas.toString(),
+                                    color = Color.White,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                                 )
-                            )
+                            }
                         }
-                    }
-                },
-                selected = currentScreen == "notificaciones",
-                onClick = {
-                    onNavigate("notificaciones")
-                },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.padding(
-                    horizontal = 12.dp,
-                    vertical = 2.dp
-                ),
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = if (darkTheme) {
-                        Color(0xFF065F46)
-                    } else {
-                        Color(0xFFD1FAE5)
                     },
-                    selectedTextColor = if (darkTheme) {
-                        Color(0xFFA7F3D0)
-                    } else {
-                        Color(0xFF166534)
-                    },
-                    selectedIconColor = if (darkTheme) {
-                        Color(0xFFA7F3D0)
-                    } else {
-                        Color(0xFF166534)
-                    },
-                    unselectedContainerColor =
-                        Color.Transparent,
-                    unselectedTextColor =
-                        MaterialTheme.colorScheme.onSurface,
-                    unselectedIconColor =
-                        MaterialTheme.colorScheme.primary
+                    selected = currentScreen == "notificaciones",
+                    onClick = { onNavigate("notificaciones") },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = if (darkTheme) Color(0xFF065F46) else Color(0xFFD1FAE5),
+                        selectedTextColor = if (darkTheme) Color(0xFFA7F3D0) else Color(0xFF166534),
+                        selectedIconColor = if (darkTheme) Color(0xFFA7F3D0) else Color(0xFF166534),
+                        unselectedContainerColor = Color.Transparent,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unselectedIconColor = MaterialTheme.colorScheme.primary
+                    )
                 )
-            )
-        }
+            }
 
             if (puede("asambleas.index")) {
-
                 DrawerItem(
                     title = "Asambleas",
                     icon = Icons.Default.Campaign,
@@ -334,12 +299,9 @@ fun AppDrawer(
                 )
             }
 
-
-
             // =========================================================
             // CONTABILIDAD
             // =========================================================
-
             val tieneAccesoContable =
                 puedeCualquiera(
                     "reportes.index",
@@ -348,11 +310,9 @@ fun AppDrawer(
                 )
 
             if (tieneAccesoContable) {
-
                 DrawerSectionTitle("CONTABILIDAD")
 
                 if (puede("reportes.index")) {
-
                     DrawerItem(
                         title = "Reportes",
                         icon = Icons.Default.Assessment,
@@ -387,7 +347,6 @@ fun AppDrawer(
                 }
 
                 if (puede("caja.index")) {
-
                     DrawerItem(
                         title = "Caja",
                         icon = Icons.Default.AccountBalanceWallet,
@@ -403,7 +362,6 @@ fun AppDrawer(
             // =========================================================
             // ADMINISTRACIÓN
             // =========================================================
-
             val tieneAccesoAdmin =
                 puedeCualquiera(
                     "usuarios.index",
@@ -411,15 +369,27 @@ fun AppDrawer(
                     "configuracion",
                     "categorias.index",
                     "bitacora.index",
-                    "actividad.index"
+                    "actividad.index",
+                    "incidencias.index"
                 )
 
             if (tieneAccesoAdmin) {
-
                 DrawerSectionTitle("ADMINISTRACIÓN")
 
-                if (puede("usuarios.index")) {
+                // 🛡️ "Gestión de Incidencias": Exclusivo para directiva/secretario con permiso global
+                if (puede("incidencias.index")) {
+                    DrawerItem(
+                        title = "Gestión de Incidencias",
+                        icon = Icons.Default.Assignment,
+                        route = "gestion_incidencias",
+                        currentScreen = currentScreen,
+                        darkTheme = darkTheme,
+                        onNavigate = onNavigate,
+                        disponible = true
+                    )
+                }
 
+                if (puede("usuarios.index")) {
                     DrawerItem(
                         title = "Usuarios",
                         icon = Icons.Default.People,
@@ -432,7 +402,6 @@ fun AppDrawer(
                 }
 
                 if (puede("roles.index")) {
-
                     DrawerItem(
                         title = "Roles",
                         icon = Icons.Default.Security,
@@ -444,21 +413,19 @@ fun AppDrawer(
                     )
                 }
 
-                if (puede("configuracion")) {
-
+                if (puede("configuracion.index")) {
                     DrawerItem(
                         title = "Configuración",
-                        icon = Icons.Default.Settings,
+                        icon = Icons.Outlined.Settings,
                         route = "configuracion",
                         currentScreen = currentScreen,
                         darkTheme = darkTheme,
                         onNavigate = onNavigate,
-                        disponible = false
+                        disponible = true
                     )
                 }
 
                 if (puede("categorias.index")) {
-
                     DrawerItem(
                         title = "Categorías",
                         icon = Icons.Default.Folder,
@@ -471,7 +438,6 @@ fun AppDrawer(
                 }
 
                 if (puede("bitacora.index")) {
-
                     DrawerItem(
                         title = "Bitácora",
                         icon = Icons.Default.MenuBook,
@@ -479,12 +445,11 @@ fun AppDrawer(
                         currentScreen = currentScreen,
                         darkTheme = darkTheme,
                         onNavigate = onNavigate,
-                        disponible = false
+                        disponible = true
                     )
                 }
 
                 if (puede("actividad.index")) {
-
                     DrawerItem(
                         title = "Actividad",
                         icon = Icons.Default.Timeline,
@@ -497,21 +462,16 @@ fun AppDrawer(
                 }
             }
 
-            Spacer(
-                modifier = Modifier.height(8.dp)
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
             HorizontalDivider(
                 color = Color(0xFFCBD5E1),
-                modifier = Modifier.padding(
-                    horizontal = 16.dp
-                )
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
 
             // =========================================================
             // SISTEMA
             // =========================================================
-
             DrawerSectionTitle("SISTEMA")
 
             DrawerItem(
@@ -524,14 +484,11 @@ fun AppDrawer(
                 disponible = true
             )
 
-            Spacer(
-                modifier = Modifier.height(4.dp)
-            )
+            Spacer(modifier = Modifier.height(4.dp))
 
             // =========================================================
             // CERRAR SESIÓN
             // =========================================================
-
             NavigationDrawerItem(
                 label = {
                     Text(
@@ -548,22 +505,15 @@ fun AppDrawer(
                 selected = false,
                 onClick = onLogout,
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.padding(
-                    horizontal = 12.dp
-                ),
+                modifier = Modifier.padding(horizontal = 12.dp),
                 colors = NavigationDrawerItemDefaults.colors(
-                    unselectedTextColor =
-                        MaterialTheme.colorScheme.error,
-                    unselectedIconColor =
-                        MaterialTheme.colorScheme.error,
-                    unselectedContainerColor =
-                        Color.Transparent
+                    unselectedTextColor = MaterialTheme.colorScheme.error,
+                    unselectedIconColor = MaterialTheme.colorScheme.error,
+                    unselectedContainerColor = Color.Transparent
                 )
             )
 
-            Spacer(
-                modifier = Modifier.height(16.dp)
-            )
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -595,19 +545,13 @@ private fun DrawerItem(
     onNavigate: (String) -> Unit,
     disponible: Boolean = true
 ) {
-    val isSelected =
-        currentScreen == route
+    val isSelected = currentScreen == route
 
     NavigationDrawerItem(
         label = {
             Text(
                 text = title,
-                fontWeight =
-                    if (isSelected) {
-                        FontWeight.Bold
-                    } else {
-                        FontWeight.Normal
-                    }
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
             )
         },
         icon = {
@@ -628,35 +572,12 @@ private fun DrawerItem(
             vertical = 2.dp
         ),
         colors = NavigationDrawerItemDefaults.colors(
-            selectedContainerColor = if (darkTheme) {
-                Color(0xFF065F46)
-            } else {
-                Color(0xFFD1FAE5)
-            },
-            selectedTextColor = if (darkTheme) {
-                Color(0xFFA7F3D0)
-            } else {
-                Color(0xFF166534)
-            },
-            selectedIconColor = if (darkTheme) {
-                Color(0xFFA7F3D0)
-            } else {
-                Color(0xFF166534)
-            },
-            unselectedContainerColor =
-                Color.Transparent,
-            unselectedTextColor =
-                if (disponible) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            unselectedIconColor =
-                if (disponible) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
+            selectedContainerColor = if (darkTheme) Color(0xFF065F46) else Color(0xFFD1FAE5),
+            selectedTextColor = if (darkTheme) Color(0xFFA7F3D0) else Color(0xFF166534),
+            selectedIconColor = if (darkTheme) Color(0xFFA7F3D0) else Color(0xFF166534),
+            unselectedContainerColor = Color.Transparent,
+            unselectedTextColor = if (disponible) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            unselectedIconColor = if (disponible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
         )
     )
 }

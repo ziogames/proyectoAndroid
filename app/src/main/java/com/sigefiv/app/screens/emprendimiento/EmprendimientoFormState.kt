@@ -3,6 +3,7 @@ package com.sigefiv.app.screens.emprendimiento
 data class EmprendimientoFormState(
     val id: Long? = null,
     val nombre: String = "",
+    val categoria: String = "Servicios", // 👈 AGREGAR ESTA LÍNEA
     val palabrasClave: String = "", // 👈 Reemplaza a categoriaId
     val descripcion: String = "",
     val telefono: String = "",

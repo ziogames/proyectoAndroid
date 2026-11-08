@@ -20,16 +20,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
-import com.sigefiv.app.viewmodel.EmprendimientoViewModel
 import com.sigefiv.app.data.model.EmprendimientoModel
+import com.sigefiv.app.viewmodel.EmprendimientoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,14 +123,29 @@ fun EmprendimientosScreen(
             ) {
                 val categorias = listOf("Todos", "Comida", "Servicios", "Belleza", "Construcción")
                 items(categorias) { cat ->
+                    val estaSeleccionado = cat == viewModel.categoriaSeleccionada
+
                     FilterChip(
-                        selected = cat == "Todos",
-                        onClick = { viewModel.cargarEmprendimientosPublicos(cat) },
-                        label = { Text(cat) },
+                        selected = estaSeleccionado,
+                        onClick = { viewModel.cargarEmprendimientosPublicos(if (cat == "Todos") null else cat) },
+                        label = {
+                            Text(
+                                text = cat,
+                                color = if (estaSeleccionado) Color.White else Color(0xFF374151),
+                                fontWeight = if (estaSeleccionado) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = primaryColor,
-                            selectedLabelColor = Color.White
-                        )
+                            containerColor = Color.White
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = estaSeleccionado,
+                            borderColor = Color(0xFFD1D5DB),
+                            selectedBorderColor = primaryColor
+                        ),
+                        shape = RoundedCornerShape(10.dp)
                     )
                 }
             }
@@ -179,8 +194,10 @@ fun EmprendimientoCardGrid(
     onClick: () -> Unit,
     onFavoritoClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val primeraFoto = negocio.photos?.firstOrNull()?.path
     android.util.Log.d("COIL_URL", "Intentando cargar imagen en URL: $primeraFoto")
+
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -197,11 +214,9 @@ fun EmprendimientoCardGrid(
                     .background(Color(0xFFE5E7EB)),
                 contentAlignment = Alignment.TopEnd
             ) {
-                // 🖼️ IMAGEN DE FONDO (Primero para que ocupe todo el espacio base del Box)
-                // Si el negocio tiene fotos, cargamos la primera imagen asegurando el contexto
                 if (!primeraFoto.isNullOrEmpty()) {
                     val painter = rememberAsyncImagePainter(
-                        model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                        model = coil.request.ImageRequest.Builder(context)
                             .data(primeraFoto)
                             .crossfade(true)
                             .build()
@@ -215,7 +230,7 @@ fun EmprendimientoCardGrid(
                     )
                 }
 
-                // Insignia "Vecino del sector" (Flotando arriba a la izquierda)
+                // Insignia "Vecino del sector"
                 Surface(
                     color = Color(0xFF064E3B).copy(alpha = 0.85f),
                     shape = RoundedCornerShape(bottomEnd = 8.dp),
@@ -241,7 +256,7 @@ fun EmprendimientoCardGrid(
                     }
                 }
 
-                // 💖 Botón favorito interactivo (Flotando arriba a la derecha)
+                // Botón favorito interactivo
                 IconButton(
                     onClick = onFavoritoClick,
                     modifier = Modifier
@@ -259,31 +274,26 @@ fun EmprendimientoCardGrid(
 
             // 2. Contenido de texto y botones de la tarjeta
             Column(modifier = Modifier.padding(10.dp)) {
-                Text(
-                    text = negocio.categoria.uppercase(),
-                    color = Color(0xFF047857),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
+                // Título del negocio
                 Text(
                     text = negocio.nombre,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = Color(0xFF111827)
                 )
 
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Descripción ampliada a 3 líneas
                 Text(
                     text = negocio.descripcion,
                     fontSize = 11.sp,
                     color = Color(0xFF6B7280),
-                    maxLines = 2,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
-                    lineHeight = 14.sp
+                    lineHeight = 15.sp
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -300,21 +310,49 @@ fun EmprendimientoCardGrid(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
+                // Calificación y opiniones dinámicas
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFC107), modifier = Modifier.size(12.dp))
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFFFC107),
+                        modifier = Modifier.size(12.dp)
+                    )
                     Spacer(modifier = Modifier.width(2.dp))
-                    Text(text = "4.8", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF1F2937))
-                    Text(text = " (32)", fontSize = 10.sp, color = Color(0xFF9CA3AF))
+                    Text(
+                        text = "${negocio.promedioEstrellas}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        color = Color(0xFF1F2937)
+                    )
+                    Text(
+                        text = " (${negocio.totalOpiniones})",
+                        fontSize = 10.sp,
+                        color = Color(0xFF9CA3AF)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Botones funcionales con texto predefinido e Intent
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Button(
-                        onClick = { /* WhatsApp */ },
+                        onClick = {
+                            val mensaje = "Hola, vi tu negocio '${negocio.nombre}' en el directorio de SIGEFIV y me gustaría hacer una consulta."
+                            val mensajeCodificado = java.net.URLEncoder.encode(mensaje, "UTF-8")
+                            val telefonoLimpio = negocio.telefono.replace(Regex("[^0-9]"), "")
+                            val telefonoConPais = if (telefonoLimpio.length == 9) "51$telefonoLimpio" else telefonoLimpio
+
+                            val url = "https://api.whatsapp.com/send?phone=$telefonoConPais&text=$mensajeCodificado"
+                            val intent = android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse(url)
+                            )
+                            context.startActivity(intent)
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(30.dp),
@@ -322,17 +360,32 @@ fun EmprendimientoCardGrid(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                         shape = RoundedCornerShape(6.dp)
                     ) {
-                        Text("WhatsApp", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(
+                            "WhatsApp",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
                     }
                     OutlinedButton(
-                        onClick = { /* Llamar */ },
+                        onClick = {
+                            val intent = android.content.Intent(
+                                android.content.Intent.ACTION_DIAL,
+                                android.net.Uri.parse("tel:${negocio.telefono}")
+                            )
+                            context.startActivity(intent)
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(30.dp),
                         contentPadding = PaddingValues(0.dp),
                         shape = RoundedCornerShape(6.dp)
                     ) {
-                        Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(11.dp))
+                        Icon(
+                            Icons.Default.Call,
+                            contentDescription = null,
+                            modifier = Modifier.size(11.dp)
+                        )
                         Spacer(modifier = Modifier.width(2.dp))
                         Text("Llamar", fontSize = 10.sp)
                     }

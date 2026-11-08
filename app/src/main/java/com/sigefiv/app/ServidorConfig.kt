@@ -1,12 +1,14 @@
-
 package com.sigefiv.app
 
 import android.os.Build
-
+import com.sigefiv.app.BuildConfig
 object ServidorConfig {
 
-    // ÚNICO LUGAR donde cambiar la IP del PC
+    // Cambia a 'true' solo si necesitas probar offline con IP local
+   // private const val MODO_LOCAL = false
+    private val MODO_LOCAL: Boolean = BuildConfig.DEBUG
     private const val IP_PC = "192.168.1.49"
+    private const val DOMINIO_PROD = "api.sigefiv.win"
 
     private fun esEmulador(): Boolean {
         return Build.FINGERPRINT.startsWith("generic")
@@ -19,15 +21,60 @@ object ServidorConfig {
                 && Build.DEVICE.startsWith("generic"))
     }
 
-    // El emulador accede al PC mediante 10.0.2.2
-    private val host: String
+    private val hostLocal: String
         get() = if (esEmulador()) "10.0.2.2" else IP_PC
+
+    // URL base raíz del servidor (sin el /api/)
+    val BASE_URL: String
+        get() = if (MODO_LOCAL) {
+            "http://$hostLocal:8080"
+        } else {
+            "https://$DOMINIO_PROD"
+        }
 
     // API Laravel
     val API_BASE_URL: String
-        get() = "http://$host:8080/api/"
+        get() = "$BASE_URL/api/"
 
     // Gateway de voz ZOE
     val ZOE_WEBSOCKET_URL: String
-        get() = "ws://$host:8001/ws/zoe"
+        get() = if (MODO_LOCAL) {
+            "ws://$hostLocal:8001/ws/zoe"
+        } else {
+            "wss://$DOMINIO_PROD/ws/zoe"
+        }
+
+    /**
+     * Normaliza cualquier URL o ruta de archivo proveniente del backend:
+     * - Convierte rutas relativas ("storage/..." o "/storage/...") a URLs absolutas válidas con BASE_URL.
+     * - Reemplaza URLs absolutas que apunten a dominios locales obsoletos (localhost, 10.0.2.2 con o sin puerto).
+     * - Devuelve URLs externas intactas si son de servicios terceros (Google, Firebase Storage, etc.).
+     */
+    fun normalizarUrlArchivo(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+
+        val urlLimpia = url.trim()
+
+        // 1. Caso ruta relativa devuelta por Laravel ("storage/..." o "/storage/...")
+        if (!urlLimpia.startsWith("http://", ignoreCase = true) && !urlLimpia.startsWith("https://", ignoreCase = true)) {
+            val path = if (urlLimpia.startsWith("/")) urlLimpia.substring(1) else urlLimpia
+            return "$BASE_URL/$path"
+        }
+
+        // 2. Caso URL absoluta con localhost o 10.0.2.2 guardada en BD
+        return urlLimpia
+            .replace("http://localhost:8080", BASE_URL)
+            .replace("https://localhost:8080", BASE_URL)
+            .replace("http://10.0.2.2:8080", BASE_URL)
+            .replace("https://10.0.2.2:8080", BASE_URL)
+            .replace("http://localhost", BASE_URL)
+            .replace("https://localhost", BASE_URL)
+            .replace("http://10.0.2.2", BASE_URL)
+            .replace("https://10.0.2.2", BASE_URL)
+    }
+
+    /**
+     * Alias de normalizarUrlArchivo para mantener compatibilidad con Coil / Glide.
+     */
+    fun resolverUrlImagen(ruta: String?): String? = normalizarUrlArchivo(ruta)
 }

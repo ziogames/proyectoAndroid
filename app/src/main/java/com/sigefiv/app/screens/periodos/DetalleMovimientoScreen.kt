@@ -3,6 +3,9 @@
 package com.sigefiv.app.screens.movimientos
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,59 +25,41 @@ import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sigefiv.app.data.model.Movimiento
-import androidx.compose.foundation.clickable
-import coil.compose.AsyncImage
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.foundation.clickable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import coil.compose.AsyncImage
-
-import androidx.compose.ui.window.Dialog
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.graphicsLayer
 import com.sigefiv.app.ServidorConfig
+import com.sigefiv.app.data.model.Movimiento
+import com.sigefiv.app.ui.components.AppBottomBar
 
 @Composable
 fun DetalleMovimientoScreen(
@@ -88,6 +73,7 @@ fun DetalleMovimientoScreen(
     onBackClick: () -> Unit = {},
     onInicioClick: () -> Unit = {},
     onAsambleasClick: () -> Unit = {},
+    onEmprendimientosClick: () -> Unit = {},
     onPeriodosClick: () -> Unit = {},
     onMiCuentaClick: () -> Unit = {}
 ) {
@@ -147,9 +133,11 @@ fun DetalleMovimientoScreen(
             )
         },
         bottomBar = {
-            DetalleBottomBar(
+            AppBottomBar(
+                pantallaActual = "Periodos",
                 onInicioClick = onInicioClick,
                 onAsambleasClick = onAsambleasClick,
+                onEmprendimientosClick = onEmprendimientosClick,
                 onPeriodosClick = onPeriodosClick,
                 onMiCuentaClick = onMiCuentaClick
             )
@@ -576,8 +564,6 @@ private fun InformacionGeneralCard(
                         .transformable(estadoTransformacion),
                     contentScale = ContentScale.Fit
                 )
-
-
             }
         }
     }
@@ -848,107 +834,5 @@ private fun EstadoPeriodoCard(
                 fontWeight = FontWeight.SemiBold
             )
         }
-    }
-}
-
-@Composable
-private fun DetalleBottomBar(
-    onInicioClick: () -> Unit,
-    onAsambleasClick: () -> Unit,
-    onPeriodosClick: () -> Unit,
-    onMiCuentaClick: () -> Unit
-) {
-
-    val colorPrincipal = MaterialTheme.colorScheme.primary
-
-    NavigationBar(
-        modifier = Modifier.fillMaxWidth(),
-        containerColor = colorPrincipal,
-        tonalElevation = 0.dp
-    ) {
-
-        NavigationBarItem(
-            selected = false,
-            onClick = onInicioClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Home,
-                    contentDescription = "Inicio"
-                )
-            },
-            label = {
-                Text("Inicio")
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = colorPrincipal,
-                selectedTextColor = colorPrincipal,
-                unselectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                unselectedTextColor = MaterialTheme.colorScheme.onPrimary,
-                indicatorColor = MaterialTheme.colorScheme.onPrimary
-            )
-        )
-
-        NavigationBarItem(
-            selected = false,
-            onClick = onAsambleasClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Groups,
-                    contentDescription = "Asambleas"
-                )
-            },
-            label = {
-                Text("Asambleas")
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = colorPrincipal,
-                selectedTextColor = colorPrincipal,
-                unselectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                unselectedTextColor = MaterialTheme.colorScheme.onPrimary,
-                indicatorColor = MaterialTheme.colorScheme.onPrimary
-            )
-        )
-
-        NavigationBarItem(
-            selected = false,
-            onClick = onPeriodosClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.CalendarMonth,
-                    contentDescription = "Períodos"
-                )
-            },
-            label = {
-                Text("Períodos")
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = colorPrincipal,
-                selectedTextColor = colorPrincipal,
-                unselectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                unselectedTextColor = MaterialTheme.colorScheme.onPrimary,
-                indicatorColor = MaterialTheme.colorScheme.onPrimary
-            )
-        )
-
-        NavigationBarItem(
-            selected = false,
-            onClick = onMiCuentaClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Person,
-                    contentDescription = "Mi cuenta"
-                )
-            },
-            label = {
-                Text("Mi cuenta")
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = colorPrincipal,
-                selectedTextColor = colorPrincipal,
-                unselectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                unselectedTextColor = MaterialTheme.colorScheme.onPrimary,
-                indicatorColor = MaterialTheme.colorScheme.onPrimary
-            )
-        )
     }
 }

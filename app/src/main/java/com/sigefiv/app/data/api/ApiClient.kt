@@ -134,4 +134,20 @@ object ApiClient {
     fun zoeApi(context: Context): ZoeApi {
         return createRetrofit(context).create(ZoeApi::class.java)
     }
+    /**
+     * Cliente para la API de Bitácora del Sistema.
+     */
+    fun bitacoraApi(context: Context): ApiService {
+        return createRetrofit(context).create(ApiService::class.java)
+    }
+    /**
+     * Cliente para la API de Incidencias.
+     */
+    fun incidenciaApi(context: Context): IncidenciaApiService {
+        return createRetrofit(context).create(IncidenciaApiService::class.java)
+    }
+    fun configuracionApi(context: Context): ConfiguracionApi {
+        return createRetrofit(context).create(ConfiguracionApi::class.java)
+    }
+
 }

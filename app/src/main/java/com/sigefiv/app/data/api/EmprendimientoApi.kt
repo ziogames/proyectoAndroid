@@ -61,6 +61,20 @@ interface EmprendimientoApi {
     suspend fun toggleFavorito(
         @Path("id") id: Int
     ): Response<FavoritoResponseWrapper>
+
+    // ====================================================================
+    // ⭐ NUEVOS MÉTODOS PARA OPINIONES Y CALIFICACIONES
+    // ====================================================================
+    @GET("emprendimientos/{id}/opiniones")
+    suspend fun getOpiniones(
+        @Path("id") emprendimientoId: Int
+    ): Response<OpinionesDataResponse>
+
+    @POST("emprendimientos/{id}/opiniones")
+    suspend fun enviarOpinion(
+        @Path("id") emprendimientoId: Int,
+        @Body request: OpinionRequest
+    ): Response<Any>
 }
 
 // 📦 Clase contenedora para mapear la respuesta JSON del directorio público
@@ -83,8 +97,37 @@ data class EmprendimientoResponseWrapper(
 data class ZoeDescriptionResponse(
     @SerializedName("description") val description: String
 )
+
 data class FavoritoResponseWrapper(
     @SerializedName("success") val success: Boolean,
     @SerializedName("es_favorito") val esFavorito: Boolean,
     @SerializedName("message") val message: String
+)
+
+// ========================================================================
+// 📊 CLASES DE DATOS PARA OPINIONES
+// ========================================================================
+data class OpinionRequest(
+    @SerializedName("calificacion") val calificacion: Int,
+    @SerializedName("comentario") val comentario: String?
+)
+
+data class OpinionesDataResponse(
+    @SerializedName("promedio") val promedio: Float,
+    @SerializedName("total") val total: Int,
+    @SerializedName("opiniones") val opiniones: List<OpinionResponseModel>,
+    @SerializedName("user_opinion") val userOpinion: OpinionResponseModel? // 👈 Nuevo campo
+)
+
+data class OpinionResponseModel(
+    @SerializedName("id") val id: Long,
+    @SerializedName("user") val user: UsuarioSimpleModel?,
+    @SerializedName("calificacion") val calificacion: Int,
+    @SerializedName("comentario") val comentario: String?,
+    @SerializedName("created_at") val createdAt: String?
+)
+
+data class UsuarioSimpleModel(
+    @SerializedName("id") val id: Long,
+    @SerializedName("name") val name: String
 )

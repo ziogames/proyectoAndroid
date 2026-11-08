@@ -3,6 +3,10 @@ package com.sigefiv.app.data.repository
 import android.content.Context
 import android.net.Uri
 import com.sigefiv.app.data.api.EmprendimientoApi
+import com.sigefiv.app.data.api.EmprendimientosPublicosResponse
+import com.sigefiv.app.data.api.FavoritoResponseWrapper
+import com.sigefiv.app.data.api.OpinionRequest
+import com.sigefiv.app.data.api.OpinionesDataResponse
 import com.sigefiv.app.data.model.EmprendimientoDto
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -113,7 +117,6 @@ class EmprendimientoRepository(
                 }
             }
 
-            // Nota: Asegúrate de tener definido el método actualizar/put en tu EmprendimientoApi si usas PUT/POST con _method
             val response = api.actualizarEmprendimiento(id, partMap, fotosParts)
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!.data)
@@ -151,6 +154,7 @@ class EmprendimientoRepository(
             Result.failure(e)
         }
     }
+
     suspend fun eliminarEmprendimiento(id: Long): Result<Unit> {
         return try {
             val response = api.eliminarEmprendimiento(id)
@@ -163,6 +167,7 @@ class EmprendimientoRepository(
             Result.failure(e)
         }
     }
+
     // 🌐 NUEVO: Obtener el directorio público de emprendimientos de todos los vecinos
     suspend fun obtenerEmprendimientosPublicos(categoria: String? = null): List<EmprendimientoDto> {
         return try {
@@ -173,12 +178,22 @@ class EmprendimientoRepository(
         }
     }
 
-    suspend fun toggleFavorito(id: Int): Response<com.sigefiv.app.data.api.FavoritoResponseWrapper> {
+    suspend fun toggleFavorito(id: Int): Response<FavoritoResponseWrapper> {
         return api.toggleFavorito(id)
     }
 
-    suspend fun getMisFavoritos(): com.sigefiv.app.data.api.EmprendimientosPublicosResponse {
+    suspend fun getMisFavoritos(): EmprendimientosPublicosResponse {
         return api.getMisFavoritos()
     }
 
+    // ====================================================================
+    // ⭐ MÉTODOS DE OPINIONES Y CALIFICACIONES (NUEVO)
+    // ====================================================================
+    suspend fun getOpiniones(emprendimientoId: Int): Response<OpinionesDataResponse> {
+        return api.getOpiniones(emprendimientoId)
+    }
+
+    suspend fun enviarOpinion(emprendimientoId: Int, request: OpinionRequest): Response<Any> {
+        return api.enviarOpinion(emprendimientoId, request)
+    }
 }

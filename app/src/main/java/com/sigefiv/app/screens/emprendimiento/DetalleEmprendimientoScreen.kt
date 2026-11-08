@@ -35,6 +35,8 @@ import com.sigefiv.app.data.model.EmprendimientoModel
 @Composable
 fun DetalleEmprendimientoScreen(
     emprendimiento: EmprendimientoModel,
+    promedio: Float = 0.0f,
+    totalOpiniones: Int = 0,
     onBackClick: () -> Unit,
     onOpenOpiniones: () -> Unit,
     onContactarWhatsapp: () -> Unit,
@@ -112,7 +114,7 @@ fun DetalleEmprendimientoScreen(
                 .verticalScroll(rememberScrollState())
                 .background(Color(0xFFF8F9FA))
         ) {
-            // 1. Carrusel de imágenes superior con indicador dinámico (ej. 1/3, 1/5)
+            // 1. Carrusel de imágenes superior con indicador dinámico
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -150,7 +152,6 @@ fun DetalleEmprendimientoScreen(
                         )
                     }
                 } else {
-                    // Estado vacío si el negocio no registra fotografías
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -175,27 +176,6 @@ fun DetalleEmprendimientoScreen(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        color = Color(0xFFE8F5E9),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = emprendimiento.categoria,
-                            color = Color(0xFF2E7D32),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
                 Text(
                     text = emprendimiento.nombre,
                     fontSize = 24.sp,
@@ -211,14 +191,14 @@ fun DetalleEmprendimientoScreen(
                 ) {
                     Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFC107), modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "4.8", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1F2937))
+                    Text(text = "$promedio", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1F2937))
                     Spacer(modifier = Modifier.width(4.dp))
                     TextButton(
                         onClick = onOpenOpiniones,
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
                         modifier = Modifier.height(24.dp)
                     ) {
-                        Text(text = "(32 opiniones)", color = Color(0xFF2563EB), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text(text = "($totalOpiniones opiniones)", color = Color(0xFF2563EB), fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     }
                 }
 

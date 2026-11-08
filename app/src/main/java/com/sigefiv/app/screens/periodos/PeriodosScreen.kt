@@ -1,5 +1,8 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.sigefiv.app.screens.periodos
+
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,18 +22,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -50,6 +47,8 @@ import androidx.compose.ui.unit.sp
 import com.sigefiv.app.viewmodel.PeriodosViewModel
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
+import com.sigefiv.app.ui.components.AppBottomBar // 👈 Importamos nuestra barra unificada
+
 /*
 |--------------------------------------------------------------------------
 | COLORES SIGEFIV (ESTILO DASHBOARD / MODERNO)
@@ -62,6 +61,7 @@ private val Blanco = Color(0xFFFFFFFF)
 private val TextoPrincipal = Color(0xFF0F172A)
 private val GrisClaro = Color(0xFF64748B)
 private val Rojo = Color(0xFFDC2626)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeriodosScreen(
@@ -70,6 +70,7 @@ fun PeriodosScreen(
     onAnioClick: (Int) -> Unit,
     onInicioClick: () -> Unit,
     onAsambleasClick: () -> Unit,
+    onEmprendimientosClick: () -> Unit = {}, // 👈 Callback de Negocios añadido
     onPeriodosClick: () -> Unit = {},
     onMiCuentaClick: () -> Unit,
     onOpenDrawer: () -> Unit = {}
@@ -84,15 +85,19 @@ fun PeriodosScreen(
     val verdeSuave = if (esOscuro) Color(0xFF064E3B) else Color(0xFFDCFCE7)
     val textoPrincipal = colores.onSurface
     val grisClaro = colores.onSurfaceVariant
+
     val periodos by periodosViewModel.periodos.collectAsState()
     val cargando by periodosViewModel.cargando.collectAsState()
     val mensaje by periodosViewModel.mensaje.collectAsState()
+
     LaunchedEffect(Unit) {
         periodosViewModel.cargarPeriodos()
     }
+
     val anios = periodos
         .groupBy { it.anio }
         .toSortedMap(compareByDescending { it })
+
     Scaffold(
         containerColor = fondoPantalla,
         topBar = {
@@ -126,11 +131,18 @@ fun PeriodosScreen(
                 )
             )
         },
+        /*
+        |--------------------------------------------------------------------------
+        | BARRA INFERIOR UNIFICADA (AppBottomBar con los 5 botones)
+        |--------------------------------------------------------------------------
+        */
         bottomBar = {
-            BarraInferiorPeriodos(
+            AppBottomBar(
+                pantallaActual = "Periodos", // 👈 Indicamos que esta es la pantalla activa
                 onInicioClick = onInicioClick,
                 onAsambleasClick = onAsambleasClick,
-                onPeriodosClick = onPeriodosClick,
+                onEmprendimientosClick = onEmprendimientosClick,
+                onPeriodosClick = { /* Ya estás aquí */ },
                 onMiCuentaClick = onMiCuentaClick
             )
         }
@@ -196,6 +208,7 @@ fun PeriodosScreen(
         }
     }
 }
+
 @Composable
 private fun AnioCard(
     anio: Int,
@@ -206,18 +219,17 @@ private fun AnioCard(
         SeasonalTheme.getSeason()
     )
     val colores = MaterialTheme.colorScheme
-    val fondoPantalla = colores.background
-    val fondoTarjeta = colores.surface
     val esOscuro = colores.background.luminance() < 0.5f
     val verdeSuave = if (esOscuro) Color(0xFF064E3B) else Color(0xFFDCFCE7)
     val textoPrincipal = colores.onSurface
     val grisClaro = colores.onSurfaceVariant
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = fondoTarjeta),
+        colors = CardDefaults.cardColors(containerColor = colores.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
     ) {
         Row(
@@ -261,96 +273,5 @@ private fun AnioCard(
                 modifier = Modifier.size(22.dp)
             )
         }
-    }
-}
-/*
-|--------------------------------------------------------------------------
-| BARRA INFERIOR UNIFICADA (Inicio, Asamblea, Periodos, Mi cuenta)
-|--------------------------------------------------------------------------
-*/
-@Composable
-private fun BarraInferiorPeriodos(
-    onInicioClick: () -> Unit,
-    onAsambleasClick: () -> Unit,
-    onPeriodosClick: () -> Unit,
-    onMiCuentaClick: () -> Unit
-) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
-    val colores = MaterialTheme.colorScheme
-    val fondoPantalla = colores.background
-    val fondoTarjeta = colores.surface
-    val esOscuro = colores.background.luminance() < 0.5f
-    val verdeSuave = if (esOscuro) Color(0xFF064E3B) else Color(0xFFDCFCE7)
-    val textoPrincipal = colores.onSurface
-    val grisClaro = colores.onSurfaceVariant
-    NavigationBar(
-        containerColor = colorPrincipal,
-        tonalElevation = 0.dp
-    ) {
-        NavigationBarItem(
-            selected = false,
-            onClick = onInicioClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Home,
-                    contentDescription = "Inicio"
-                )
-            },
-            label = { Text(text = "Inicio") },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
-            )
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = onAsambleasClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Groups,
-                    contentDescription = "Asamblea"
-                )
-            },
-            label = { Text(text = "Asamblea") },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
-            )
-        )
-        NavigationBarItem(
-            selected = true,
-            onClick = onPeriodosClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.CalendarMonth,
-                    contentDescription = "Periodos"
-                )
-            },
-            label = { Text(text = "Periodos") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = colorPrincipal,
-                selectedTextColor = Color.White,
-                indicatorColor = if (esOscuro) Color(0xFF064E3B) else Color.White,
-                unselectedIconColor = Color.White.copy(alpha = 0.75f),
-                unselectedTextColor = Color.White.copy(alpha = 0.75f)
-            )
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = onMiCuentaClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Person,
-                    contentDescription = "Mi cuenta"
-                )
-            },
-            label = { Text(text = "Mi cuenta") },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
-            )
-        )
     }
 }

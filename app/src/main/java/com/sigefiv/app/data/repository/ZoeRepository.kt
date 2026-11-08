@@ -1,19 +1,23 @@
 package com.sigefiv.app.data.repository
 
 import android.content.Context
+import android.util.Log
 import com.sigefiv.app.data.SessionManager
 import com.sigefiv.app.data.api.ApiClient
+import com.sigefiv.app.data.api.ConfirmarAsistenciaRequest
+import com.sigefiv.app.data.api.ConfirmarAsistenciaResponse
+import com.sigefiv.app.data.api.EstadisticasAsambleaActivaDto // 👈 Importación agregada
+import com.sigefiv.app.data.api.SimpleSuccessResponse
+import com.sigefiv.app.data.model.DetalleConversacionResponse
+import com.sigefiv.app.data.model.HistorialResponse
 import com.sigefiv.app.data.model.ZoeConsultaRequest
 import com.sigefiv.app.data.model.ZoeConsultaResponse
-import com.sigefiv.app.data.model.HistorialResponse
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import com.sigefiv.app.data.model.DetalleConversacionResponse
+import kotlinx.coroutines.withContext
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
-import android.util.Log
-
+import retrofit2.Response
 
 class ZoeRepository(
     context: Context
@@ -22,6 +26,7 @@ class ZoeRepository(
     private val api = ApiClient.create(context)
     private val sessionManager = SessionManager(context)
     private val zoeApi = ApiClient.zoeApi(context)
+
     suspend fun consultar(
         mensaje: String
     ): ZoeConsultaResponse {
@@ -29,15 +34,13 @@ class ZoeRepository(
         val usuarioId = sessionManager.userId.first()
             ?: throw IllegalStateException("No hay usuario autenticado")
 
-        // 1. Obtenemos el seudónimo y el nombre directamente del SessionManager
         val seudonimo = sessionManager.seudonimo.first()
         val nombre = sessionManager.nombre.first()
 
-        // 2. Lo enviamos explícitamente en el request hacia n8n
         return api.consultarZoeN8n(
             ZoeConsultaRequest(
                 usuario_id = usuarioId,
-                seudonimo = seudonimo?.takeIf { it.isNotBlank() }, // 👈 Aquí va "patopato"
+                seudonimo = seudonimo?.takeIf { it.isNotBlank() },
                 nombre_usuario = nombre ?: "vecino",
                 mensaje = mensaje
             )
@@ -52,9 +55,11 @@ class ZoeRepository(
     suspend fun obtenerHistorial(): HistorialResponse {
         return zoeApi.obtenerHistorialZoe()
     }
+
     suspend fun obtenerDetalle(conversacionId: String): DetalleConversacionResponse {
         return zoeApi.obtenerDetalleConversacion(conversacionId)
     }
+
     suspend fun enviarMensajeConArchivo(
         archivo: MultipartBody.Part?,
         texto: RequestBody?
@@ -66,6 +71,34 @@ class ZoeRepository(
                 Log.e("ZOE_REPO", "Error en enviarMensajeConArchivo: ${e.message}", e)
                 null
             }
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | ASAMBLEAS VECINALES (NOTIFICACIONES Y RESPUESTAS)
+    |--------------------------------------------------------------------------
+    */
+    suspend fun verificarAvisosPendientes(): Response<SimpleSuccessResponse> {
+        return withContext(Dispatchers.IO) {
+            zoeApi.verificarAvisosPendientes()
+        }
+    }
+
+    suspend fun confirmarAsistencia(
+        asambleaId: Long,
+        opcion: String
+    ): Response<ConfirmarAsistenciaResponse> {
+        return withContext(Dispatchers.IO) {
+            zoeApi.confirmarAsistencia(
+                ConfirmarAsistenciaRequest(asamblea_id = asambleaId, opcion = opcion)
+            )
+        }
+    }
+
+    suspend fun obtenerEstadisticasAsambleaActiva(): Response<EstadisticasAsambleaActivaDto> {
+        return withContext(Dispatchers.IO) {
+            zoeApi.obtenerEstadisticasAsambleaActiva() // 👈 Usa zoeApi con Dispatchers.IO
         }
     }
 }

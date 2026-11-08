@@ -9,6 +9,8 @@ import kotlinx.coroutines.launch
 import com.sigefiv.app.data.model.EmprendimientoModel
 import com.sigefiv.app.data.repository.EmprendimientoRepository
 import android.util.Log
+import com.sigefiv.app.data.api.OpinionesDataResponse
+import com.sigefiv.app.data.api.OpinionRequest
 
 class EmprendimientoViewModel(
     private val repository: EmprendimientoRepository // 👈 Inyectamos el repositorio que conecta con la API
@@ -22,22 +24,28 @@ class EmprendimientoViewModel(
 
     var searchQuery by mutableStateOf("")
         private set
+    // 🌟 Nueva variable para recordar el chip seleccionado
+    var categoriaSeleccionada by mutableStateOf("Todos")
+        private set
 
     // 🌐 URL base para el almacenamiento público en Laravel (Emulador Android por defecto)
     //private val baseUrl = "http://10.0.2.2:8080/storage/"
     // En tu EmprendimientoViewModel.kt:
 
     // O si prefieres usar el objeto de configuración directamente de forma dinámica:
- private val baseUrl = com.sigefiv.app.ServidorConfig.API_BASE_URL.replace("/api/", "/storage/")
+    private val baseUrl = com.sigefiv.app.ServidorConfig.API_BASE_URL.replace("/api/", "/storage/")
+
     init {
         cargarEmprendimientosPublicos()
     }
 
     fun cargarEmprendimientosPublicos(categoria: String? = null) {
+        categoriaSeleccionada = categoria ?: "Todos"
         viewModelScope.launch {
             isLoading = true
             try {
-                val resultado = repository.obtenerEmprendimientosPublicos(categoria)
+                val categoriaParam = if (categoria == "Todos") null else categoria
+                val resultado = repository.obtenerEmprendimientosPublicos(categoriaParam)
 
 // 🔍 AÑADE ESTE LOG PARA INSPECCIONAR QUÉ LLEGA DESDE LA API
                 resultado.forEach { item ->
@@ -58,14 +66,17 @@ class EmprendimientoViewModel(
                         id = item.id.toInt(),
                         nombre = item.name,
                         descripcion = item.description ?: "",
-                        categoria = if (!item.keywords.isNullOrBlank()) item.keywords!! else "General",
+                        categoria = item.categoria ?: "Servicios",
                         telefono = item.phone,
                         showWhatsapp = item.showWhatsapp,
                         modalidad = item.modality,
                         zonaAtencion = item.attentionZone,
                         horario = item.schedule,
                         esFavorito = item.esFavorito ?: false,
-                        photos = fotosMapeadas // 👈 Fotos con URL completa listas para Coil
+                        photos = fotosMapeadas, // 👈 Fotos con URL completa listas para Coil
+                        // 👇 AGREGA ESTAS DOS LÍNEAS AQUÍ:
+                        promedioEstrellas = item.promedioCalificacion ?: 0.0f,
+                        totalOpiniones = item.totalOpiniones ?: 0
                     )
                 }
                 Log.d("API_EMPRENDIMIENTOS", "Total cargados: ${emprendimientos.size}")
@@ -88,7 +99,7 @@ class EmprendimientoViewModel(
                 }
                 emprendimientos = filtrados
             } else if (query.isEmpty()) {
-                cargarEmprendimientosPublicos()
+                cargarEmprendimientosPublicos(if (categoriaSeleccionada == "Todos") null else categoriaSeleccionada)
             }
         }
     }
@@ -136,18 +147,66 @@ class EmprendimientoViewModel(
                         id = dto.id.toInt(),
                         nombre = dto.name,
                         descripcion = dto.description ?: "",
-                        categoria = dto.keywords ?: "General",
+                        categoria = dto.categoria ?: "Servicios",
                         telefono = dto.phone,
                         showWhatsapp = dto.showWhatsapp,
                         modalidad = dto.modality,
                         zonaAtencion = dto.attentionZone,
                         horario = dto.schedule,
                         esFavorito = true,
-                        photos = fotosMapeadas // 👈 Fotos mapeadas en favoritos
+                        photos = fotosMapeadas,
+                        // 👈 Fotos mapeadas en favoritos
+                        promedioEstrellas = dto.promedioCalificacion ?: 0.0f,
+                        totalOpiniones = dto.totalOpiniones ?: 0
                     )
                 }
             } catch (e: Exception) {
                 emprendimientosFavoritos = emptyList()
+            }
+        }
+    }
+
+    // ====================================================================
+    // ⭐ GESTIÓN DE OPINIONES Y CALIFICACIONES (NUEVO)
+    // ====================================================================
+    var opinionesState by mutableStateOf<OpinionesDataResponse?>(null)
+        private set
+
+    var cargandoOpiniones by mutableStateOf(false)
+        private set
+
+    fun cargarOpiniones(emprendimientoId: Int) {
+        viewModelScope.launch {
+            cargandoOpiniones = true
+            try {
+                val response = repository.getOpiniones(emprendimientoId) // 👈 Directo al repositorio
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    Log.d("DEBUG_OPINIONES", "Promedio: ${body?.promedio} | Total: ${body?.total}")
+                    opinionesState = response.body()
+                }
+            } catch (e: Exception) {
+                Log.e("API_OPINIONES", "Error al cargar opiniones: ${e.message}", e)
+            } finally {
+                cargandoOpiniones = false
+            }
+        }
+    }
+
+    fun enviarOpinion(emprendimientoId: Int, calificacion: Int, comentario: String, onExito: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                val request = OpinionRequest(
+                    calificacion = calificacion,
+                    comentario = comentario.ifBlank { null }
+                )
+                val response = repository.enviarOpinion(emprendimientoId, request) // 👈 Directo al repositorio
+                if (response.isSuccessful) {
+                    cargarOpiniones(emprendimientoId)
+                    onExito()
+                }
+            } catch (e: Exception) {
+                Log.e("API_OPINIONES", "Error al enviar opinión: ${e.message}", e)
             }
         }
     }

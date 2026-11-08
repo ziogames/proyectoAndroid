@@ -51,6 +51,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -105,4 +106,5 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     // Lottie - animaciones de ZOE
     implementation("com.airbnb.android:lottie-compose:6.7.1")
+    implementation("com.vanniktech:android-image-cropper:4.6.0")
 }

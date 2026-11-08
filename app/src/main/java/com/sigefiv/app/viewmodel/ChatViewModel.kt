@@ -31,7 +31,11 @@ data class ChatUiState(
     val error: String? = null,
     val mensaje: String? = null,
     val esBloqueoPermanente: Boolean = false,
+    val advertenciaModeracion: String? = null,
     val mensajeRespondido: ChatMessage? = null,
+
+    // ✏️ Mensaje seleccionado para editar
+    val mensajeEnEdicion: ChatMessage? = null,
 
     // 📖 Estado de lectura
     val ultimoLeidoMessageId: Int? = null,
@@ -46,73 +50,71 @@ class ChatViewModel(
     private val repository: ChatRepository
 ) : ViewModel() {
 
-    private val _uiState =
-        MutableStateFlow(ChatUiState())
-
-    val uiState: StateFlow<ChatUiState> =
-        _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(ChatUiState())
+    val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     private var actualizacionJob: Job? = null
     private var ultimoMensajeId: Int = 0
     private var chatCargado = false
     private var mensajeLeidoPendienteId: Int? = null
 
+    private var usuarioActualIdCache: Int = 0
+
+    fun inicializarUsuario(id: Int) {
+        usuarioActualIdCache = id
+    }
+
     fun cargarChat() {
         viewModelScope.launch {
             chatCargado = false
             ultimoMensajeId = 0
 
-            _uiState.value =
-                _uiState.value.copy(
-                    cargando = true,
-                    mensajes = emptyList(),
-                    error = null
-                )
+            _uiState.value = _uiState.value.copy(
+                cargando = true,
+                mensajes = emptyList(),
+                error = null
+            )
 
             repository.obtenerChat()
                 .onSuccess { respuesta ->
                     val mensajes = respuesta.mensajes
                     chatCargado = true
 
-                    ultimoMensajeId =
-                        mensajes.maxOfOrNull { it.id } ?: 0
+                    ultimoMensajeId = mensajes.maxOfOrNull { it.id } ?: 0
 
                     val lecturaPendiente = mensajeLeidoPendienteId
-                    val respuestaEsAnterior =
-                        lecturaPendiente != null &&
-                                (respuesta.ultimo_leido_message_id == null ||
-                                        respuesta.ultimo_leido_message_id < lecturaPendiente)
+                    val respuestaEsAnterior = lecturaPendiente != null &&
+                            (respuesta.ultimo_leido_message_id == null ||
+                                    respuesta.ultimo_leido_message_id < lecturaPendiente)
 
-                    _uiState.value =
-                        if (respuestaEsAnterior) {
-                            _uiState.value.copy(
-                                cargando = false,
-                                mensajes = mensajes,
-                                personas = respuesta.personas,
-                                personasEnLinea = respuesta.personas_en_linea,
-                                usuariosEscribiendo = respuesta.usuarios_escribiendo,
-                                error = null
-                            )
-                        } else {
-                            _uiState.value.copy(
-                                cargando = false,
-                                mensajes = mensajes,
-                                personas = respuesta.personas,
-                                personasEnLinea = respuesta.personas_en_linea,
-                                usuariosEscribiendo = respuesta.usuarios_escribiendo,
-                                ultimoLeidoMessageId = respuesta.ultimo_leido_message_id,
-                                primerNoLeidoId = respuesta.primer_no_leido_id,
-                                mensajesNoLeidos = respuesta.mensajes_no_leidos,
-                                error = null
-                            )
-                        }
-                }
-                .onFailure { error ->
-                    _uiState.value =
+                    _uiState.value = if (respuestaEsAnterior) {
                         _uiState.value.copy(
                             cargando = false,
-                            error = error.message ?: "No se pudo cargar el Chat Vecinal."
+                            mensajes = mensajes,
+                            personas = respuesta.personas,
+                            personasEnLinea = respuesta.personas_en_linea,
+                            usuariosEscribiendo = respuesta.usuarios_escribiendo,
+                            error = null
                         )
+                    } else {
+                        _uiState.value.copy(
+                            cargando = false,
+                            mensajes = mensajes,
+                            personas = respuesta.personas,
+                            personasEnLinea = respuesta.personas_en_linea,
+                            usuariosEscribiendo = respuesta.usuarios_escribiendo,
+                            ultimoLeidoMessageId = respuesta.ultimo_leido_message_id,
+                            primerNoLeidoId = respuesta.primer_no_leido_id,
+                            mensajesNoLeidos = respuesta.mensajes_no_leidos,
+                            error = null
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        cargando = false,
+                        error = error.message ?: "No se pudo cargar el Chat Vecinal."
+                    )
                 }
         }
     }
@@ -146,13 +148,12 @@ class ChatViewModel(
     fun iniciarActualizacionAutomatica() {
         if (actualizacionJob?.isActive == true) return
 
-        actualizacionJob =
-            viewModelScope.launch {
-                while (isActive) {
-                    obtenerMensajesNuevos()
-                    delay(3000)
-                }
+        actualizacionJob = viewModelScope.launch {
+            while (isActive) {
+                obtenerMensajesNuevos()
+                delay(3000)
             }
+        }
     }
 
     fun detenerActualizacionAutomatica() {
@@ -175,69 +176,103 @@ class ChatViewModel(
                         ultimoMensajeId = mensajesActualizados.maxOfOrNull { it.id } ?: ultimoMensajeId
 
                         val lecturaPendiente = mensajeLeidoPendienteId
-                        val respuestaEsAnterior =
-                            lecturaPendiente != null &&
-                                    (respuesta.ultimo_leido_message_id == null ||
-                                            respuesta.ultimo_leido_message_id < lecturaPendiente)
+                        val respuestaEsAnterior = lecturaPendiente != null &&
+                                (respuesta.ultimo_leido_message_id == null ||
+                                        respuesta.ultimo_leido_message_id < lecturaPendiente)
 
-                        _uiState.value =
-                            if (respuestaEsAnterior) {
-                                _uiState.value.copy(mensajes = mensajesActualizados)
-                            } else {
-                                _uiState.value.copy(
-                                    mensajes = mensajesActualizados,
-                                    ultimoLeidoMessageId = respuesta.ultimo_leido_message_id,
-                                    primerNoLeidoId = respuesta.primer_no_leido_id,
-                                    mensajesNoLeidos = respuesta.mensajes_no_leidos
-                                )
-                            }
+                        _uiState.value = if (respuestaEsAnterior) {
+                            _uiState.value.copy(mensajes = mensajesActualizados)
+                        } else {
+                            _uiState.value.copy(
+                                mensajes = mensajesActualizados,
+                                ultimoLeidoMessageId = respuesta.ultimo_leido_message_id,
+                                primerNoLeidoId = respuesta.primer_no_leido_id,
+                                mensajesNoLeidos = respuesta.mensajes_no_leidos
+                            )
+                        }
                     }
                 }
 
                 val lecturaPendiente = mensajeLeidoPendienteId
-                val respuestaEsAnterior =
-                    lecturaPendiente != null &&
-                            (respuesta.ultimo_leido_message_id == null ||
-                                    respuesta.ultimo_leido_message_id < lecturaPendiente)
+                val respuestaEsAnterior = lecturaPendiente != null &&
+                        (respuesta.ultimo_leido_message_id == null ||
+                                respuesta.ultimo_leido_message_id < lecturaPendiente)
 
-                _uiState.value =
-                    if (respuestaEsAnterior) {
-                        _uiState.value.copy(
-                            personasEnLinea = respuesta.personas_en_linea,
-                            usuariosEscribiendo = respuesta.usuarios_escribiendo,
-                            error = null
-                        )
-                    } else {
-                        _uiState.value.copy(
-                            personasEnLinea = respuesta.personas_en_linea,
-                            usuariosEscribiendo = respuesta.usuarios_escribiendo,
-                            ultimoLeidoMessageId = respuesta.ultimo_leido_message_id,
-                            primerNoLeidoId = respuesta.primer_no_leido_id,
-                            mensajesNoLeidos = respuesta.mensajes_no_leidos,
-                            error = null
-                        )
-                    }
+                // ✅ Se conserva el estado del error sin sobreescribirlo con null
+                _uiState.value = if (respuestaEsAnterior) {
+                    _uiState.value.copy(
+                        personasEnLinea = respuesta.personas_en_linea,
+                        usuariosEscribiendo = respuesta.usuarios_escribiendo
+                    )
+                } else {
+                    _uiState.value.copy(
+                        personasEnLinea = respuesta.personas_en_linea,
+                        usuariosEscribiendo = respuesta.usuarios_escribiendo,
+                        ultimoLeidoMessageId = respuesta.ultimo_leido_message_id,
+                        primerNoLeidoId = respuesta.primer_no_leido_id,
+                        mensajesNoLeidos = respuesta.mensajes_no_leidos
+                    )
+                }
             }
     }
 
     fun prepararRespuesta(mensaje: ChatMessage) {
-        _uiState.value = _uiState.value.copy(mensajeRespondido = mensaje)
+        _uiState.value = _uiState.value.copy(
+            mensajeRespondido = mensaje,
+            mensajeEnEdicion = null
+        )
     }
 
     fun cancelarRespuesta() {
         _uiState.value = _uiState.value.copy(mensajeRespondido = null)
     }
 
-    fun enviarMensaje(texto: String) {
-        val mensaje = texto.trim()
-        if (mensaje.isBlank() || _uiState.value.enviando || _uiState.value.esBloqueoPermanente) return
+    // ✏️ Preparar y cancelar modo edición
+    fun prepararEdicion(mensaje: ChatMessage) {
+        _uiState.value = _uiState.value.copy(
+            mensajeEnEdicion = mensaje,
+            mensajeRespondido = null
+        )
+    }
 
+    fun cancelarEdicion() {
+        _uiState.value = _uiState.value.copy(mensajeEnEdicion = null)
+    }
+
+    private fun formatearMencionZoe(texto: String): String {
+        val regex = Regex("@?\\bzoe\\b", RegexOption.IGNORE_CASE)
+        return regex.replace(texto, "@Zoe")
+    }
+
+    private fun verificarYDespacharZoe(mensajeLimpio: String) {
+        if (mensajeLimpio.contains("@Zoe", ignoreCase = true)) {
+            viewModelScope.launch {
+                try {
+                    repository.consultarWebhookZoe(usuarioActualIdCache, mensajeLimpio)
+                } catch (_: Exception) {
+                }
+            }
+        }
+    }
+
+    fun enviarMensaje(texto: String) {
+        val textoCrudo = texto.trim()
+        if (textoCrudo.isBlank() || _uiState.value.enviando || _uiState.value.esBloqueoPermanente) return
+
+        // Si estamos en modo edición, despachar la actualización
+        val mensajeAEditar = _uiState.value.mensajeEnEdicion
+        if (mensajeAEditar != null) {
+            editarMensaje(mensajeAEditar.id, textoCrudo)
+            return
+        }
+
+        val mensajeLimpio = formatearMencionZoe(textoCrudo)
         val replyToId = _uiState.value.mensajeRespondido?.id
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(enviando = true, error = null, mensaje = null)
 
-            repository.enviarMensaje(mensaje = mensaje, replyToId = replyToId)
+            repository.enviarMensaje(mensaje = mensajeLimpio, replyToId = replyToId)
                 .onSuccess { respuesta ->
                     val mensajeEnviado = respuesta.mensaje
                     if (mensajeEnviado != null) {
@@ -256,19 +291,90 @@ class ChatViewModel(
                         mensaje = respuesta.message,
                         error = null
                     )
+
+                    verificarYDespacharZoe(mensajeLimpio)
                 }
                 .onFailure { error ->
                     val zoeEx = error as? ZoeException
                     val mensajeError = error.message ?: "No se pudo enviar el mensaje."
                     val esBloqueo = zoeEx?.esBloqueoPermanente == true ||
                             zoeEx?.detalle == "bloqueo" ||
-                            mensajeError.contains("bloqueada", ignoreCase = true) ||
-                            mensajeError.contains("segundo strike", ignoreCase = true)
+                            mensajeError.contains("bloqueada", ignoreCase = true)
 
+                    if (esBloqueo) {
+                        _uiState.value = _uiState.value.copy(
+                            enviando = false,
+                            error = mensajeError,
+                            esBloqueoPermanente = true
+                        )
+                    } else if (zoeEx != null) {
+                        // ⚠️ Infracción de advertencia (Strike 1 o 2)
+                        _uiState.value = _uiState.value.copy(
+                            enviando = false,
+                            advertenciaModeracion = mensajeError
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            enviando = false,
+                            error = mensajeError
+                        )
+                    }
+                }
+        }
+    }
+
+    // ✏️ Editar mensaje propio
+    fun editarMensaje(mensajeId: Int, nuevoTexto: String) {
+        val textoLimpio = nuevoTexto.trim()
+        if (textoLimpio.isBlank() || _uiState.value.enviando) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(enviando = true, error = null)
+
+            repository.editarMensaje(mensajeId, textoLimpio)
+                .onSuccess { respuesta ->
+                    val actualizado = respuesta.mensaje
+                    if (actualizado != null) {
+                        _uiState.value = _uiState.value.copy(
+                            enviando = false,
+                            mensajeEnEdicion = null,
+                            mensajes = _uiState.value.mensajes.map {
+                                if (it.id == mensajeId) actualizado else it
+                            }
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            enviando = false,
+                            mensajeEnEdicion = null
+                        )
+                    }
+                }
+                .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         enviando = false,
-                        error = mensajeError,
-                        esBloqueoPermanente = esBloqueo
+                        error = error.message ?: "No se pudo editar el mensaje."
+                    )
+                }
+        }
+    }
+
+    // 🗑️ Eliminar mensaje (Soft delete estilo WhatsApp)
+    fun eliminarMensaje(mensajeId: Int) {
+        viewModelScope.launch {
+            repository.eliminarMensaje(mensajeId)
+                .onSuccess { respuesta ->
+                    val eliminado = respuesta.mensaje
+                    if (eliminado != null) {
+                        _uiState.value = _uiState.value.copy(
+                            mensajes = _uiState.value.mensajes.map {
+                                if (it.id == mensajeId) eliminado else it
+                            }
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        error = error.message ?: "No tienes permiso para eliminar este mensaje."
                     )
                 }
         }
@@ -277,25 +383,52 @@ class ChatViewModel(
     fun enviarMultimedia(uri: Uri, textoLeyenda: String, context: android.content.Context) {
         if (_uiState.value.enviando || _uiState.value.esBloqueoPermanente) return
 
+        val textoLimpio = formatearMencionZoe(textoLeyenda)
         val replyToId = _uiState.value.mensajeRespondido?.id
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(enviando = true, error = null)
 
             try {
-                val inputStream = context.contentResolver.openInputStream(uri)
-                val file = File(context.cacheDir, "upload_${System.currentTimeMillis()}.tmp")
+                // 1. Detectar si es un audio o una imagen según la URI o el MIME
+                val mimeType = context.contentResolver.getType(uri) ?: when {
+                    uri.toString().endsWith(".m4a", ignoreCase = true) -> "audio/mp4"
+                    uri.toString().endsWith(".opus", ignoreCase = true) -> "audio/ogg"
+                    uri.toString().endsWith(".mp3", ignoreCase = true) -> "audio/mpeg"
+                    uri.toString().endsWith(".png", ignoreCase = true) -> "image/png"
+                    else -> "image/jpeg"
+                }
 
-                inputStream?.use { input ->
-                    file.outputStream().use { output ->
-                        input.copyTo(output)
+                val extension = when {
+                    mimeType.startsWith("audio/mp4") || uri.toString().endsWith(".m4a", ignoreCase = true) -> ".m4a"
+                    mimeType.startsWith("audio/ogg") || uri.toString().endsWith(".opus", ignoreCase = true) -> ".opus"
+                    mimeType.startsWith("audio/") -> ".mp3"
+                    mimeType.contains("png") -> ".png"
+                    else -> ".jpg"
+                }
+
+                // 2. Crear el archivo temporal CON LA EXTENSIÓN CORRECTA
+                val nombreArchivo = "media_${System.currentTimeMillis()}$extension"
+                val file = File(context.cacheDir, nombreArchivo)
+
+                // 3. Copiar los bytes (soporta tanto file:// como content://)
+                if (uri.scheme == "file") {
+                    val origen = File(uri.path ?: "")
+                    if (origen.exists()) {
+                        origen.copyTo(file, overwrite = true)
+                    }
+                } else {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        file.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
                     }
                 }
 
-                val requestFile = file.asRequestBody("multipart/form-data".toMediaTypeOrNull())
+                val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
                 val body = MultipartBody.Part.createFormData("archivo", file.name, requestFile)
 
-                val textoBody = textoLeyenda.toRequestBody("text/plain".toMediaTypeOrNull())
+                val textoBody = textoLimpio.toRequestBody("text/plain".toMediaTypeOrNull())
                 val replyToBody = replyToId?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
 
                 repository.enviarChatVecinalConArchivo(body, textoBody, replyToBody)
@@ -316,6 +449,8 @@ class ChatViewModel(
                             mensajeRespondido = null,
                             error = null
                         )
+
+                        verificarYDespacharZoe(textoLimpio)
                     }
                     .onFailure { error ->
                         _uiState.value = _uiState.value.copy(
@@ -331,14 +466,12 @@ class ChatViewModel(
             }
         }
     }
-
     fun reaccionar(mensajeId: Int, emoji: String) {
         if (_uiState.value.reaccionandoMensajes.contains(mensajeId)) return
 
-        _uiState.value =
-            _uiState.value.copy(
-                reaccionandoMensajes = _uiState.value.reaccionandoMensajes + mensajeId
-            )
+        _uiState.value = _uiState.value.copy(
+            reaccionandoMensajes = _uiState.value.reaccionandoMensajes + mensajeId
+        )
 
         viewModelScope.launch {
             repository.reaccionar(chatMessageId = mensajeId, emoji = emoji)
@@ -349,17 +482,14 @@ class ChatViewModel(
                     )
                 }
                 .onFailure { error ->
-                    _uiState.value =
-                        _uiState.value.copy(
-                            error = error.message ?: "No se pudo guardar la reacción."
-                        )
+                    _uiState.value = _uiState.value.copy(
+                        error = error.message ?: "No se pudo guardar la reacción."
+                    )
                 }
 
-            // CORREGIDO: Se agregó el operador '-' para remover el mensajeId del Set
-            _uiState.value =
-                _uiState.value.copy(
-                    reaccionandoMensajes = _uiState.value.reaccionandoMensajes - mensajeId
-                )
+            _uiState.value = _uiState.value.copy(
+                reaccionandoMensajes = _uiState.value.reaccionandoMensajes - mensajeId
+            )
         }
     }
 
@@ -373,10 +503,9 @@ class ChatViewModel(
                     )
                 }
                 .onFailure { error ->
-                    _uiState.value =
-                        _uiState.value.copy(
-                            error = error.message ?: "No se pudieron obtener las reacciones."
-                        )
+                    _uiState.value = _uiState.value.copy(
+                        error = error.message ?: "No se pudieron obtener las reacciones."
+                    )
                 }
         }
     }
@@ -394,30 +523,27 @@ class ChatViewModel(
             }
         }
 
-        _uiState.value =
-            _uiState.value.copy(
-                mensajes = mensajesActualizados,
-                error = null
-            )
+        _uiState.value = _uiState.value.copy(
+            mensajes = mensajesActualizados,
+           // error = null
+        )
     }
 
     fun actualizarPresencia() {
         viewModelScope.launch {
             repository.actualizarPresencia()
                 .onSuccess { respuesta ->
-                    _uiState.value =
-                        _uiState.value.copy(
-                            personas = respuesta.personas,
-                            personasEnLinea = respuesta.personas_en_linea,
-                            usuariosEscribiendo = respuesta.usuarios_escribiendo,
-                            error = null
-                        )
+                    _uiState.value = _uiState.value.copy(
+                        personas = respuesta.personas,
+                        personasEnLinea = respuesta.personas_en_linea,
+                        usuariosEscribiendo = respuesta.usuarios_escribiendo,
+                       // error = null
+                    )
                 }
                 .onFailure { error ->
-                    _uiState.value =
-                        _uiState.value.copy(
-                            error = error.message ?: "No se pudo actualizar la presencia."
-                        )
+                    _uiState.value = _uiState.value.copy(
+                        error = error.message ?: "No se pudo actualizar la presencia."
+                    )
                 }
         }
     }
@@ -426,13 +552,16 @@ class ChatViewModel(
         viewModelScope.launch {
             repository.actualizarEscribiendo(escribiendo = escribiendo)
                 .onSuccess { respuesta ->
-                    _uiState.value =
-                        _uiState.value.copy(
-                            personas = respuesta.personas,
-                            personasEnLinea = respuesta.personas_en_linea
-                        )
+                    _uiState.value = _uiState.value.copy(
+                        personas = respuesta.personas,
+                        personasEnLinea = respuesta.personas_en_linea
+                    )
                 }
         }
+    }
+
+    fun limpiarAdvertencia() {
+        _uiState.value = _uiState.value.copy(advertenciaModeracion = null)
     }
 
     fun limpiarError() {

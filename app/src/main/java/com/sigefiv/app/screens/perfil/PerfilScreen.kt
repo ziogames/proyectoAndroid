@@ -1,10 +1,13 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 package com.sigefiv.app.screens.perfil
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,13 +30,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Badge
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Key
@@ -48,20 +49,17 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -76,19 +74,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.graphics.BitmapFactory
+import com.sigefiv.app.ServidorConfig
+import com.sigefiv.app.ui.components.AppBottomBar
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
-import android.graphics.Bitmap
-import androidx.compose.foundation.Image
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URL
-import com.sigefiv.app.ServidorConfig
+import com.canhub.cropper.CropImageContract
+import com.canhub.cropper.CropImageContractOptions
+import com.canhub.cropper.CropImageOptions
+import com.canhub.cropper.CropImageView
 
 /*
 |--------------------------------------------------------------------------
@@ -115,6 +116,7 @@ fun PerfilScreen(
     onEditClick: () -> Unit = {},
     onInicioClick: () -> Unit = {},
     onAsambleasClick: () -> Unit = {},
+    onEmprendimientosClick: () -> Unit = {},
     onPeriodosClick: () -> Unit = {},
     onMiCuentaClick: () -> Unit = {},
     onMisEmprendimientosClick: () -> Unit = {},
@@ -145,11 +147,14 @@ fun PerfilScreen(
     var seudonimoEditado by remember(seudonimo) { mutableStateOf(seudonimo ?: "") }
     var fotoSeleccionada by remember { mutableStateOf<Uri?>(null) }
 
-    val selectorFoto = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        if (uri != null) {
-            fotoSeleccionada = uri
+    val selectorYCortadorFoto = rememberLauncherForActivityResult(
+        contract = CropImageContract()
+    ) { result ->
+        if (result.isSuccessful) {
+            val uriRecortada = result.uriContent
+            if (uriRecortada != null) {
+                fotoSeleccionada = uriRecortada
+            }
         }
     }
 
@@ -240,11 +245,13 @@ fun PerfilScreen(
             )
         },
         bottomBar = {
-            BarraInferiorPerfil(
+            AppBottomBar(
+                pantallaActual = "MiCuenta",
                 onInicioClick = onInicioClick,
                 onAsambleasClick = onAsambleasClick,
+                onEmprendimientosClick = onEmprendimientosClick,
                 onPeriodosClick = onPeriodosClick,
-                onMiCuentaClick = onMiCuentaClick
+                onMiCuentaClick = { /* Ya estás aquí */ }
             )
         }
     ) { innerPadding ->
@@ -258,7 +265,7 @@ fun PerfilScreen(
         ) {
             /*
             |--------------------------------------------------------------------------
-            | TARJETA PRINCIPAL DE PERFIL
+            | TARJETA PRINCIPAL DE PERFIL (Estilo Telegram / WhatsApp)
             |--------------------------------------------------------------------------
             */
             Card(
@@ -271,18 +278,23 @@ fun PerfilScreen(
                         .fillMaxWidth()
                         .background(
                             brush = Brush.horizontalGradient(
-                                colors = listOf(colorPrincipal, colorPrincipal.copy(alpha = 0.85f))
+                                colors = listOf(colorPrincipal, colorPrincipal.copy(alpha = 0.9f))
                             )
                         )
-                        .padding(20.dp)
+                        .padding(18.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        // CONTENEDOR DEL AVATAR
+                        Box(modifier = Modifier.padding(top = 2.dp)) {
                             Surface(
-                                modifier = Modifier.size(80.dp),
+                                modifier = Modifier.size(86.dp),
                                 shape = CircleShape,
                                 color = Color.Transparent,
-                                border = BorderStroke(3.dp, Blanco)
+                                border = BorderStroke(3.dp, Blanco.copy(alpha = 0.95f)),
+                                shadowElevation = 4.dp
                             ) {
                                 Box(
                                     modifier = Modifier
@@ -294,20 +306,24 @@ fun PerfilScreen(
                                         fotoSeleccionada != null -> {
                                             ImagenDesdeUri(
                                                 uri = fotoSeleccionada!!,
-                                                modifier = Modifier.fillMaxSize().clip(CircleShape)
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape)
                                             )
                                         }
                                         !foto.isNullOrBlank() -> {
                                             ImagenPerfil(
                                                 foto = foto,
-                                                modifier = Modifier.fillMaxSize().clip(CircleShape)
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape)
                                             )
                                         }
                                         else -> {
                                             Text(
                                                 text = inicialNombre,
                                                 color = Blanco,
-                                                fontSize = 34.sp,
+                                                fontSize = 36.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
@@ -317,7 +333,7 @@ fun PerfilScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .size(20.dp)
+                                    .size(22.dp)
                                     .clip(CircleShape)
                                     .background(Blanco)
                                     .padding(3.dp)
@@ -334,12 +350,14 @@ fun PerfilScreen(
 
                         Spacer(modifier = Modifier.width(16.dp))
 
-                        Column {
+                        // DETALLES DEL USUARIO
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = nombre,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Blanco
+                                color = Blanco,
+                                maxLines = 2
                             )
 
                             if (!seudonimo.isNullOrBlank()) {
@@ -347,6 +365,7 @@ fun PerfilScreen(
                                 Text(
                                     text = "@$seudonimo",
                                     fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
                                     color = Blanco.copy(alpha = 0.9f)
                                 )
                             }
@@ -355,42 +374,47 @@ fun PerfilScreen(
 
                             Text(
                                 text = email,
-                                fontSize = 13.sp,
-                                color = Blanco.copy(alpha = 0.9f)
+                                fontSize = 12.sp,
+                                color = Blanco.copy(alpha = 0.85f),
+                                maxLines = 1
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            // BOTONES Y BADGES
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Surface(
                                     shape = RoundedCornerShape(20.dp),
                                     color = Blanco.copy(alpha = 0.95f)
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
                                             imageVector = Icons.Outlined.Security,
                                             contentDescription = null,
                                             tint = colorPrincipal,
-                                            modifier = Modifier.size(14.dp)
+                                            modifier = Modifier.size(13.dp)
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
                                             text = rolMostrar,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
                                             color = colorPrincipal
                                         )
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.width(8.dp))
-
                                 Surface(
                                     shape = RoundedCornerShape(20.dp),
                                     color = Blanco,
+                                    shadowElevation = 1.dp,
                                     modifier = Modifier.clickable {
                                         if (esGoogle) {
                                             mostrarAvisoGoogle = true
@@ -400,13 +424,13 @@ fun PerfilScreen(
                                     }
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         if (esGoogle) {
                                             Text(
                                                 text = "G",
-                                                fontSize = 13.sp,
+                                                fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFFEA4335)
                                             )
@@ -421,10 +445,11 @@ fun PerfilScreen(
                                             Spacer(modifier = Modifier.width(4.dp))
                                         }
                                         Text(
-                                            text = if (esGoogle) "Google" else "Cambiar Clave",
-                                            fontSize = 12.sp,
+                                            text = if (esGoogle) "Google" else "Clave",
+                                            fontSize = 11.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurface
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1
                                         )
                                     }
                                 }
@@ -435,15 +460,16 @@ fun PerfilScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     modifier = Modifier
-                                        .size(8.dp)
+                                        .size(7.dp)
                                         .clip(CircleShape)
                                         .background(Color(0xFF4ADE80))
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(5.dp))
                                 Text(
                                     text = "USUARIO ACTIVO",
-                                    fontSize = 11.sp,
+                                    fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.5.sp,
                                     color = Blanco.copy(alpha = 0.95f)
                                 )
                             }
@@ -497,7 +523,24 @@ fun PerfilScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Button(
-                            onClick = { selectorFoto.launch("image/*") },
+                            onClick = {
+                                val opciones = CropImageContractOptions(
+                                    uri = null,
+                                    cropImageOptions = CropImageOptions(
+                                        cropShape = CropImageView.CropShape.OVAL,
+                                        fixAspectRatio = true,
+                                        aspectRatioX = 1,
+                                        aspectRatioY = 1,
+                                        guidelines = CropImageView.Guidelines.ON,
+                                        activityTitle = "Ajustar foto",
+                                        toolbarColor = android.graphics.Color.DKGRAY,
+                                        activityMenuIconColor = android.graphics.Color.WHITE, // 👈 Fuerza el check blanco
+                                        activityMenuTextColor = android.graphics.Color.WHITE,
+                                        backgroundColor = android.graphics.Color.argb(200, 0, 0, 0)
+                                    )
+                                )
+                                selectorYCortadorFoto.launch(opciones)
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = colorPrincipal)
@@ -712,7 +755,9 @@ fun PerfilScreen(
             ) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         PerfilIcono(icon = Icons.Outlined.Security, bg = VerdeSuave, tint = colorPrincipal)
@@ -739,7 +784,9 @@ fun PerfilScreen(
                     PerfilSeparador()
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         PerfilIcono(icon = Icons.Outlined.Lock, bg = FondoIconoAzul, tint = IconoAzul)
@@ -759,7 +806,9 @@ fun PerfilScreen(
                     PerfilSeparador()
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         PerfilIcono(icon = Icons.Outlined.Key, bg = FondoIconoNaranja, tint = IconoNaranja)
@@ -799,7 +848,9 @@ fun PerfilScreen(
                 colors = CardDefaults.cardColors(containerColor = VerdeSuave.copy(alpha = 0.5f))
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     PerfilIcono(icon = Icons.Outlined.Info, bg = colorPrincipal, tint = Blanco)
@@ -823,7 +874,7 @@ fun PerfilScreen(
 
     /*
     |--------------------------------------------------------------------------
-    | DIÁLOGO ÚNICO PARA CAMBIAR CONTRASEÑA
+    | DIÁLOGO PARA CAMBIAR CONTRASEÑA
     |--------------------------------------------------------------------------
     */
     if (mostrarDialogoPassword) {
@@ -869,7 +920,6 @@ fun PerfilScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Validaciones en tiempo real (Checks visuales)
                     val tieneMinimo8 = nuevaPassword.length >= 8
                     val tieneMayuscula = nuevaPassword.any { it.isUpperCase() }
                     val tieneEspecial = nuevaPassword.any { "!@#$%^&*()_+-=[]{}|;':\",./<>?".contains(it) }
@@ -915,7 +965,6 @@ fun PerfilScreen(
                         }
                         errorPassword = null
 
-                        // 🚀 LLAMADA REAL AL VIEWMODEL
                         onActualizarPassword(passwordActual, nuevaPassword, confirmarPassword) {
                             mostrarDialogoPassword = false
                             passwordActual = ""
@@ -995,62 +1044,11 @@ private fun ImagenDesdeUri(uri: Uri, modifier: Modifier = Modifier) {
     }
 
     if (bitmap != null) {
-        Image(bitmap = bitmap!!, contentDescription = "Foto de perfil", modifier = modifier)
-    }
-}
-
-@Composable
-private fun BarraInferiorPerfil(
-    onInicioClick: () -> Unit = {},
-    onAsambleasClick: () -> Unit = {},
-    onPeriodosClick: () -> Unit = {},
-    onMiCuentaClick: () -> Unit = {}
-) {
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
-
-    NavigationBar(containerColor = colorPrincipal, tonalElevation = 0.dp) {
-        NavigationBarItem(
-            selected = false,
-            onClick = onInicioClick,
-            icon = { Icon(Icons.Outlined.Home, contentDescription = "Inicio") },
-            label = { Text("Inicio") },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
-            )
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = onAsambleasClick,
-            icon = { Icon(Icons.Outlined.Groups, contentDescription = "Asamblea") },
-            label = { Text("Asamblea") },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
-            )
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = onPeriodosClick,
-            icon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = "Periodos") },
-            label = { Text("Periodos") },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
-            )
-        )
-        NavigationBarItem(
-            selected = true,
-            onClick = onMiCuentaClick,
-            icon = { Icon(Icons.Outlined.Person, contentDescription = "Mi cuenta") },
-            label = { Text("Mi cuenta") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = colorPrincipal,
-                selectedTextColor = Blanco,
-                indicatorColor = Blanco,
-                unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                unselectedTextColor = Blanco.copy(alpha = 0.75f)
-            )
+        Image(
+            bitmap = bitmap!!,
+            contentDescription = "Foto de perfil",
+            modifier = modifier,
+            contentScale = ContentScale.Crop
         )
     }
 }
@@ -1070,7 +1068,9 @@ private fun PerfilSeccionTitulo(icon: ImageVector, iconBg: Color, iconTint: Colo
 @Composable
 private fun PerfilDato(icon: ImageVector, iconBg: Color, iconTint: Color, titulo: String, valor: String) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         PerfilIcono(icon = icon, bg = iconBg, tint = iconTint)
@@ -1086,7 +1086,10 @@ private fun PerfilDato(icon: ImageVector, iconBg: Color, iconTint: Color, titulo
 @Composable
 private fun PerfilIcono(icon: ImageVector, bg: Color, tint: Color) {
     Box(
-        modifier = Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(bg),
+        modifier = Modifier
+            .size(38.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg),
         contentAlignment = Alignment.Center
     ) {
         Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = tint)
@@ -1135,7 +1138,8 @@ private fun ImagenPerfil(
         Image(
             bitmap = bitmap!!.asImageBitmap(),
             contentDescription = "Foto de perfil",
-            modifier = modifier
+            modifier = modifier,
+            contentScale = ContentScale.Crop
         )
     }
 }

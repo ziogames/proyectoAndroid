@@ -11,5 +11,8 @@ data class EmprendimientoModel(
     val zonaAtencion: String?,
     val horario: String?,
     val esFavorito: Boolean,
-    val photos: List<com.sigefiv.app.data.model.EmprendimientoFotoDto>? = emptyList() // 👈 Añade esta línea
+    val photos: List<EmprendimientoFotoDto>? = emptyList(),
+    // 🌟 NUEVOS CAMPOS PARA CALIFICACIONES EN EL DIRECTORIO
+    val promedioEstrellas: Float = 0.0f,
+    val totalOpiniones: Int = 0
 )

@@ -28,6 +28,8 @@ data class ChatMessage(
     val created_at: String? = null,
     val updated_at: String? = null,
     val editado: Boolean = false,
+    val eliminado: Boolean = false,
+    val eliminado_por_moderador: Boolean = false,
     val tipo: String? = null,
     val usuario: ChatUser? = null,
     val reply_to: ChatReplyInfo? = null,
@@ -37,6 +39,9 @@ data class ChatMessage(
 ) {
     // 📁 Helper integrado para detectar y parsear archivos adjuntos de forma automática
     fun obtenerArchivoAdjunto(): ChatArchivoPayload? {
+        // Si el mensaje fue eliminado, no debe interpretar adjuntos
+        if (eliminado) return null
+
         return try {
             if (
                 !mensaje.isNullOrBlank() &&
@@ -87,6 +92,7 @@ data class ChatArchivoPayload(
 data class ChatReplyInfo(
     val id: Int,
     val mensaje: String? = null,
+    val eliminado: Boolean = false,
     val usuario: ChatUser? = null
 )
 
@@ -94,7 +100,8 @@ data class ChatUser(
     val id: Int,
     val name: String? = null,
     val email: String? = null,
-    val avatar: String? = null
+    val avatar: String? = null,
+    val cargo_id: Int? = null
 )
 
 data class ChatTypingUser(
@@ -173,4 +180,20 @@ data class ChatSimpleResponse(
 
 data class ChatMensajeRequest(
     val mensaje: String
+)
+
+// ✏️ Respuesta para operaciones de edición y eliminación (PUT / DELETE)
+data class ChatMensajeOperacionResponse(
+    val success: Boolean,
+    val message: String? = null,
+    val mensaje: ChatMessage? = null
+)
+
+// 🚨 Respuesta de error de moderación devuelta por ZOE (HTTP 422 / 403)
+data class ChatErrorModeracionResponse(
+    val success: Boolean = false,
+    val message: String? = null,
+    val detalle: String? = null, // "advertencia" o "bloqueo"
+    val strikes: Int = 0,
+    val es_bloqueo_permanente: Boolean = false
 )

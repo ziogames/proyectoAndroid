@@ -12,6 +12,9 @@ data class EmprendimientoDto(
     @SerializedName("name")
     val name: String,
 
+    @SerializedName("categoria") // 👈 Campo nuevo
+    val categoria: String?,
+
     @SerializedName("slug")
     val slug: String?,
 
@@ -42,9 +45,15 @@ data class EmprendimientoDto(
     @SerializedName("photos")
     val photos: List<EmprendimientoFotoDto>? = emptyList(),
 
-    // 💖 NUEVO: Campo para leer si el usuario autenticado lo tiene marcado como favorito
     @SerializedName("es_favorito")
     val esFavorito: Boolean?,
+
+    // 🌟 NUEVOS CAMPOS PARA CALIFICACIONES Y OPINIONES
+    @SerializedName("promedio_calificacion")
+    val promedioCalificacion: Float?,
+
+    @SerializedName("total_opiniones")
+    val totalOpiniones: Int?,
 
     @SerializedName("created_at")
     val createdAt: String?,

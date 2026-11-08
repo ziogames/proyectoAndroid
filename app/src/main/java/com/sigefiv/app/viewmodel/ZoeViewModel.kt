@@ -5,21 +5,29 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
-import android.media.MediaRecorder
 import android.media.MediaPlayer
+import android.media.MediaRecorder
+import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.os.Build
-import androidx.core.content.ContextCompat
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sigefiv.app.ServidorConfig
 import com.sigefiv.app.data.api.ApiClient
-
+import com.sigefiv.app.data.model.ConversacionItem
 import com.sigefiv.app.data.model.ZoeEstadistica
+import com.sigefiv.app.data.repository.ZoeRepository
 import com.sigefiv.app.screens.mascota.MascotaControlador
 import com.sigefiv.app.screens.mascota.MascotaEvento
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,64 +35,56 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.Response
-import okhttp3.WebSocket
-import okhttp3.WebSocketListener
-import com.sigefiv.app.data.repository.ZoeRepository
-import com.google.gson.JsonParser
-import android.util.Log
-import com.sigefiv.app.data.model.ConversacionItem
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
-import android.net.Uri
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import com.sigefiv.app.ServidorConfig
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
 
 data class ZoeMensaje(
     val texto: String,
     val esUsuario: Boolean,
     val tipoMovimiento: String? = null,
     val estadistica: ZoeEstadistica? = null,
-    val imagenUri: Uri? = null, // <--- NUEVO: Para guardar la foto adjunta en el mensaje
-    val hora: String = SimpleDateFormat(
-        "h:mm a",
-        Locale.getDefault()
-    ).format(Date())
+    val imagenUri: Uri? = null,
+    val hora: String = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date()),
+    val tipo: String? = null,
+    val asambleaId: Long? = null,
+    val asambleaEstadisticas: com.sigefiv.app.screens.chat.model.AsambleaEstadisticasDto? = null
 )
 
+data class AsambleaActivaReporte(
+    val tieneAsamblea: Boolean = false,
+    val asambleaId: Long? = null,
+    val titulo: String? = null,
+    val fecha: String? = null,
+    val hora: String? = null,
+    val lugar: String? = null,
+    val miVoto: String? = null,
+    val asistiran: Int = 0,
+    val enDuda: Int = 0,
+    val noAsistiran: Int = 0,
+    val total: Int = 0
+)
 
 class ZoeViewModel(
     context: Context
 ) : ViewModel() {
 
     private val appContext = context.applicationContext
-
     private val api = ApiClient.create(appContext)
-
     private val wsClient = OkHttpClient()
-
     private var zoeWebSocket: WebSocket? = null
 
-    // Reproductor del WAV generado por Supertonic en el Gateway.
     private var reproductorAudio: MediaPlayer? = null
     private val audioHandler = Handler(Looper.getMainLooper())
     private val zoeRepository = ZoeRepository(appContext)
+
     /*
     |--------------------------------------------------------------------------
     | HISTORIAL DE CONVERSACIONES
@@ -107,25 +107,59 @@ class ZoeViewModel(
     }
 
     /*
-     * ============================================================
-     * CAPTURA DE VOZ — AUDIO ANDROID → ZOE GATEWAY
-     * ============================================================
-     *
-     * PCM:
-     * - 16 kHz
-     * - mono
-     * - 16 bits
-     */
+    |--------------------------------------------------------------------------
+    | REPORTE Y ESTADÍSTICAS DE ASAMBLEA ACTIVA (BOTÓN Y BOTTOMSHEET)
+    |--------------------------------------------------------------------------
+    */
+    private val _reporteAsamblea = MutableStateFlow<AsambleaActivaReporte?>(null)
+    val reporteAsamblea: StateFlow<AsambleaActivaReporte?> = _reporteAsamblea.asStateFlow()
 
+    fun actualizarEstadisticasAsamblea() {
+        viewModelScope.launch {
+            try {
+                val response = zoeRepository.obtenerEstadisticasAsambleaActiva()
+                if (response.isSuccessful && response.body() != null) {
+                    val data = response.body()!!
+                    if (data.tiene_asamblea && data.asamblea_id != null) {
+                        val stats = data.estadisticas
+                        val asist = stats?.asistiran ?: 0
+                        val duda = stats?.en_duda ?: 0
+                        val no = stats?.no_asistiran ?: 0
+                        _reporteAsamblea.value = AsambleaActivaReporte(
+                            tieneAsamblea = true,
+                            asambleaId = data.asamblea_id,
+                            titulo = data.titulo,
+                            fecha = data.fecha,
+                            hora = data.hora,
+                            lugar = data.lugar,
+                            miVoto = data.mi_voto,
+                            asistiran = asist,
+                            enDuda = duda,
+                            noAsistiran = no,
+                            total = asist + duda + no
+                        )
+                    } else {
+                        _reporteAsamblea.value = null
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("ZOE_ASAMBLEA", "Error cargando estadísticas activas: ${e.message}")
+            }
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CAPTURA DE VOZ — AUDIO ANDROID → ZOE GATEWAY
+    |--------------------------------------------------------------------------
+    */
     private var audioRecord: AudioRecord? = null
 
     @Volatile
     private var grabando = false
 
     private val _escuchando = MutableStateFlow(false)
-
-    val escuchando: StateFlow<Boolean> =
-        _escuchando.asStateFlow()
+    val escuchando: StateFlow<Boolean> = _escuchando.asStateFlow()
 
     private companion object {
         const val ZOE_SAMPLE_RATE = 16_000
@@ -134,58 +168,34 @@ class ZoeViewModel(
         const val ZOE_AUDIO_BUFFER = 2048
     }
 
-
     /*
-     * ============================================================
-     * VOZ DE ZOE
-     * ============================================================
-     *
-     * Usamos el TextToSpeech nativo de Android.
-     *
-     * No requiere servidor adicional, n8n, Laravel ni otra
-     * dependencia.
-     */
-
+    |--------------------------------------------------------------------------
+    | VOZ DE ZOE (TTS NATIVO)
+    |--------------------------------------------------------------------------
+    */
     private var tts: TextToSpeech? = null
-
     private var ttsListo = false
 
     private val _hablando = MutableStateFlow(false)
-
-    val hablando: StateFlow<Boolean> =
-        _hablando.asStateFlow()
-
+    val hablando: StateFlow<Boolean> = _hablando.asStateFlow()
 
     init {
         inicializarVoz()
         conectarZoeWebSocket()
-        cargarHistorial() // <-- Añade esta línea aquí
+        cargarHistorial()
     }
 
     /*
-     * ============================================================
-     * MENSAJES
-     * ============================================================
-     */
-
+    |--------------------------------------------------------------------------
+    | MENSAJES Y ESTADO DE ENTRADA
+    |--------------------------------------------------------------------------
+    */
     private val _mensajes = MutableStateFlow<List<ZoeMensaje>>(emptyList())
-
-    val mensajes: StateFlow<List<ZoeMensaje>> =
-        _mensajes.asStateFlow()
-
-
-    /*
-     * ============================================================
-     * ESTADO DE CARGA
-     * ============================================================
-     */
+    val mensajes: StateFlow<List<ZoeMensaje>> = _mensajes.asStateFlow()
 
     private val _cargando = MutableStateFlow(false)
+    val cargando: StateFlow<Boolean> = _cargando.asStateFlow()
 
-    val cargando: StateFlow<Boolean> =
-        _cargando.asStateFlow()
-
-    // Estado para la Uri del archivo o foto adjunta lista para enviar
     private val _archivoAdjuntoUri = MutableStateFlow<Uri?>(null)
     val archivoAdjuntoUri: StateFlow<Uri?> = _archivoAdjuntoUri
 
@@ -196,113 +206,53 @@ class ZoeViewModel(
     fun limpiarAdjunto() {
         _archivoAdjuntoUri.value = null
     }
-    /*
-     * ============================================================
-     * ERRORES
-     * ============================================================
-     */
 
     private val _error = MutableStateFlow<String?>(null)
-
-    val error: StateFlow<String?> =
-        _error.asStateFlow()
-
-
-    /*
-     * ============================================================
-     * INICIALIZAR VOZ
-     * ============================================================
-     */
+    val error: StateFlow<String?> = _error.asStateFlow()
 
     private fun inicializarVoz() {
-
         tts = TextToSpeech(appContext) { status ->
-
             if (status == TextToSpeech.SUCCESS) {
-
-                val resultadoIdioma = tts?.setLanguage(
-                    Locale("es", "PE")
-                )
-
+                val resultadoIdioma = tts?.setLanguage(Locale("es", "PE"))
                 tts?.setSpeechRate(0.95f)
-
                 tts?.setPitch(1.0f)
-
                 tts?.setOnUtteranceProgressListener(
                     object : UtteranceProgressListener() {
-
-                        override fun onStart(
-                            utteranceId: String?
-                        ) {
+                        override fun onStart(utteranceId: String?) {
                             _hablando.value = true
-
-                            // ZOE está hablando
                             MascotaControlador.feliz()
                         }
 
-                        override fun onDone(
-                            utteranceId: String?
-                        ) {
+                        override fun onDone(utteranceId: String?) {
                             _hablando.value = false
-
-                            // ZOE terminó de hablar
                             MascotaControlador.normal()
                         }
 
-                        override fun onError(
-                            utteranceId: String?
-                        ) {
+                        override fun onError(utteranceId: String?) {
                             _hablando.value = false
-
-                            // Volvemos al estado normal
                             MascotaControlador.normal()
                         }
                     }
                 )
 
-                ttsListo =
-                    resultadoIdioma !=
-                            TextToSpeech.LANG_MISSING_DATA &&
-                            resultadoIdioma !=
-                            TextToSpeech.LANG_NOT_SUPPORTED
-
-                /*
-                 * Primera frase hablada de ZOE.
-                 *
-                 * Se mantiene sin ejecución automática.
-                 */
+                ttsListo = resultadoIdioma != TextToSpeech.LANG_MISSING_DATA &&
+                        resultadoIdioma != TextToSpeech.LANG_NOT_SUPPORTED
             }
         }
     }
 
-
-    /*
-     * ============================================================
-     * HACER HABLAR A ZOE
-     * ============================================================
-     */
-
     private fun hablar(texto: String) {
-
-        if (!ttsListo || texto.isBlank()) {
-            return
-        }
+        if (!ttsListo || texto.isBlank()) return
 
         val textoVoz = texto
             .replace(Regex("[\\p{So}\\p{Cn}]"), " ")
-            .replace(
-                "SIGEFIV",
-                "sigefiv",
-                ignoreCase = true
-            )
+            .replace("SIGEFIV", "sigefiv", ignoreCase = true)
             .replace("**", "")
             .replace("__", "")
             .replace(Regex("\\s+"), " ")
             .trim()
 
-        if (textoVoz.isBlank()) {
-            return
-        }
+        if (textoVoz.isBlank()) return
 
         tts?.speak(
             textoVoz,
@@ -311,13 +261,6 @@ class ZoeViewModel(
             "ZOE_${System.currentTimeMillis()}"
         )
     }
-
-
-    /*
-     * ============================================================
-     * PREPARAR TEXTO PARA VOZ
-     * ============================================================
-     */
 
     private fun numeroEnPalabras(numero: Long): String {
         if (numero == 0L) return "cero"
@@ -404,23 +347,13 @@ class ZoeViewModel(
     private fun convertirNumerosParaVoz(texto: String): String {
         var resultado = texto
 
-        // Primero convertimos importes en soles, por ejemplo:
-        // S/ 1,567.40 -> mil quinientos sesenta y siete soles con cuarenta céntimos.
-        val moneda = Regex(
-            """S/\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)""",
-            RegexOption.IGNORE_CASE
-        )
-
+        val moneda = Regex("""S/\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)""", RegexOption.IGNORE_CASE)
         resultado = moneda.replace(resultado) { match ->
             val valor = match.groupValues[1]
             val partes = valor.split(".", limit = 2)
-            montoEnPalabras(
-                partes[0],
-                partes.getOrNull(1)
-            )
+            montoEnPalabras(partes[0], partes.getOrNull(1))
         }
 
-        // Porcentajes: 25% -> veinticinco por ciento.
         resultado = Regex("""(\d[\d,]*(?:\.\d+)?)\s*%""").replace(resultado) { match ->
             val valor = match.groupValues[1]
             val numero = valor.replace(",", "").toDoubleOrNull()
@@ -431,7 +364,6 @@ class ZoeViewModel(
             }
         }
 
-        // Números que todavía queden: 683.30 -> seiscientos ochenta y tres punto treinta.
         resultado = Regex("""\b\d[\d,.]*\b""").replace(resultado) { match ->
             val valor = match.value
             val normalizado = valor.replace(",", "")
@@ -442,73 +374,35 @@ class ZoeViewModel(
                 valor
             } else if (partes.size == 2) {
                 val decimal = partes[1]
-                "${numeroEnPalabras(entero)} punto ${decimal.map { numeroEnPalabras((it - '0').toLong()) }.joinToString(" ")}"
+                val digitosPronunciados = decimal.map { numeroEnPalabras((it - '0').toLong()) }.joinToString(" ")
+                "${numeroEnPalabras(entero)} punto $digitosPronunciados"
             } else {
                 numeroEnPalabras(entero)
             }
         }
 
-        // Operadores habituales de los cálculos financieros.
-        resultado = resultado
+        return resultado
             .replace(Regex("\\s*\\+\\s*"), " más ")
             .replace(Regex("\\s*=\\s*"), " igual a ")
             .replace(Regex("\\s-\\s"), " menos ")
             .replace(Regex("\\s+"), " ")
             .trim()
-
-        return resultado
     }
 
-    /*
-     * Detecta respuestas que contienen una lista de movimientos.
-     *
-     * La lista completa sigue mostrándose en pantalla,
-     * pero NO debe ser leída completa por la voz de ZOE.
-     */
-    private fun esListaParaVoz(
-        texto: String
-    ): Boolean {
+    private fun esListaParaVoz(texto: String): Boolean {
+        val cantidadFechas = Regex("""\b\d{1,2}[-/]\d{1,2}[-/]\d{4}\b""").findAll(texto).count()
+        val cantidadImportes = Regex("""S/\s*[0-9][0-9,.]*""", RegexOption.IGNORE_CASE).findAll(texto).count()
+        val tieneIndicadorLista = texto.contains("lista de", ignoreCase = true) ||
+                texto.contains("detalle de", ignoreCase = true) ||
+                texto.contains("movimientos de", ignoreCase = true)
 
-        val cantidadFechas =
-            Regex("""\b\d{1,2}[-/]\d{1,2}[-/]\d{4}\b""")
-                .findAll(texto)
-                .count()
-
-        val cantidadImportes =
-            Regex("""S/\s*[0-9][0-9,.]*""", RegexOption.IGNORE_CASE)
-                .findAll(texto)
-                .count()
-
-        val tieneIndicadorLista =
-            texto.contains("lista de", ignoreCase = true) ||
-                    texto.contains("detalle de", ignoreCase = true) ||
-                    texto.contains("movimientos de", ignoreCase = true)
-
-        return cantidadFechas >= 2 ||
-                cantidadImportes >= 3 ||
-                tieneIndicadorLista
+        return cantidadFechas >= 2 || cantidadImportes >= 3 || tieneIndicadorLista
     }
 
-    /*
-     * Genera una frase corta para la voz cuando la respuesta
-     * contiene una lista. El detalle completo permanece en pantalla.
-     */
-    private fun resumenListaParaVoz(
-        texto: String,
-        tipoMovimiento: String?
-    ): String {
-
-        val cantidad =
-            Regex("""\b\d{1,2}[-/]\d{1,2}[-/]\d{4}\b""")
-                .findAll(texto)
-                .count()
-
-        val periodo =
-            Regex(
-                """(?i)\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+\d{4}\b"""
-            )
-                .find(texto)
-                ?.value
+    private fun resumenListaParaVoz(texto: String, tipoMovimiento: String?): String {
+        val cantidad = Regex("""\b\d{1,2}[-/]\d{1,2}[-/]\d{4}\b""").findAll(texto).count()
+        val periodo = Regex("""(?i)\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+\d{4}\b""")
+            .find(texto)?.value
 
         val tipo = when (tipoMovimiento?.lowercase(Locale.getDefault())) {
             "ingreso" -> "ingresos"
@@ -516,16 +410,11 @@ class ZoeViewModel(
             else -> "movimientos"
         }
 
-        val cantidadTexto =
-            if (cantidad > 0) {
-                if (cantidad == 1) {
-                    "un registro de $tipo"
-                } else {
-                    "$cantidad $tipo"
-                }
-            } else {
-                "varios $tipo"
-            }
+        val cantidadTexto = if (cantidad > 0) {
+            if (cantidad == 1) "un registro de $tipo" else "$cantidad $tipo"
+        } else {
+            "varios $tipo"
+        }
 
         return if (periodo != null) {
             "He encontrado $cantidadTexto correspondientes a $periodo. Te muestro el detalle en pantalla."
@@ -534,60 +423,33 @@ class ZoeViewModel(
         }
     }
 
-    private fun textoParaVoz(
-        texto: String,
-        tipoMovimiento: String? = null
-    ): String {
-
-        var limpio = texto
-            .replace(
-                Regex("^\\s*(?:ZOE|Zoe)\\s*:\\s*"),
-                ""
-            )
-            .replace(
-                Regex("[\\p{So}\\p{Cn}]"),
-                " "
-            )
+    private fun textoParaVoz(texto: String, tipoMovimiento: String? = null): String {
+        val limpio = texto
+            .replace(Regex("^\\s*(?:ZOE|Zoe)\\s*:\\s*"), "")
+            .replace(Regex("[\\p{So}\\p{Cn}]"), " ")
             .replace("**", "")
             .replace("__", "")
-            .replace(
-                "SIGEFIV",
-                "sigefiv",
-                ignoreCase = true
-            )
+            .replace("SIGEFIV", "sigefiv", ignoreCase = true)
             .replace(Regex("\\s+"), " ")
             .trim()
 
-        /*
-         * IMPORTANTE:
-         * La respuesta completa se conserva para la interfaz.
-         * Solo la versión enviada a voz se convierte en resumen
-         * cuando detectamos una lista.
-         */
         if (esListaParaVoz(limpio)) {
-            return convertirNumerosParaVoz(
-                resumenListaParaVoz(limpio, tipoMovimiento)
-            )
+            return convertirNumerosParaVoz(resumenListaParaVoz(limpio, tipoMovimiento))
         }
 
         return convertirNumerosParaVoz(limpio)
     }
+
     /*
-        |--------------------------------------------------------------------------
-        | ENVIAR EVENTO SILENCIOSO (INICIO DE SESIÓN)
-        |--------------------------------------------------------------------------
-        */
+    |--------------------------------------------------------------------------
+    | EVENTO SILENCIOSO
+    |--------------------------------------------------------------------------
+    */
     fun enviarEventoSilencioso(mensaje: String) {
         val consulta = mensaje.trim()
-
-        if (consulta.isEmpty() || _cargando.value) {
-            return
-        }
+        if (consulta.isEmpty() || _cargando.value) return
 
         _error.value = null
-
-        // LA MAGIA: Aquí NO agregamos el ZoeMensaje(esUsuario = true) a _mensajes.value.
-        // El usuario no verá el globo verde en su chat.
 
         viewModelScope.launch {
             _cargando.value = true
@@ -614,7 +476,6 @@ class ZoeViewModel(
                             }
                         }
 
-                    // AÑADIMOS SOLO LA RESPUESTA DE ZOE (El globo blanco)
                     _mensajes.value = _mensajes.value + ZoeMensaje(
                         texto = respuestaTexto,
                         esUsuario = false,
@@ -627,7 +488,6 @@ class ZoeViewModel(
                     delay(1500)
                     MascotaControlador.normal()
                     cargarHistorial()
-
                 } else {
                     MascotaControlador.evento(MascotaEvento.ERROR)
                     val mensajeError = respuesta.message?.trim()?.takeIf { it.isNotEmpty() }
@@ -639,9 +499,8 @@ class ZoeViewModel(
                     delay(1500)
                     MascotaControlador.normal()
                 }
-
             } catch (e: Exception) {
-                android.util.Log.e("ZOE_DEBUG", "ERROR EVENTO SILENCIOSO: ${e.message}", e)
+                Log.e("ZOE_DEBUG", "ERROR EVENTO SILENCIOSO: ${e.message}", e)
                 MascotaControlador.evento(MascotaEvento.ERROR)
 
                 val mensajeError = "No se pudo conectar con ZOE. Verifica que el servidor SIGEFIV esté funcionando."
@@ -657,626 +516,203 @@ class ZoeViewModel(
     }
 
     /*
-     * ============================================================
-     * CONSULTA PRINCIPAL DE ZOE
-     * ============================================================
-     */
-
+    |--------------------------------------------------------------------------
+    | CONSULTA PRINCIPAL
+    |--------------------------------------------------------------------------
+    */
     fun enviarConsulta(
         mensaje: String,
         hablarRespuesta: Boolean = false,
         responderPorGateway: Boolean = false
     ) {
-
         val consulta = mensaje.trim()
-
-        if (
-            consulta.isEmpty() ||
-            _cargando.value
-        ) {
-            return
-        }
-
-
-        /*
-         * Determinamos el tipo de movimiento.
-         */
+        if (consulta.isEmpty() || _cargando.value) return
 
         val tipoMovimiento = when {
-
-            consulta.contains(
-                "egreso",
-                ignoreCase = true
-            ) ||
-                    consulta.contains(
-                        "egresos",
-                        ignoreCase = true
-                    ) -> "Egreso"
-
-
-            consulta.contains(
-                "ingreso",
-                ignoreCase = true
-            ) ||
-                    consulta.contains(
-                        "ingresos",
-                        ignoreCase = true
-                    ) -> "Ingreso"
-
-
+            consulta.contains("egreso", ignoreCase = true) || consulta.contains("egresos", ignoreCase = true) -> "Egreso"
+            consulta.contains("ingreso", ignoreCase = true) || consulta.contains("ingresos", ignoreCase = true) -> "Ingreso"
             else -> null
         }
 
-
         _error.value = null
-
-
-        /*
-         * Pregunta del usuario.
-         */
-
-        _mensajes.value =
-            _mensajes.value +
-                    ZoeMensaje(
-                        texto = consulta,
-                        esUsuario = true
-                    )
-
+        _mensajes.value = _mensajes.value + ZoeMensaje(texto = consulta, esUsuario = true)
 
         viewModelScope.launch {
-
             _cargando.value = true
-
-
-            /*
-             * ====================================================
-             * ZOE ESTÁ PENSANDO
-             * ====================================================
-             *
-             * IMPORTANTE:
-             *
-             * Usamos evento() y no pensando(), porque evento()
-             * también genera la burbuja visual.
-             */
-
-            MascotaControlador.evento(
-                MascotaEvento.ZOE_PENSANDO
-            )
+            MascotaControlador.evento(MascotaEvento.ZOE_PENSANDO)
 
             try {
-
-                /*
-                 * =================================================
-                 * FLUJO ACTUAL DE ZOE
-                 * =================================================
-                 *
-                 * NO modificamos la comunicación existente.
-                 */
-
-                val respuesta =
-                    zoeRepository.consultar(consulta)
-
-                /*
-                 * =================================================
-                 * RESPUESTA CORRECTA
-                 * =================================================
-                 */
+                val respuesta = zoeRepository.consultar(consulta)
 
                 if (respuesta.success) {
+                    val respuestaTexto = respuesta.respuesta
+                        ?.trim()
+                        ?.replace("**", "")
+                        ?.replace("__", "")
+                        ?.takeIf { it.isNotEmpty() }
+                        ?: "ZOE recibió la consulta, pero no devolvió un mensaje."
 
-                    val respuestaTexto =
-                        respuesta.respuesta
-                            ?.trim()
-                            ?.replace("**", "")
-                            ?.replace("__", "")
-                            ?.takeIf {
-                                it.isNotEmpty()
+                    val estadisticaZoe: ZoeEstadistica? = respuesta.estadistica
+                        ?.takeIf { it.isJsonObject }
+                        ?.let {
+                            try {
+                                com.google.gson.Gson().fromJson(it, ZoeEstadistica::class.java)
+                            } catch (e: Exception) {
+                                Log.e("ZOE_DEBUG", "Error convirtiendo estadística", e)
+                                null
                             }
-                            ?: "ZOE recibió la consulta, pero no devolvió un mensaje."
+                        }
 
-
-                    /*
-                     * Si ZOE devuelve una estadística,
-                     * la guardamos dentro del mensaje.
-                     */
-
-
-                    val estadisticaZoe: ZoeEstadistica? =
-                        respuesta.estadistica
-                            ?.takeIf { it.isJsonObject }
-                            ?.let {
-                                try {
-                                    com.google.gson.Gson().fromJson(
-                                        it,
-                                        ZoeEstadistica::class.java
-                                    )
-                                } catch (e: Exception) {
-                                    Log.e(
-                                        "ZOE_DEBUG",
-                                        "Error convirtiendo estadística",
-                                        e
-                                    )
-                                    null
-                                }
-                            }
-
-                    _mensajes.value =
-                        _mensajes.value +
-                                ZoeMensaje(
-                                    texto = respuestaTexto,
-                                    esUsuario = false,
-                                    tipoMovimiento = tipoMovimiento,
-                                    estadistica = estadisticaZoe
-                                )
-
-
-
-                    /*
-                     * ZOE habla exactamente la misma
-                     * respuesta que muestra en pantalla.
-                     */
+                    _mensajes.value = _mensajes.value + ZoeMensaje(
+                        texto = respuestaTexto,
+                        esUsuario = false,
+                        tipoMovimiento = tipoMovimiento,
+                        estadistica = estadisticaZoe
+                    )
 
                     if (responderPorGateway) {
-
                         zoeWebSocket?.send(
                             org.json.JSONObject()
                                 .put("type", "response_text")
                                 .put("text", textoParaVoz(respuestaTexto, tipoMovimiento))
                                 .toString()
                         )
-
-                        android.util.Log.d(
-                            "ZOE_WS",
-                            "Respuesta de SIGEFIV enviada al Gateway para voz"
-                        )
-
                     } else if (hablarRespuesta) {
-
-                        hablar(
-                            textoParaVoz(
-                                respuestaTexto,
-                                tipoMovimiento
-                            )
-                        )
+                        hablar(textoParaVoz(respuestaTexto, tipoMovimiento))
                     }
-
-
-                    /*
-                     * =================================================
-                     * ZOE RESPONDIENDO
-                     * =================================================
-                     *
-                     * Este evento genera la burbuja:
-                     *
-                     * "Aquí tienes la respuesta."
-                     */
-
-                    // ============================================================
-// LA RESPUESTA YA FUE MOSTRADA
-// Dejamos de mostrar "ZOE está redactando..."
-// ============================================================
 
                     _cargando.value = false
-
-// ============================================================
-// AHORA LA MASCOTA PUEDE HACER SU REACCIÓN
-// sin mantener activo el indicador de escritura
-// ============================================================
-
-                    MascotaControlador.evento(
-                        MascotaEvento.ZOE_RESPONDIENDO
-                    )
-
+                    MascotaControlador.evento(MascotaEvento.ZOE_RESPONDIENDO)
                     delay(1500)
-
                     MascotaControlador.normal()
                     cargarHistorial()
-
-
-
                 } else {
+                    val mensajeError = respuesta.message?.trim()?.takeIf { it.isNotEmpty() }
+                        ?: respuesta.mensaje?.trim()?.takeIf { it.isNotEmpty() }
+                        ?: "No fue posible procesar la consulta."
 
-                    /*
-                     * =================================================
-                     * ERROR DEVUELTO POR EL SERVIDOR
-                     * =================================================
-                     */
-
-                    val mensajeError =
-                        respuesta.message
-                            ?.trim()
-                            ?.takeIf {
-                                it.isNotEmpty()
-                            }
-                            ?: respuesta.mensaje
-                                ?.trim()
-                                ?.takeIf {
-                                    it.isNotEmpty()
-                                }
-                            ?: "No fue posible procesar la consulta."
-
-
-                    /*
-                     * Generamos UNA SOLA reacción de error.
-                     */
-
-                    MascotaControlador.evento(
-                        MascotaEvento.ERROR
+                    MascotaControlador.evento(MascotaEvento.ERROR)
+                    _error.value = mensajeError
+                    _mensajes.value = _mensajes.value + ZoeMensaje(
+                        texto = mensajeError,
+                        esUsuario = false,
+                        tipoMovimiento = tipoMovimiento
                     )
 
-
-                    _error.value = mensajeError
-
-
-                    _mensajes.value =
-                        _mensajes.value +
-                                ZoeMensaje(
-                                    texto = mensajeError,
-                                    esUsuario = false,
-                                    tipoMovimiento =
-                                        tipoMovimiento
-                                )
-
-
-                    if (hablarRespuesta) {
-
-                        hablar(
-                            mensajeError
-                        )
-                    }
-
-
+                    if (hablarRespuesta) hablar(mensajeError)
                     delay(1500)
-
-
                     MascotaControlador.normal()
                 }
-
-
             } catch (e: Exception) {
-                android.util.Log.e(
-                    "ZOE_DEBUG",
-                    "ERROR CONSULTANDO ZOE: ${e.message}",
-                    e
-                )
-                /*
-                 * =================================================
-                 * ERROR DE CONEXIÓN / EXCEPCIÓN
-                 * =================================================
-                 */
+                Log.e("ZOE_DEBUG", "ERROR CONSULTANDO ZOE: ${e.message}", e)
+                MascotaControlador.evento(MascotaEvento.ERROR)
 
-                MascotaControlador.evento(
-                    MascotaEvento.ERROR
-                )
-
-
-                val mensajeError =
-                    when {
-
-                        e.message?.contains(
-                            "401"
-                        ) == true ->
-
-                            "La sesión no es válida. Inicia sesión nuevamente."
-
-
-                        e.message?.contains(
-                            "timeout",
-                            ignoreCase = true
-                        ) == true ->
-
-                            "ZOE tardó demasiado en responder. Inténtalo nuevamente."
-
-
-                        else ->
-
-                            "No se pudo conectar con ZOE. Verifica que el servidor SIGEFIV esté funcionando."
-                    }
-
-
-                _error.value = mensajeError
-
-
-                _mensajes.value =
-                    _mensajes.value +
-                            ZoeMensaje(
-                                texto = mensajeError,
-                                esUsuario = false,
-                                tipoMovimiento =
-                                    tipoMovimiento
-                            )
-
-
-                if (hablarRespuesta) {
-
-                    hablar(
-                        mensajeError
-                    )
+                val mensajeError = when {
+                    e.message?.contains("401") == true -> "La sesión no es válida. Inicia sesión nuevamente."
+                    e.message?.contains("timeout", ignoreCase = true) == true -> "ZOE tardó demasiado en responder. Inténtalo nuevamente."
+                    else -> "No se pudo conectar con ZOE. Verifica que el servidor SIGEFIV esté funcionando."
                 }
 
+                _error.value = mensajeError
+                _mensajes.value = _mensajes.value + ZoeMensaje(
+                    texto = mensajeError,
+                    esUsuario = false,
+                    tipoMovimiento = tipoMovimiento
+                )
 
+                if (hablarRespuesta) hablar(mensajeError)
                 delay(1500)
-
-
                 MascotaControlador.normal()
-
-
             } finally {
-
                 _cargando.value = false
             }
         }
     }
 
-
-    /*
-     * ============================================================
-     * LIMPIAR ERROR
-     * ============================================================
-     */
-
     fun limpiarError() {
-
         _error.value = null
     }
 
-
-    /*
-     * ============================================================
-     * DESTRUIR VIEWMODEL
-     * ============================================================
-     */
-
     override fun onCleared() {
-
-        /*
-         * Liberamos el motor TTS cuando se destruye
-         * el ViewModel.
-         */
-
         tts?.stop()
-
-        try {
-            reproductorAudio?.stop()
-        } catch (_: Exception) {
-        }
-
-        try {
-            reproductorAudio?.release()
-        } catch (_: Exception) {
-        }
-
+        try { reproductorAudio?.stop() } catch (_: Exception) {}
+        try { reproductorAudio?.release() } catch (_: Exception) {}
         reproductorAudio = null
-
         _hablando.value = false
-
         tts?.shutdown()
-
         tts = null
-
         ttsListo = false
 
         grabando = false
-
-        try {
-            audioRecord?.stop()
-        } catch (_: Exception) {
-        }
-
+        try { audioRecord?.stop() } catch (_: Exception) {}
         audioRecord?.release()
         audioRecord = null
         _escuchando.value = false
 
-        zoeWebSocket?.close(
-            1000,
-            "ViewModel destruido"
-        )
-
+        zoeWebSocket?.close(1000, "ViewModel destruido")
         zoeWebSocket = null
         wsClient.dispatcher.executorService.shutdown()
 
         super.onCleared()
     }
 
-
-    /*
-     * ============================================================
-     * PROCESAR AUDIO
-     * ============================================================
-     */
-
-    fun enviarAudio(
-        file: File
-    ) {
-
-        if (_cargando.value) {
-            return
-        }
-
+    fun enviarAudio(file: File) {
+        if (_cargando.value) return
 
         viewModelScope.launch {
-
             _cargando.value = true
-
-
             try {
+                val requestBody = file.asRequestBody("audio/wav".toMediaType())
+                val part = MultipartBody.Part.createFormData("audio", file.name, requestBody)
+                val respuesta = api.enviarVoz(part)
+                val texto = respuesta.texto?.trim()?.takeIf { it.isNotEmpty() }
 
-                val requestBody =
-                    file.asRequestBody(
-                        "audio/wav".toMediaType()
-                    )
-
-
-                val part =
-                    MultipartBody.Part.createFormData(
-                        "audio",
-                        file.name,
-                        requestBody
-                    )
-
-
-                val respuesta =
-                    api.enviarVoz(part)
-
-
-                val texto =
-                    respuesta.texto
-                        ?.trim()
-                        ?.takeIf {
-                            it.isNotEmpty()
-                        }
-
-
-                /*
-                 * =================================================
-                 * AUDIO RECONOCIDO CORRECTAMENTE
-                 * =================================================
-                 */
-
-                if (
-                    respuesta.success &&
-                    texto != null
-                ) {
-
+                if (respuesta.success && texto != null) {
                     file.delete()
-
-
                     _cargando.value = false
-
-
-                    /*
-                     * Entregamos la transcripción al flujo
-                     * normal de ZOE.
-                     *
-                     * Esto significa que también utilizará
-                     * las nuevas burbujas de ZOE.
-                     */
-
-                    enviarConsulta(
-                        texto,
-                        hablarRespuesta = true
-                    )
-
-
+                    enviarConsulta(texto, hablarRespuesta = true)
                     return@launch
                 }
 
-
-                /*
-                 * =================================================
-                 * ERROR DE TRANSCRIPCIÓN
-                 * =================================================
-                 */
-
-                val mensajeError =
-                    respuesta.message
-                        ?.trim()
-                        ?.takeIf {
-                            it.isNotEmpty()
-                        }
-                        ?: "No pude transcribir el audio."
-
-
+                val mensajeError = respuesta.message?.trim()?.takeIf { it.isNotEmpty() } ?: "No pude transcribir el audio."
                 _error.value = mensajeError
-
-
-                _mensajes.value =
-                    _mensajes.value +
-                            ZoeMensaje(
-                                texto = mensajeError,
-                                esUsuario = false
-                            )
-
-
+                _mensajes.value = _mensajes.value + ZoeMensaje(texto = mensajeError, esUsuario = false)
                 hablar(mensajeError)
-
-
             } catch (e: Exception) {
-
-                /*
-                 * =================================================
-                 * ERROR PROCESANDO AUDIO
-                 * =================================================
-                 */
-
-                val mensajeError =
-                    "No se pudo procesar el audio. Verifica la conexión con SIGEFIV."
-
-
+                val mensajeError = "No se pudo procesar el audio. Verifica la conexión con SIGEFIV."
                 _error.value = mensajeError
-
-
-                _mensajes.value =
-                    _mensajes.value +
-                            ZoeMensaje(
-                                texto = mensajeError,
-                                esUsuario = false
-                            )
-
-
+                _mensajes.value = _mensajes.value + ZoeMensaje(texto = mensajeError, esUsuario = false)
                 hablar(mensajeError)
-
-
             } finally {
-
                 _cargando.value = false
-
-
-                if (file.exists()) {
-                    file.delete()
-                }
+                if (file.exists()) file.delete()
             }
         }
     }
 
-
-    /*
-     * ============================================================
-     * INICIAR ESCUCHA
-     * ============================================================
-     */
-
     fun iniciarEscucha() {
-
-        android.util.Log.d("ZOE_AUDIO", "iniciarEscucha() ejecutado")
-
         if (grabando) return
 
-        if (
-            ContextCompat.checkSelfPermission(
-                appContext,
-                Manifest.permission.RECORD_AUDIO
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
+        if (ContextCompat.checkSelfPermission(appContext, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             _error.value = "Permiso de micrófono no concedido."
             return
         }
 
         val socket = zoeWebSocket
-
         if (socket == null) {
             _error.value = "ZOE todavía no está conectada."
             return
         }
 
-        val minBuffer = AudioRecord.getMinBufferSize(
-            ZOE_SAMPLE_RATE,
-            ZOE_CHANNEL,
-            ZOE_ENCODING
-        )
-
+        val minBuffer = AudioRecord.getMinBufferSize(ZOE_SAMPLE_RATE, ZOE_CHANNEL, ZOE_ENCODING)
         if (minBuffer <= 0) {
             _error.value = "No se pudo inicializar el micrófono."
             return
         }
 
-        val bufferSize = maxOf(
-            minBuffer,
-            ZOE_AUDIO_BUFFER * 2
-        )
+        val bufferSize = maxOf(minBuffer, ZOE_AUDIO_BUFFER * 2)
 
         try {
-
             val record = AudioRecord(
                 MediaRecorder.AudioSource.MIC,
                 ZOE_SAMPLE_RATE,
@@ -1297,363 +733,149 @@ class ZoeViewModel(
             _error.value = null
 
             socket.send("{\"type\":\"start_audio\"}")
-            android.util.Log.d("ZOE_AUDIO", "start_audio enviado")
-
             record.startRecording()
 
             viewModelScope.launch(Dispatchers.IO) {
-
                 val buffer = ByteArray(ZOE_AUDIO_BUFFER)
-
                 try {
-
                     while (grabando) {
-
-                        val leidos = record.read(
-                            buffer,
-                            0,
-                            buffer.size
-                        )
-
+                        val leidos = record.read(buffer, 0, buffer.size)
                         if (leidos > 0 && grabando) {
-                            android.util.Log.d("ZOE_AUDIO", "PCM capturado: $leidos bytes")
                             val datos = buffer.copyOf(leidos)
-
-                            socket.send(
-                                okio.ByteString.of(*datos)
-                            )
+                            socket.send(okio.ByteString.of(*datos))
                         }
                     }
-
                 } catch (e: Exception) {
-
-                    android.util.Log.e(
-                        "ZOE_WS",
-                        "Error capturando audio: ${e.message}",
-                        e
-                    )
-
-                    _error.value =
-                        "No se pudo capturar el audio."
-
+                    Log.e("ZOE_WS", "Error capturando audio: ${e.message}", e)
+                    _error.value = "No se pudo capturar el audio."
                 } finally {
-
                     try {
-                        if (
-                            record.recordingState ==
-                            AudioRecord.RECORDSTATE_RECORDING
-                        ) {
+                        if (record.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
                             record.stop()
                         }
-                    } catch (_: Exception) {
-                    }
-
+                    } catch (_: Exception) {}
                     record.release()
-
                     audioRecord = null
                     grabando = false
                     _escuchando.value = false
                 }
             }
-
         } catch (e: Exception) {
-
             audioRecord = null
             grabando = false
             _escuchando.value = false
-
-            _error.value =
-                "No se pudo iniciar el micrófono: ${e.message}"
+            _error.value = "No se pudo iniciar el micrófono: ${e.message}"
         }
     }
 
-
-    /*
-     * ============================================================
-     * DETENER ESCUCHA
-     * ============================================================
-     */
-
     fun detenerEscucha() {
-
         if (!grabando) return
-
         grabando = false
-
-        try {
-            audioRecord?.stop()
-        } catch (_: Exception) {
-        }
-
+        try { audioRecord?.stop() } catch (_: Exception) {}
         _escuchando.value = false
-
-        android.util.Log.d("ZOE_AUDIO", "end_audio enviado")
         zoeWebSocket?.send("{\"type\":\"end_audio\"}")
     }
 
-
-    /*
-     * ============================================================
-     * DETENER VOZ
-     * ============================================================
-     */
-
     fun detenerVoz() {
-
         tts?.stop()
-
         _hablando.value = false
     }
 
-
-    /*
-     * ============================================================
-     * REPRODUCIR VOZ DE ZOE
-     * ============================================================
-     *
-     * El Gateway envía un WAV completo generado por Supertonic F4.
-     * Lo guardamos temporalmente y MediaPlayer lo reproduce.
-     */
     private fun reproducirAudioZoe(bytes: ByteArray) {
-
-        if (bytes.isEmpty()) {
-            android.util.Log.w(
-                "ZOE_AUDIO",
-                "WAV vacío recibido"
-            )
-            return
-        }
+        if (bytes.isEmpty()) return
 
         audioHandler.post {
-
-            try {
-                reproductorAudio?.stop()
-            } catch (_: Exception) {
-            }
-
-            try {
-                reproductorAudio?.release()
-            } catch (_: Exception) {
-            }
-
+            try { reproductorAudio?.stop() } catch (_: Exception) {}
+            try { reproductorAudio?.release() } catch (_: Exception) {}
             reproductorAudio = null
 
-            val archivo = File(
-                appContext.cacheDir,
-                "zoe_respuesta_${System.currentTimeMillis()}.wav"
-            )
+            val archivo = File(appContext.cacheDir, "zoe_respuesta_${System.currentTimeMillis()}.wav")
 
             try {
                 archivo.writeBytes(bytes)
-
                 val player = MediaPlayer()
-
                 player.setDataSource(archivo.absolutePath)
-
                 player.setOnPreparedListener {
                     _hablando.value = true
                     MascotaControlador.feliz()
-
-                    android.util.Log.d(
-                        "ZOE_AUDIO",
-                        "Reproduciendo voz de ZOE"
-                    )
-
                     it.start()
                 }
 
                 player.setOnCompletionListener {
                     _hablando.value = false
                     MascotaControlador.normal()
-
-                    android.util.Log.d(
-                        "ZOE_AUDIO",
-                        "Voz de ZOE terminada"
-                    )
-
-                    try {
-                        it.release()
-                    } catch (_: Exception) {
-                    }
-
+                    try { it.release() } catch (_: Exception) {}
                     reproductorAudio = null
-
                     archivo.delete()
                 }
 
-                player.setOnErrorListener { mp, what, extra ->
+                player.setOnErrorListener { mp, _, _ ->
                     _hablando.value = false
                     MascotaControlador.normal()
-
-                    android.util.Log.e(
-                        "ZOE_AUDIO",
-                        "Error reproduciendo WAV: what=$what extra=$extra"
-                    )
-
-                    try {
-                        mp.release()
-                    } catch (_: Exception) {
-                    }
-
+                    try { mp.release() } catch (_: Exception) {}
                     reproductorAudio = null
                     archivo.delete()
-
                     true
                 }
 
                 reproductorAudio = player
                 player.prepareAsync()
-
             } catch (e: Exception) {
-
                 _hablando.value = false
                 MascotaControlador.normal()
-
-                android.util.Log.e(
-                    "ZOE_AUDIO",
-                    "No se pudo reproducir WAV: ${e.message}",
-                    e
-                )
-
                 reproductorAudio = null
                 archivo.delete()
             }
         }
     }
 
-
-    private fun esEmulador(): Boolean {
-        return (Build.FINGERPRINT.startsWith("generic")
-                || Build.FINGERPRINT.startsWith("unknown")
-                || Build.MODEL.contains("google_sdk", ignoreCase = true)
-                || Build.MODEL.contains("Emulator", ignoreCase = true)
-                || Build.MODEL.contains("Android SDK built for", ignoreCase = true)
-                || Build.MANUFACTURER.contains("Genymotion", ignoreCase = true)
-                || Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
-    }
-
     private fun obtenerUrlZoeWebSocket(): String {
-        val url = ServidorConfig.ZOE_WEBSOCKET_URL
-
-        Log.d(
-            "ZOE_WS",
-            "URL WebSocket final: $url"
-        )
-
-        return url
+        return ServidorConfig.ZOE_WEBSOCKET_URL
     }
 
     private fun conectarZoeWebSocket() {
-
-        val request = Request.Builder()
-            .url(obtenerUrlZoeWebSocket())
-            .build()
+        val request = Request.Builder().url(obtenerUrlZoeWebSocket()).build()
 
         zoeWebSocket = wsClient.newWebSocket(
             request,
             object : WebSocketListener() {
-
-                override fun onOpen(
-                    webSocket: WebSocket,
-                    response: Response
-                ) {
-                    android.util.Log.d(
-                        "ZOE_WS",
-                        "ZOE WS conectado"
-                    )
+                override fun onOpen(webSocket: WebSocket, response: Response) {
+                    Log.d("ZOE_WS", "ZOE WS conectado")
                 }
 
-                override fun onMessage(
-                    webSocket: WebSocket,
-                    text: String
-                ) {
-                    android.util.Log.d(
-                        "ZOE_WS",
-                        "Servidor: $text"
-                    )
-
+                override fun onMessage(webSocket: WebSocket, text: String) {
                     try {
-                        val datos =
-                            org.json.JSONObject(text)
-
+                        val datos = org.json.JSONObject(text)
                         when (datos.optString("type")) {
-
                             "transcription" -> {
-
-                                val consulta =
-                                    datos.optString("text")
-                                        .trim()
-
+                                val consulta = datos.optString("text").trim()
                                 if (consulta.isNotEmpty()) {
-
-                                    android.util.Log.d(
-                                        "ZOE_WS",
-                                        "Transcripción recibida: $consulta"
-                                    )
-
-                                    // La consulta de voz entra al mismo
-                                    // backend real de SIGEFIV que el chat.
-                                    enviarConsulta(
-                                        consulta,
-                                        hablarRespuesta = false,
-                                        responderPorGateway = true
-                                    )
+                                    enviarConsulta(consulta, hablarRespuesta = false, responderPorGateway = true)
                                 }
                             }
-
-                            "awaiting_backend" -> {
-                                android.util.Log.d(
-                                    "ZOE_WS",
-                                    "Esperando respuesta real de SIGEFIV"
-                                )
-                            }
-
-                            "transcribing", "thinking", "synthesizing" -> {
-                                // Estados informativos del Gateway.
-                            }
                         }
-
-                    } catch (e: Exception) {
-                        android.util.Log.w(
-                            "ZOE_WS",
-                            "Mensaje no JSON o no procesable: ${e.message}"
-                        )
-                    }
+                    } catch (_: Exception) {}
                 }
 
-                override fun onMessage(
-                    webSocket: WebSocket,
-                    bytes: okio.ByteString
-                ) {
-                    android.util.Log.d(
-                        "ZOE_WS",
-                        "Audio WAV recibido: ${bytes.size} bytes"
-                    )
-
+                override fun onMessage(webSocket: WebSocket, bytes: okio.ByteString) {
                     reproducirAudioZoe(bytes.toByteArray())
                 }
 
-                override fun onFailure(
-                    webSocket: WebSocket,
-                    t: Throwable,
-                    response: Response?
-                ) {
-                    android.util.Log.e(
-                        "ZOE_WS",
-                        "Error WebSocket: ${t.message}",
-                        t
-                    )
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                    Log.e("ZOE_WS", "Error WebSocket: ${t.message}", t)
                 }
             }
         )
     }
+
     fun cargarConversacion(conversacionId: String) {
         viewModelScope.launch {
             _cargando.value = true
             try {
                 val respuesta = zoeRepository.obtenerDetalle(conversacionId)
                 if (respuesta.success) {
-                    // Filtramos los eventos internos o saludos repetitivos del sistema
+                    val regexId = Regex("""\[ASAMBLEA_ID:(\d+)\]""")
+
                     _mensajes.value = respuesta.mensajes
                         .filter { dto ->
                             val textoTrim = dto.texto.trim()
@@ -1662,10 +884,17 @@ class ZoeViewModel(
                                     !textoTrim.contains("bienvenido de nuevo a SIGEFIV", ignoreCase = true)
                         }
                         .map { dto ->
+                            val matchId = regexId.find(dto.texto)
+                            val asambleaIdDetectado = matchId?.groupValues?.get(1)?.toLongOrNull()
+                            val esEncuesta = asambleaIdDetectado != null || dto.texto.contains("¿Contaremos con su asistencia?", ignoreCase = true)
+                            val textoLimpio = regexId.replace(dto.texto.replace("[REPORTE_DIRECTIVA] ", ""), "").trim()
+
                             ZoeMensaje(
-                                texto = dto.texto.replace("[REPORTE_DIRECTIVA] ", ""),
+                                texto = textoLimpio,
                                 esUsuario = dto.esUsuario,
-                                hora = dto.hora
+                                hora = dto.hora,
+                                tipo = if (esEncuesta) "encuesta_asamblea" else null,
+                                asambleaId = asambleaIdDetectado
                             )
                         }
                 }
@@ -1676,49 +905,12 @@ class ZoeViewModel(
             }
         }
     }
-    fun iniciarNuevaConversacion() {
-        // Limpiamos los mensajes actuales de la pantalla de inmediato
-        _mensajes.value = emptyList()
 
-        // Disparamos el evento silencioso para que ZOE dé la bienvenida en una nueva charla
+    fun iniciarNuevaConversacion() {
+        _mensajes.value = emptyList()
         enviarEventoSilencioso("evento_inicio_sesion")
     }
-    fun enviarArchivoConMensaje(context: Context, uri: Uri, mensajeTexto: String) {
-        viewModelScope.launch {
-            try {
-                _cargando.value = true
 
-                // 1. Convertir la Uri en un archivo físico temporal en caché para leer sus bytes
-                val inputStream = context.contentResolver.openInputStream(uri)
-                val archivoTemporal = File(context.cacheDir, "upload_${System.currentTimeMillis()}.tmp")
-
-                inputStream?.use { input ->
-                    archivoTemporal.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-
-                // 2. Determinar el tipo MIME del archivo (imagen, pdf, etc.)
-                val tipoMime = context.contentResolver.getType(uri) ?: "application/octet-stream"
-                val requestBodyFile = archivoTemporal.asRequestBody(tipoMime.toMediaTypeOrNull())
-
-                // 3. Crear la parte Multipart del archivo
-                val parteArchivo = MultipartBody.Part.createFormData("archivo", archivoTemporal.name, requestBodyFile)
-                val requestTexto = mensajeTexto.toRequestBody("text/plain".toMediaTypeOrNull())
-
-                // 4. Enviar a tu servicio Retrofit hacia Laravel
-                // val respuesta = apiService.enviarMensajeConArchivo(parteArchivo, requestTexto)
-
-                // Limpiar archivo temporal
-                archivoTemporal.delete()
-
-            } catch (e: Exception) {
-                android.util.Log.e("ZOE_VIEWMODEL", "Error al enviar archivo: ${e.message}")
-            } finally {
-                _cargando.value = false
-            }
-        }
-    }
     fun enviarMensajeConMultimedia(context: Context, uri: Uri?, textoMensaje: String) {
         val mensajeTextoLimpio = textoMensaje.trim()
         if (mensajeTextoLimpio.isBlank() && uri == null) return
@@ -1728,7 +920,6 @@ class ZoeViewModel(
                 _cargando.value = true
                 MascotaControlador.evento(MascotaEvento.ZOE_PENSANDO)
 
-                // 1. Añadimos el mensaje del usuario a la pantalla CON su imagen adjunta
                 _mensajes.value = _mensajes.value + ZoeMensaje(
                     texto = if (mensajeTextoLimpio.isBlank()) "[Imagen adjunta]" else mensajeTextoLimpio,
                     esUsuario = true,
@@ -1738,15 +929,12 @@ class ZoeViewModel(
                 var parteArchivo: MultipartBody.Part? = null
                 var bodyTexto: RequestBody? = null
 
-                // 2. Preparamos el archivo si existe
                 if (uri != null) {
                     val inputStream = context.contentResolver.openInputStream(uri)
                     val archivoTemporal = File(context.cacheDir, "zoe_upload_${System.currentTimeMillis()}.tmp")
 
                     inputStream?.use { input ->
-                        archivoTemporal.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
+                        archivoTemporal.outputStream().use { output -> input.copyTo(output) }
                     }
 
                     val tipoMime = context.contentResolver.getType(uri) ?: "image/jpeg"
@@ -1754,16 +942,13 @@ class ZoeViewModel(
                     parteArchivo = MultipartBody.Part.createFormData("archivo", archivoTemporal.name, requestFile)
                 }
 
-                // 3. Preparamos el texto (asegúrate de que el nombre de la clave sea "mensaje" tal como lo pusiste en ZoeApi)
                 if (mensajeTextoLimpio.isNotBlank()) {
                     bodyTexto = mensajeTextoLimpio.toRequestBody("text/plain".toMediaTypeOrNull())
                 }
 
-                // 4. Primero subimos la foto y el reporte al servidor
                 val respuestaArchivo = zoeRepository.enviarMensajeConArchivo(parteArchivo, bodyTexto)
 
                 if (respuestaArchivo != null && respuestaArchivo.success) {
-                    // 5. Llamamos a ZOE (n8n + Ollama) para que genere la respuesta cálida y personalizada
                     val detalleReporte = if (mensajeTextoLimpio.isBlank()) {
                         "Adjunté una fotografía como reporte para la directiva."
                     } else {
@@ -1793,23 +978,18 @@ class ZoeViewModel(
                     )
                 }
 
-                // Limpiamos el adjunto temporal de la barra inferior
                 _archivoAdjuntoUri.value = null
-
                 MascotaControlador.evento(MascotaEvento.ZOE_RESPONDIENDO)
                 delay(1500)
                 MascotaControlador.normal()
                 cargarHistorial()
-
             } catch (e: Exception) {
                 Log.e("ZOE_VM", "Error al enviar contenido multimedia: ${e.message}", e)
                 MascotaControlador.evento(MascotaEvento.ERROR)
-
                 _mensajes.value = _mensajes.value + ZoeMensaje(
                     texto = "No se pudo conectar con el servidor para enviar el archivo.",
                     esUsuario = false
                 )
-
                 delay(1500)
                 MascotaControlador.normal()
             } finally {
@@ -1817,12 +997,85 @@ class ZoeViewModel(
             }
         }
     }
+
     fun enviarConsultaOAdjunto(context: Context, texto: String) {
         val uriActual = _archivoAdjuntoUri.value
         if (uriActual != null) {
             enviarMensajeConMultimedia(context, uriActual, texto)
         } else {
             enviarConsulta(texto)
+        }
+    }
+
+    fun verificarAvisosAsamblea() {
+        viewModelScope.launch {
+            try {
+                Log.d("ZOE_ASAMBLEA", "1. Iniciando llamada a verificarAvisosPendientes()...")
+                val response = zoeRepository.verificarAvisosPendientes()
+                Log.d("ZOE_ASAMBLEA", "2. Código HTTP recibido: ${response.code()}")
+
+                if (response.isSuccessful && response.body() != null) {
+                    val data = response.body()!!
+                    Log.d("ZOE_ASAMBLEA", "3. Body recibido: success=${data.success}, tiene_asamblea=${data.tiene_asamblea}, id=${data.asamblea_id}")
+
+                    if (data.tiene_asamblea && data.asamblea_id != null && data.texto != null) {
+                        val yaExiste = _mensajes.value.any { it.asambleaId == data.asamblea_id }
+                        if (!yaExiste) {
+                            _mensajes.value = _mensajes.value + ZoeMensaje(
+                                texto = data.texto,
+                                esUsuario = false,
+                                tipo = "encuesta_asamblea",
+                                asambleaId = data.asamblea_id
+                            )
+                            Log.d("ZOE_ASAMBLEA", "4. Mensaje agregado a _mensajes con éxito.")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("ZOE_ASAMBLEA", "Excepción de red al verificar: ${e.message}", e)
+            }
+        }
+    }
+
+    fun confirmarAsistenciaAsamblea(asambleaId: Long, opcion: String) {
+        viewModelScope.launch {
+            try {
+                _cargando.value = true
+                val response = zoeRepository.confirmarAsistencia(asambleaId, opcion)
+
+                if (response.isSuccessful && response.body() != null) {
+                    val body = response.body()!!
+
+                    _mensajes.value = _mensajes.value.map { msg ->
+                        if (msg.asambleaId == asambleaId) {
+                            msg.copy(asambleaEstadisticas = body.estadisticas)
+                        } else {
+                            msg
+                        }
+                    }
+
+                    _mensajes.value = _mensajes.value + ZoeMensaje(
+                        texto = body.mensaje_zoe,
+                        esUsuario = false
+                    )
+
+                    // Sincronizar el BottomSheet superior con el nuevo voto emitido
+                    actualizarEstadisticasAsamblea()
+
+                    MascotaControlador.evento(MascotaEvento.ZOE_RESPONDIENDO)
+                    delay(1500)
+                    MascotaControlador.normal()
+
+                    cargarHistorial()
+                } else {
+                    _error.value = "No se pudo registrar la respuesta a la asamblea."
+                }
+            } catch (e: Exception) {
+                Log.e("ZOE_ASAMBLEA", "Error al confirmar asistencia: ${e.message}", e)
+                _error.value = "Error de conexión al registrar asistencia."
+            } finally {
+                _cargando.value = false
+            }
         }
     }
 }

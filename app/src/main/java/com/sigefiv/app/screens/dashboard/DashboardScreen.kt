@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,25 +27,17 @@ import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.Assignment
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.SmartToy
-import androidx.compose.material.icons.outlined.Storefront // 👈 Importado para el icono de Negocios
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -55,15 +46,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -76,13 +63,12 @@ import com.sigefiv.app.data.model.Movimiento
 import com.sigefiv.app.data.model.PeriodoDashboard
 import com.sigefiv.app.notifications.NotificacionEventBus
 import com.sigefiv.app.ui.theme.AppSeason
-
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
+import com.sigefiv.app.ui.components.AppBottomBar // 👈 Importamos tu nueva barra unificada
 import com.sigefiv.app.viewmodel.DashboardViewModel
 import com.sigefiv.app.viewmodel.MovimientosViewModel
 import java.util.Calendar
-import android.util.Log
 
 /*
 |--------------------------------------------------------------------------
@@ -95,8 +81,6 @@ private val Turquesa = Color(0xFF15803D)
 private val Blanco = Color(0xFFFFFFFF)
 
 // Colores semánticos para ingresos y egresos.
-// Modo claro: conservan los colores de la primera referencia.
-// Modo oscuro: variantes más luminosas para mantener el contraste.
 private val VerdeIngresoClaro = Color(0xFF15803D)
 private val VerdeIngresoOscuro = Color(0xFF4ADE80)
 private val RojoEgresoClaro = Color(0xFFDC2626)
@@ -123,7 +107,7 @@ fun DashboardScreen(
     onNotificacionesClick: () -> Unit = {},
     onMovimientosClick: () -> Unit = {},
     onAsambleasClick: () -> Unit = {},
-    onEmprendimientosClick: () -> Unit = {}, // 👈 Callback añadido para Emprendimientos/Negocios
+    onEmprendimientosClick: () -> Unit = {},
     onPeriodosClick: () -> Unit = {},
     onMiCuentaClick: () -> Unit = {},
     onSigiClick: () -> Unit = {},
@@ -131,10 +115,7 @@ fun DashboardScreen(
     darkTheme: Boolean = false,
     onThemeToggle: () -> Unit = {}
 ) {
-
     val sessionManager = remember { SessionManager(context) }
-
-
 
     val nombreUsuario by sessionManager.nombre.collectAsState(initial = "Usuario")
     val seudonimo by sessionManager.seudonimo.collectAsState(initial = null)
@@ -143,11 +124,9 @@ fun DashboardScreen(
     val permisos by sessionManager.permisos.collectAsState(initial = emptySet())
     val puedeUsarZoe = "zoe.llamada" in permisos
 
-
     val nombreMostrar =
         seudonimo?.trim()?.takeIf { it.isNotEmpty() }
             ?: (nombreUsuario?.trim()?.takeIf { it.isNotEmpty() } ?: "Usuario")
-
 
     /*
     |--------------------------------------------------------------------------
@@ -168,21 +147,12 @@ fun DashboardScreen(
     */
 
     LaunchedEffect(Unit) {
-
         dashboardViewModel.cargarDashboard()
 
         NotificacionEventBus.movimientoActualizado.collect {
-
             dashboardViewModel.cargarDashboard()
         }
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | TEMA LOCAL DEL DASHBOARD
-    |--------------------------------------------------------------------------
-    */
-
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -194,11 +164,8 @@ fun DashboardScreen(
         */
 
         topBar = {
-
             TopAppBar(
-
                 title = {
-
                     Text(
                         text = "SIGEFIV",
                         color = Blanco,
@@ -206,13 +173,8 @@ fun DashboardScreen(
                         fontSize = 19.sp
                     )
                 },
-
                 navigationIcon = {
-
-                    IconButton(
-                        onClick = onOpenDrawer
-                    ) {
-
+                    IconButton(onClick = onOpenDrawer) {
                         Icon(
                             imageVector = Icons.Outlined.Menu,
                             contentDescription = "Abrir menú",
@@ -220,46 +182,21 @@ fun DashboardScreen(
                         )
                     }
                 },
-
                 actions = {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | BOTÓN MODO CLARO / OSCURO
-                    |--------------------------------------------------------------------------
-                    */
-
-                    IconButton(
-                        onClick = onThemeToggle
-                    ) {
-
+                    IconButton(onClick = onThemeToggle) {
                         Icon(
                             imageVector = if (darkTheme) {
                                 Icons.Outlined.LightMode
                             } else {
                                 Icons.Outlined.DarkMode
                             },
-
-                            contentDescription = if (darkTheme) {
-                                "Cambiar a modo claro"
-                            } else {
-                                "Cambiar a modo oscuro"
-                            },
-
+                            contentDescription = if (darkTheme) "Cambiar a modo claro" else "Cambiar a modo oscuro",
                             tint = Blanco
                         )
                     }
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | ZOE INTELIGENTE
-                    |--------------------------------------------------------------------------
-                    */
-
                     if (puedeUsarZoe) {
-                        IconButton(
-                            onClick = onSigiClick
-                        ) {
+                        IconButton(onClick = onSigiClick) {
                             Icon(
                                 imageVector = Icons.Outlined.SmartToy,
                                 contentDescription = "ZOE inteligente",
@@ -268,21 +205,11 @@ fun DashboardScreen(
                         }
                     }
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | NOTIFICACIONES
-                    |--------------------------------------------------------------------------
-                    */
-
                     Box(
                         modifier = Modifier.size(48.dp),
                         contentAlignment = Alignment.Center
                     ) {
-
-                        IconButton(
-                            onClick = onNotificacionesClick
-                        ) {
-
+                        IconButton(onClick = onNotificacionesClick) {
                             Icon(
                                 imageVector = Icons.Outlined.Notifications,
                                 contentDescription = "Notificaciones",
@@ -291,29 +218,18 @@ fun DashboardScreen(
                         }
 
                         if (notificacionesNoLeidas > 0) {
-
                             Box(
                                 modifier = Modifier
                                     .size(19.dp)
-                                    .offset(
-                                        x = 7.dp,
-                                        y = (-7).dp
-                                    )
+                                    .offset(x = 7.dp, y = (-7).dp)
                                     .background(
                                         color = if (darkTheme) RojoEgresoOscuro else RojoEgresoClaro,
                                         shape = CircleShape
                                     ),
-
                                 contentAlignment = Alignment.Center
                             ) {
-
                                 Text(
-                                    text = if (notificacionesNoLeidas > 99) {
-                                        "99+"
-                                    } else {
-                                        notificacionesNoLeidas.toString()
-                                    },
-
+                                    text = if (notificacionesNoLeidas > 99) "99+" else notificacionesNoLeidas.toString(),
                                     color = Blanco,
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
@@ -323,7 +239,6 @@ fun DashboardScreen(
                         }
                     }
                 },
-
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = SeasonalColors.primary(
                         SeasonalTheme.getSeason()
@@ -334,23 +249,22 @@ fun DashboardScreen(
 
         /*
         |--------------------------------------------------------------------------
-        | BARRA INFERIOR
+        | BARRA INFERIOR UNIFICADA (AppBottomBar)
         |--------------------------------------------------------------------------
         */
 
         bottomBar = {
-
-            SigefivBottomBar(
-                onInicioClick = {},
+            AppBottomBar(
+                pantallaActual = "Inicio",
+                onInicioClick = { /* Ya estás en inicio */ },
                 onAsambleasClick = onAsambleasClick,
-                onEmprendimientosClick = onEmprendimientosClick, // 👈 Vinculado aquí
+                onEmprendimientosClick = onEmprendimientosClick,
                 onPeriodosClick = onPeriodosClick,
                 onMiCuentaClick = onMiCuentaClick
             )
         }
 
     ) { innerPadding ->
-
         DashboardContenido(
             modifier = Modifier
                 .fillMaxSize()
@@ -364,7 +278,6 @@ fun DashboardScreen(
             darkTheme = darkTheme
         )
     }
-
 }
 
 /*
@@ -384,91 +297,45 @@ private fun DashboardContenido(
     onMovimientosClick: () -> Unit,
     darkTheme: Boolean
 ){
-
     val scrollState = rememberScrollState()
-
     val temporada = SeasonalTheme.getSeason()
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-
-        /*
-        |--------------------------------------------------------------------------
-        | DECORACIÓN FIESTAS PATRIAS
-        |--------------------------------------------------------------------------
-        */
-
         if (temporada == AppSeason.FIESTAS_PATRIAS) {
-
             Image(
-                painter = painterResource(
-                    id = R.drawable.bandera_fiestas_patrias
-                ),
-
+                painter = painterResource(id = R.drawable.bandera_fiestas_patrias),
                 contentDescription = null,
-
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter),
-
                 contentScale = ContentScale.FillWidth,
-
                 alpha = 0.22f
             )
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | DECORACIÓN NAVIDAD
-        |--------------------------------------------------------------------------
-        */
 
         if (temporada == AppSeason.NAVIDAD) {
-
             Image(
-                painter = painterResource(
-                    id = R.drawable.fondo_navidad_dashboard
-                ),
-
+                painter = painterResource(id = R.drawable.fondo_navidad_dashboard),
                 contentDescription = null,
-
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter),
-
                 contentScale = ContentScale.FillWidth,
-
                 alpha = 0.22f
             )
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | CONTENIDO PRINCIPAL
-        |--------------------------------------------------------------------------
-        */
-
         Column(
-
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(
-                    horizontal = 16.dp,
-                    vertical = 12.dp
-                ),
-
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-
-            /*
-  |--------------------------------------------------------------------------
-  | SALUDO
-  |--------------------------------------------------------------------------
-  */
-
             val primerNombre = nombreUsuario
                 .trim()
                 .split("\\s+".toRegex())
@@ -477,57 +344,30 @@ private fun DashboardContenido(
                 ?: "Usuario"
 
             val saludo = remember(primerNombre) {
-
-                val hora = Calendar.getInstance()
-                    .get(Calendar.HOUR_OF_DAY)
-
-                val saludos = when {
-
-                    hora < 12 -> listOf(
-                        "¡Buenos días, $primerNombre! ☀️",
-                        "¡Muy buenos días, $primerNombre! 🌅",
-                        "¡Qué gusto verte esta mañana, $primerNombre! 😊",
-                        "¡Hola, $primerNombre! Que tengas un excelente día. ☀️"
-                    )
-
-                    hora < 18 -> listOf(
-                        "¡Buenas tardes, $primerNombre! 😊",
-                        "¡Qué gusto verte, $primerNombre! 👋",
-                        "¡Hola, $primerNombre! Espero que estés teniendo un buen día. 🌤️",
-                        "¡Qué tal, $primerNombre! 😄"
-                    )
-
-                    else -> listOf(
-                        "¡Buenas noches, $primerNombre! 🌙",
-                        "¡Qué gusto verte esta noche, $primerNombre! 😊",
-                        "¡Hola, $primerNombre! 🌙",
-                        "¡Buenas noches, $primerNombre! Espero que hayas tenido un buen día. ✨"
-                    )
+                val hora = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                when {
+                    hora < 12 -> "¡Buenos días, $primerNombre! ☀️"
+                    hora < 18 -> "¡Buenas tardes, $primerNombre! 😊"
+                    else -> "¡Buenas noches, $primerNombre! 🌙"
                 }
-
-                saludos.random()
             }
-            val subtitulo = remember(nombreUsuario) {
 
+            val subtitulo = remember(nombreUsuario) {
                 listOf(
                     "Todo listo en SIGEFIV para hoy.",
                     "Tu información está lista.",
                     "Aquí tienes la información de SIGEFIV.",
-                    "Todo preparado para continuar.",
-                    "Revisa rápidamente el estado de tu comunidad.",
-                    "SIGEFIV está listo para ayudarte."
+                    "Todo preparado para continuar."
                 ).random()
             }
 
             Column {
-
                 Text(
                     text = saludo,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
-
                 Text(
                     text = subtitulo,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -535,134 +375,63 @@ private fun DashboardContenido(
                 )
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | SALDO
-            |--------------------------------------------------------------------------
-            */
-
             SaldoCard(
                 periodo = periodo,
                 darkTheme = darkTheme
             )
 
-            /*
-            |--------------------------------------------------------------------------
-            | INGRESOS Y EGRESOS
-            |--------------------------------------------------------------------------
-            */
-
             Row(
-
                 modifier = Modifier.fillMaxWidth(),
-
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-
                 ResumenCard(
-
                     modifier = Modifier.weight(1f),
-
                     titulo = "Ingresos",
-
-                    monto = "S/ %,.2f".format(
-                        periodo?.ingresos ?: 0.0
-                    ),
-
+                    monto = "S/ %,.2f".format(periodo?.ingresos ?: 0.0),
                     icono = Icons.Outlined.ArrowUpward,
-
                     color = if (darkTheme) VerdeIngresoOscuro else VerdeIngresoClaro,
                     fondoColor = if (darkTheme) FondoIngresoOscuro else FondoIngresoClaro
                 )
 
                 ResumenCard(
-
                     modifier = Modifier.weight(1f),
-
                     titulo = "Egresos",
-
-                    monto = "S/ %,.2f".format(
-                        periodo?.egresos ?: 0.0
-                    ),
-
+                    monto = "S/ %,.2f".format(periodo?.egresos ?: 0.0),
                     icono = Icons.Outlined.ArrowDownward,
-
                     color = if (darkTheme) RojoEgresoOscuro else RojoEgresoClaro,
                     fondoColor = if (darkTheme) FondoEgresoOscuro else FondoEgresoClaro
                 )
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | PERIODO ACTUAL
-            |--------------------------------------------------------------------------
-            */
-
-            CardPeriodo(
-                periodo = periodo
-            )
-
-            /*
-            |--------------------------------------------------------------------------
-            | MOVIMIENTOS RECIENTES
-            |--------------------------------------------------------------------------
-            */
+            CardPeriodo(periodo = periodo)
 
             Row(
-
                 modifier = Modifier.fillMaxWidth(),
-
                 horizontalArrangement = Arrangement.SpaceBetween,
-
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
                 Text(
-
                     text = "Movimientos recientes",
-
                     color = MaterialTheme.colorScheme.onBackground,
-
                     fontSize = 17.sp,
-
                     fontWeight = FontWeight.Bold
                 )
 
                 if (puedeVerMovimientos) {
-
                     Text(
-
                         text = "Ver todos",
-
-                        color = SeasonalColors.primary(
-                            SeasonalTheme.getSeason()
-                        ),
-
+                        color = SeasonalColors.primary(SeasonalTheme.getSeason()),
                         fontSize = 13.sp,
-
                         fontWeight = FontWeight.Bold,
-
-                        modifier = Modifier.clickable {
-
-                            onMovimientosClick()
-                        }
+                        modifier = Modifier.clickable { onMovimientosClick() }
                     )
                 }
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | LISTA DE MOVIMIENTOS
-            |--------------------------------------------------------------------------
-            */
-
             Column(
-
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-
                 movimientos.forEach { movimiento ->
-
                     MovimientoItem(
                         movimiento = movimiento,
                         darkTheme = darkTheme
@@ -686,76 +455,41 @@ private fun DashboardContenido(
                 }
             }
 
-            Spacer(
-                modifier = Modifier.height(12.dp)
-            )
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
-
-/*
-|--------------------------------------------------------------------------
-| TARJETA DE SALDO
-|--------------------------------------------------------------------------
-*/
 
 @Composable
 private fun SaldoCard(
     periodo: PeriodoDashboard?,
     darkTheme: Boolean
 ) {
-
-    val fondoSaldo = if (darkTheme) {
-        R.drawable.saldo_fondo_dark
-    } else {
-        R.drawable.saldo_fondo_light
-    }
+    val fondoSaldo = if (darkTheme) R.drawable.saldo_fondo_dark else R.drawable.saldo_fondo_light
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(150.dp),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.5.dp
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
     ) {
-
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-
-            // ========================================================
-            // FONDO SEGÚN EL TEMA
-            // ========================================================
-
+        Box(modifier = Modifier.fillMaxSize()) {
             Image(
-                painter = painterResource(
-                    id = fondoSaldo
-                ),
+                painter = painterResource(id = fondoSaldo),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
 
-            // ========================================================
-            // CONTENIDO
-            // ========================================================
-
             Row(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp),
-
-                horizontalArrangement =
-                    Arrangement.SpaceBetween,
-
-                verticalAlignment =
-                    Alignment.CenterVertically
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-
                 Column {
-
                     Text(
                         text = "SALDO DISPONIBLE",
                         color = Color.White,
@@ -763,24 +497,14 @@ private fun SaldoCard(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp
                     )
-
-                    Spacer(
-                        modifier = Modifier.height(4.dp)
-                    )
-
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "S/ %,.2f".format(
-                            periodo?.saldo_final ?: 0.0
-                        ),
+                        text = "S/ %,.2f".format(periodo?.saldo_final ?: 0.0),
                         color = Color.White,
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Bold
                     )
-
-                    Spacer(
-                        modifier = Modifier.height(2.dp)
-                    )
-
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = periodo?.nombre ?: "Sin período",
                         color = Color.White,
@@ -793,639 +517,208 @@ private fun SaldoCard(
                     modifier = Modifier
                         .size(48.dp)
                         .background(
-                            color = Color.White.copy(
-                                alpha = 0.90f
-                            ),
+                            color = Color.White.copy(alpha = 0.90f),
                             shape = RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-
                     Icon(
-                        imageVector =
-                            Icons.Outlined.AccountBalanceWallet,
-
-                        contentDescription =
-                            "Saldo disponible",
-
-                        tint =
-                            SeasonalColors.primary(
-                                SeasonalTheme.getSeason()
-                            ),
-
-                        modifier =
-                            Modifier.size(26.dp)
+                        imageVector = Icons.Outlined.AccountBalanceWallet,
+                        contentDescription = "Saldo disponible",
+                        tint = SeasonalColors.primary(SeasonalTheme.getSeason()),
+                        modifier = Modifier.size(26.dp)
                     )
                 }
             }
         }
     }
 }
-/*
-|--------------------------------------------------------------------------
-| TARJETA RESUMEN
-|--------------------------------------------------------------------------
-*/
 
 @Composable
 private fun ResumenCard(
-
     modifier: Modifier,
-
     titulo: String,
-
     monto: String,
-
     icono: ImageVector,
-
     color: Color,
     fondoColor: Color
 ) {
-
     Card(
-
         modifier = modifier,
-
         shape = RoundedCornerShape(14.dp),
-
-        colors = CardDefaults.cardColors(
-            containerColor = fondoColor
-        ),
-
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.5.dp
-        )
+        colors = CardDefaults.cardColors(containerColor = fondoColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
     ) {
-
-        Column(
-
-            modifier = Modifier.padding(14.dp)
-        ) {
-
-            Row(
-
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-
                     imageVector = icono,
-
                     contentDescription = titulo,
-
                     tint = color,
-
                     modifier = Modifier.size(18.dp)
                 )
-
-                Spacer(
-                    modifier = Modifier.width(6.dp)
-                )
-
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
-
                     text = titulo,
-
                     color = MaterialTheme.colorScheme.onSurface,
-
                     fontSize = 13.sp,
-
                     fontWeight = FontWeight.Medium
                 )
             }
 
-            Spacer(
-                modifier = Modifier.height(8.dp)
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-
                 text = monto,
-
                 color = color,
-
                 fontSize = 17.sp,
-
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(
-                modifier = Modifier.height(2.dp)
-            )
+            Spacer(modifier = Modifier.height(2.dp))
 
             Text(
-
                 text = "Este período",
-
                 color = color,
-
                 fontSize = 11.sp,
-
                 fontWeight = FontWeight.Medium
             )
         }
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| CARD PERIODO
-|--------------------------------------------------------------------------
-*/
-
 @Composable
 private fun CardPeriodo(
     periodo: PeriodoDashboard?
 ) {
-
     Card(
-
         modifier = Modifier.fillMaxWidth(),
-
         shape = RoundedCornerShape(14.dp),
-
-        colors = CardDefaults.cardColors(
-
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.5.dp
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
     ) {
-
         Row(
-
             modifier = Modifier.padding(14.dp),
-
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Box(
-
                 modifier = Modifier
                     .size(40.dp)
                     .background(
-
                         color = MaterialTheme.colorScheme.surfaceVariant,
-
                         shape = RoundedCornerShape(10.dp)
                     ),
-
                 contentAlignment = Alignment.Center
             ) {
-
                 Icon(
-
                     imageVector = Icons.Outlined.Assignment,
-
                     contentDescription = "Periodo",
-
-                    tint = SeasonalColors.primary(
-                        SeasonalTheme.getSeason()
-                    ),
-
+                    tint = SeasonalColors.primary(SeasonalTheme.getSeason()),
                     modifier = Modifier.size(22.dp)
                 )
             }
 
-            Spacer(
-                modifier = Modifier.width(12.dp)
-            )
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column {
-
                 Text(
-
                     text = "Periodo actual",
-
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-
                     fontSize = 11.sp
                 )
-
                 Text(
-
                     text = periodo?.nombre ?: "Sin período",
-
-                    color = SeasonalColors.primary(
-                        SeasonalTheme.getSeason()
-                    ),
-
+                    color = SeasonalColors.primary(SeasonalTheme.getSeason()),
                     fontSize = 15.sp,
-
                     fontWeight = FontWeight.Bold
                 )
             }
         }
     }
 }
-
-/*
-|--------------------------------------------------------------------------
-| MOVIMIENTO
-|--------------------------------------------------------------------------
-*/
 
 @Composable
 private fun MovimientoItem(
     movimiento: Movimiento,
     darkTheme: Boolean
 ) {
-
-    val ingreso = movimiento.tipo.equals(
-        "Ingreso",
-        ignoreCase = true
-    )
+    val ingreso = movimiento.tipo.equals("Ingreso", ignoreCase = true)
 
     Card(
-
         modifier = Modifier.fillMaxWidth(),
-
         shape = RoundedCornerShape(12.dp),
-
-        colors = CardDefaults.cardColors(
-
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-
         Row(
-
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
-
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Box(
-
                 modifier = Modifier
                     .size(38.dp)
                     .background(
-
                         color = MaterialTheme.colorScheme.surfaceVariant,
-
                         shape = RoundedCornerShape(10.dp)
                     ),
-
                 contentAlignment = Alignment.Center
             ) {
-
                 Icon(
-
-                    imageVector = if (ingreso) {
-
-                        Icons.Outlined.ArrowUpward
-
-                    } else {
-
-                        Icons.Outlined.ArrowDownward
-                    },
-
+                    imageVector = if (ingreso) Icons.Outlined.ArrowUpward else Icons.Outlined.ArrowDownward,
                     contentDescription = movimiento.concepto,
-
                     tint = if (ingreso) {
                         if (darkTheme) VerdeIngresoOscuro else VerdeIngresoClaro
                     } else {
                         if (darkTheme) RojoEgresoOscuro else RojoEgresoClaro
                     },
-
                     modifier = Modifier.size(20.dp)
                 )
             }
 
-            Spacer(
-                modifier = Modifier.width(12.dp)
-            )
+            Spacer(modifier = Modifier.width(12.dp))
 
-            Column(
-
-                modifier = Modifier.weight(1f)
-            ) {
-
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-
                     text = movimiento.concepto,
-
                     color = MaterialTheme.colorScheme.onSurface,
-
                     fontSize = 14.sp,
-
                     fontWeight = FontWeight.Bold
                 )
 
                 Row(
-
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-
                     Text(
-
                         text = movimiento.fecha ?: "Sin fecha",
-
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-
                         fontSize = 11.sp
                     )
-
                     Text(
-
                         text = "•",
-
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-
                         fontSize = 11.sp
                     )
-
                     Text(
-
                         text = movimiento.categoria ?: "General",
-
-                        color = SeasonalColors.primary(
-                            SeasonalTheme.getSeason()
-                        ),
-
+                        color = SeasonalColors.primary(SeasonalTheme.getSeason()),
                         fontSize = 11.sp
                     )
                 }
             }
 
             Text(
-
-                text = if (ingreso) {
-
-                    "+ S/ %,.2f".format(movimiento.monto)
-
-                } else {
-
-                    "- S/ %,.2f".format(movimiento.monto)
-                },
-
+                text = if (ingreso) "+ S/ %,.2f".format(movimiento.monto) else "- S/ %,.2f".format(movimiento.monto),
                 color = if (ingreso) {
                     if (darkTheme) VerdeIngresoOscuro else VerdeIngresoClaro
                 } else {
                     if (darkTheme) RojoEgresoOscuro else RojoEgresoClaro
                 },
-
                 fontSize = 14.sp,
-
                 fontWeight = FontWeight.Bold
             )
         }
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| BARRA INFERIOR
-|--------------------------------------------------------------------------
-*/
-
-@Composable
-private fun SigefivBottomBar(
-
-    onInicioClick: () -> Unit = {},
-
-    onAsambleasClick: () -> Unit = {},
-
-    onEmprendimientosClick: () -> Unit = {}, // 👈 Nuevo parámetro añadido
-
-    onPeriodosClick: () -> Unit = {},
-
-    onMiCuentaClick: () -> Unit = {}
-) {
-
-    val primaryColor = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
-
-    NavigationBar(
-
-        containerColor = primaryColor,
-
-        tonalElevation = 0.dp
-    ) {
-
-        /*
-        |--------------------------------------------------------------------------
-        | INICIO
-        |--------------------------------------------------------------------------
-        */
-
-        NavigationBarItem(
-
-            selected = true,
-
-            onClick = onInicioClick,
-
-            icon = {
-
-                Icon(
-
-                    imageVector = Icons.Outlined.Home,
-
-                    contentDescription = "Inicio"
-                )
-            },
-
-            label = {
-
-                Text(
-                    text = "Inicio"
-                )
-            },
-
-            colors = NavigationBarItemDefaults.colors(
-
-                selectedIconColor = primaryColor,
-
-                selectedTextColor = Blanco,
-
-                indicatorColor = Blanco,
-
-                unselectedIconColor = Blanco.copy(
-                    alpha = 0.75f
-                ),
-
-                unselectedTextColor = Blanco.copy(
-                    alpha = 0.75f
-                )
-            )
-        )
-
-        /*
-        |--------------------------------------------------------------------------
-        | ASAMBLEA
-        |--------------------------------------------------------------------------
-        */
-
-        NavigationBarItem(
-
-            selected = false,
-
-            onClick = {
-                Log.d("ASAMBLEA_DEBUG", "CLICK EN BOTON ASAMBLEA")
-                onAsambleasClick()
-            },
-
-            icon = {
-
-                Icon(
-
-                    imageVector = Icons.Outlined.Groups,
-
-                    contentDescription = "Asamblea"
-                )
-            },
-
-            label = {
-
-                Text(
-                    text = "Asamblea"
-                )
-            },
-
-            colors = NavigationBarItemDefaults.colors(
-
-                unselectedIconColor = Blanco.copy(
-                    alpha = 0.75f
-                ),
-
-                unselectedTextColor = Blanco.copy(
-                    alpha = 0.75f
-                )
-            )
-        )
-
-        /*
-        |--------------------------------------------------------------------------
-        | 🛍️ NEGOCIOS (EMPRENDIMIENTOS) - NUEVO BOTÓN
-        |--------------------------------------------------------------------------
-        */
-
-        NavigationBarItem(
-
-            selected = false,
-
-            onClick = onEmprendimientosClick,
-
-            icon = {
-
-                Icon(
-
-                    imageVector = Icons.Outlined.Storefront,
-
-                    contentDescription = "Negocios"
-                )
-            },
-
-            label = {
-
-                Text(
-                    text = "Negocios"
-                )
-            },
-
-            colors = NavigationBarItemDefaults.colors(
-
-                unselectedIconColor = Blanco.copy(
-                    alpha = 0.75f
-                ),
-
-                unselectedTextColor = Blanco.copy(
-                    alpha = 0.75f
-                )
-            )
-        )
-
-        /*
-        |--------------------------------------------------------------------------
-        | PERIODOS
-        |--------------------------------------------------------------------------
-        */
-
-        NavigationBarItem(
-
-            selected = false,
-
-            onClick = onPeriodosClick,
-
-            icon = {
-
-                Icon(
-
-                    imageVector = Icons.Outlined.CalendarMonth,
-
-                    contentDescription = "Periodos"
-                )
-            },
-
-            label = {
-
-                Text(
-                    text = "Periodos"
-                )
-            },
-
-            colors = NavigationBarItemDefaults.colors(
-
-                unselectedIconColor = Blanco.copy(
-                    alpha = 0.75f
-                ),
-
-                unselectedTextColor = Blanco.copy(
-                    alpha = 0.75f
-                )
-            )
-        )
-
-        /*
-        |--------------------------------------------------------------------------
-        | MI CUENTA
-        |--------------------------------------------------------------------------
-        */
-
-        NavigationBarItem(
-
-            selected = false,
-
-            onClick = onMiCuentaClick,
-
-            icon = {
-
-                Icon(
-
-                    imageVector = Icons.Outlined.Person,
-
-                    contentDescription = "Mi cuenta"
-                )
-            },
-
-            label = {
-
-                Text(
-                    text = "Mi cuenta"
-                )
-            },
-
-            colors = NavigationBarItemDefaults.colors(
-
-                unselectedIconColor = Blanco.copy(
-                    alpha = 0.75f
-                ),
-
-                unselectedTextColor = Blanco.copy(
-                    alpha = 0.75f
-                )
-            )
-        )
     }
 }

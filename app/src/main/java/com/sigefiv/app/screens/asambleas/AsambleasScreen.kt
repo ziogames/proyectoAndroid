@@ -27,11 +27,8 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Event
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Publish
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Schedule
@@ -45,9 +42,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -78,6 +72,7 @@ import com.sigefiv.app.viewmodel.AsambleasViewModel
 import kotlinx.coroutines.launch
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
+import com.sigefiv.app.ui.components.AppBottomBar // 👈 Importamos nuestra barra unificada
 
 
 /*
@@ -121,6 +116,7 @@ fun AsambleasScreen(
     onAsambleaClick: (Asamblea) -> Unit = {},
     onInicioClick: () -> Unit = {},
     onAsambleasClick: () -> Unit = {},
+    onEmprendimientosClick: () -> Unit = {}, // 👈 Callback de Negocios añadido
     onPeriodosClick: () -> Unit = {},
     onMiCuentaClick: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
@@ -218,59 +214,20 @@ fun AsambleasScreen(
                 )
             }
         },
+        /*
+        |--------------------------------------------------------------------------
+        | BARRA INFERIOR UNIFICADA (AppBottomBar con los 5 botones)
+        |--------------------------------------------------------------------------
+        */
         bottomBar = {
-            NavigationBar(
-                containerColor = SeasonalColors.primary(
-                    SeasonalTheme.getSeason()
-                ),
-                tonalElevation = 0.dp
-            ) {
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onInicioClick,
-                    icon = { Icon(Icons.Outlined.Home, contentDescription = "Inicio") },
-                    label = { Text("Inicio") },
-                    colors = NavigationBarItemDefaults.colors(
-                        unselectedIconColor = Blanco.copy(0.75f),
-                        unselectedTextColor = Blanco.copy(0.75f)
-                    )
-                )
-                NavigationBarItem(
-                    selected = true,
-                    onClick = onAsambleasClick,
-                    icon = { Icon(Icons.Outlined.Groups, contentDescription = "Asamblea") },
-                    label = { Text("Asamblea") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = SeasonalColors.primary(
-                            SeasonalTheme.getSeason()
-                        ),
-                        selectedTextColor = Blanco,
-                        indicatorColor = Blanco,
-                        unselectedIconColor = Blanco.copy(0.75f),
-                        unselectedTextColor = Blanco.copy(0.75f)
-                    )
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onPeriodosClick,
-                    icon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = "Periodos") },
-                    label = { Text("Periodos") },
-                    colors = NavigationBarItemDefaults.colors(
-                        unselectedIconColor = Blanco.copy(0.75f),
-                        unselectedTextColor = Blanco.copy(0.75f)
-                    )
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onMiCuentaClick,
-                    icon = { Icon(Icons.Outlined.Person, contentDescription = "Mi cuenta") },
-                    label = { Text("Mi cuenta") },
-                    colors = NavigationBarItemDefaults.colors(
-                        unselectedIconColor = Blanco.copy(0.75f),
-                        unselectedTextColor = Blanco.copy(0.75f)
-                    )
-                )
-            }
+            AppBottomBar(
+                pantallaActual = "Asamblea",
+                onInicioClick = onInicioClick,
+                onAsambleasClick = { /* Ya estás aquí */ },
+                onEmprendimientosClick = onEmprendimientosClick,
+                onPeriodosClick = onPeriodosClick,
+                onMiCuentaClick = onMiCuentaClick
+            )
         }
     ) { innerPadding ->
         Column(

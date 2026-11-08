@@ -19,26 +19,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -54,16 +46,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Periodo
-import com.sigefiv.app.viewmodel.PeriodosViewModel
+import com.sigefiv.app.ui.components.AppBottomBar
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
-
-/*
-|--------------------------------------------------------------------------
-| COLORES SIGEFIV
-|--------------------------------------------------------------------------
-*/
-
+import com.sigefiv.app.viewmodel.PeriodosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,10 +59,10 @@ fun PeriodosAnioScreen(
     onBackClick: () -> Unit,
     onPeriodoClick: (Int) -> Unit,
     onInicioClick: () -> Unit,
-    onMovimientosClick: () -> Unit,
     onAsambleasClick: () -> Unit,
-    onMasClick: () -> Unit,
-    onOpenDrawer: (() -> Unit)? = null
+    onEmprendimientosClick: () -> Unit,
+    onPeriodosClick: () -> Unit,
+    onMiCuentaClick: () -> Unit
 ) {
     val colorPrincipal = SeasonalColors.primary(
         SeasonalTheme.getSeason()
@@ -145,30 +131,19 @@ fun PeriodosAnioScreen(
                         )
                     }
                 },
-                actions = {
-                    if (onOpenDrawer != null) {
-                        IconButton(onClick = onOpenDrawer) {
-                            Icon(
-                                imageVector = Icons.Outlined.Menu,
-                                contentDescription = "Abrir menú",
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = colorPrincipal
                 )
             )
         },
         bottomBar = {
-            BarraInferiorPeriodosAnio(
+            AppBottomBar(
+                pantallaActual = "Periodos",
                 onInicioClick = onInicioClick,
                 onAsambleasClick = onAsambleasClick,
-                onPeriodosClick = {
-                    // Ya estamos dentro de Períodos
-                },
-                onMiCuentaClick = onMasClick
+                onEmprendimientosClick = onEmprendimientosClick,
+                onPeriodosClick = onPeriodosClick,
+                onMiCuentaClick = onMiCuentaClick
             )
         }
     ) { innerPadding ->
@@ -389,107 +364,4 @@ private enum class EstadoMes {
     CERRADO,
     NO_INICIADO,
     OTRO
-}
-
-/*
-|--------------------------------------------------------------------------
-| BARRA INFERIOR UNIFICADA (ESTILO VERDE)
-|--------------------------------------------------------------------------
-*/
-
-@Composable
-private fun BarraInferiorPeriodosAnio(
-    onInicioClick: () -> Unit,
-    onAsambleasClick: () -> Unit,
-    onPeriodosClick: () -> Unit,
-    onMiCuentaClick: () -> Unit
-) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
-
-    NavigationBar(
-        containerColor = colorPrincipal,
-        tonalElevation = 0.dp
-    ) {
-
-        // INICIO
-        NavigationBarItem(
-            selected = false,
-            onClick = onInicioClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Home,
-                    contentDescription = "Inicio"
-                )
-            },
-            label = {
-                Text(text = "Inicio")
-            },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
-                unselectedTextColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
-            )
-        )
-
-        // ASAMBLEAS
-        NavigationBarItem(
-            selected = false,
-            onClick = onAsambleasClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Groups,
-                    contentDescription = "Asambleas"
-                )
-            },
-            label = {
-                Text(text = "Asambleas")
-            },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
-                unselectedTextColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
-            )
-        )
-
-        // PERÍODOS
-        NavigationBarItem(
-            selected = true,
-            onClick = onPeriodosClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.CalendarMonth,
-                    contentDescription = "Períodos"
-                )
-            },
-            label = {
-                Text(text = "Períodos")
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = colorPrincipal,
-                selectedTextColor = MaterialTheme.colorScheme.onPrimary,
-                indicatorColor = MaterialTheme.colorScheme.onPrimary,
-                unselectedIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
-                unselectedTextColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
-            )
-        )
-
-        // MI CUENTA
-        NavigationBarItem(
-            selected = false,
-            onClick = onMiCuentaClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Person,
-                    contentDescription = "Mi cuenta"
-                )
-            },
-            label = {
-                Text(text = "Mi cuenta")
-            },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
-                unselectedTextColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
-            )
-        )
-    }
 }

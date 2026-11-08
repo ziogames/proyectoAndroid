@@ -51,7 +51,17 @@ class PeriodosViewModel(
     val mensaje: StateFlow<String?> =
         _mensaje
 
+// ... debajo de _mensaje y mensaje ...
 
+    private val _filtroMovimientos =
+        MutableStateFlow("Todos")
+
+    val filtroMovimientos: StateFlow<String> =
+        _filtroMovimientos
+
+    fun setFiltroMovimientos(filtro: String) {
+        _filtroMovimientos.value = filtro
+    }
     /**
      * Cargar todos los períodos.
      */
@@ -195,6 +205,7 @@ class PeriodosViewModel(
         _movimientos.value = emptyList()
 
         _mensaje.value = null
+        _filtroMovimientos.value = "Todos"
     }
 
 

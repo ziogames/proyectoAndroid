@@ -13,16 +13,33 @@ data class ZoeDatoEstadistico(
     val monto: Double? = null
 )
 
+// 📸 Nuevo modelo para mapear cada fotografía del carrusel/listado
+data class ZoeFoto(
+    val id: Int? = null,
+    val url: String? = null,
+    val path: String? = null
+)
+
 data class ZoeEmprendimiento(
     val id: Int? = null,
     val nombre: String? = null,
+    val name: String? = null,             // 👈 Soporte clave en inglés
     val descripcion: String? = null,
+    val description: String? = null,      // 👈 Soporte clave en inglés
     val categoria: String? = null,
     val telefono: String? = null,
+    val phone: String? = null,            // 👈 Soporte clave en inglés
     val show_whatsapp: Boolean = false,
     val modalidad: String? = null,
+    val modality: String? = null,         // 👈 Soporte clave en inglés
     val zona_atencion: String? = null,
-    val horario: String? = null
+    val attention_zone: String? = null,   // 👈 Soporte clave en inglés
+    val horario: String? = null,
+    val schedule: String? = null,         // 👈 Soporte clave en inglés
+    val imagen: String? = null,           // 👈 URL de la imagen principal
+    val imagen_url: String? = null,       // 👈 Respaldo de imagen principal
+    val fotos: List<ZoeFoto> = emptyList(), // 👈 Lista completa de fotos
+    val photos: List<ZoeFoto> = emptyList() // 👈 Soporte clave en inglés
 )
 
 data class ZoeEstadistica(

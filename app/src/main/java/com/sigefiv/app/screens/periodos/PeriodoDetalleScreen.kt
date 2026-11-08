@@ -1,12 +1,6 @@
-
-
 package com.sigefiv.app.screens.periodos
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,13 +25,9 @@ import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,22 +36,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,9 +58,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Movimiento
+import com.sigefiv.app.ui.components.AppBottomBar
 import com.sigefiv.app.viewmodel.PeriodosViewModel
-
-/* Colores adaptados automáticamente al tema claro/oscuro de MaterialTheme */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,10 +68,10 @@ fun PeriodoDetalleScreen(
     periodoId: Int,
     onBackClick: () -> Unit,
     onMovimientoClick: (Movimiento) -> Unit,
-    onMovimientosClick: (Int) -> Unit,
     onInicioClick: () -> Unit,
-    onMovimientosPrincipalClick: () -> Unit,
     onAsambleasClick: () -> Unit,
+    onEmprendimientosClick: () -> Unit,
+    onPeriodosClick: () -> Unit,
     onMiCuentaClick: () -> Unit,
     onOpenDrawer: (() -> Unit)? = null
 ) {
@@ -98,6 +82,7 @@ fun PeriodoDetalleScreen(
     val movimientos by periodosViewModel.movimientos.collectAsState()
     val cargando by periodosViewModel.cargando.collectAsState()
     val mensaje by periodosViewModel.mensaje.collectAsState()
+    val filtroMovimientos by periodosViewModel.filtroMovimientos.collectAsState()
 
     LaunchedEffect(periodoId) {
         periodosViewModel.cargarPeriodo(periodoId)
@@ -151,10 +136,12 @@ fun PeriodoDetalleScreen(
             )
         },
         bottomBar = {
-            BarraInferiorPeriodoDetalle(
+            AppBottomBar(
+                pantallaActual = "Periodos",
                 onInicioClick = onInicioClick,
                 onAsambleasClick = onAsambleasClick,
-                onPeriodosClick = onBackClick,
+                onEmprendimientosClick = onEmprendimientosClick,
+                onPeriodosClick = onPeriodosClick,
                 onMiCuentaClick = onMiCuentaClick
             )
         }
@@ -259,8 +246,6 @@ fun PeriodoDetalleScreen(
                     }
 
                     // SECCIÓN DE MOVIMIENTOS DEL PERÍODO
-                    var filtroMovimientos by remember { mutableStateOf("Todos") }
-
                     Text(
                         text = "MOVIMIENTOS DEL PERÍODO",
                         color = colors.onSurfaceVariant,
@@ -272,13 +257,15 @@ fun PeriodoDetalleScreen(
 
                     FiltrosMovimientosPeriodo(
                         filtroSeleccionado = filtroMovimientos,
-                        onFiltroSeleccionado = { filtroMovimientos = it }
+                        onFiltroSeleccionado = { periodosViewModel.setFiltroMovimientos(it) }
                     )
 
-                    val movimientosFiltrados = when (filtroMovimientos) {
-                        "Ingresos" -> movimientos.filter { it.tipo.equals("Ingreso", ignoreCase = true) }
-                        "Egresos" -> movimientos.filter { it.tipo.equals("Egreso", ignoreCase = true) }
-                        else -> movimientos
+                    val movimientosFiltrados = remember(movimientos, filtroMovimientos) {
+                        when (filtroMovimientos) {
+                            "Ingresos" -> movimientos.filter { it.tipo.trim().startsWith("ingreso", ignoreCase = true) }
+                            "Egresos" -> movimientos.filter { it.tipo.trim().startsWith("egreso", ignoreCase = true) }
+                            else -> movimientos
+                        }
                     }
 
                     if (movimientosFiltrados.isEmpty()) {
@@ -329,7 +316,6 @@ fun PeriodoDetalleScreen(
 private fun HeaderPeriodoHero(datos: com.sigefiv.app.data.model.PeriodoDetalle) {
     val colors = MaterialTheme.colorScheme
     val colorPrincipal = colors.primary
-
     val isAbierto = datos.estado.equals("Abierto", true)
 
     Card(
@@ -637,7 +623,10 @@ private fun FiltrosMovimientosPeriodo(
         filtros.forEach { filtro ->
             val seleccionado = filtroSeleccionado == filtro
             Surface(
-                modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { onFiltroSeleccionado(filtro) },
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onFiltroSeleccionado(filtro) },
                 shape = RoundedCornerShape(12.dp),
                 color = if (seleccionado) colorPrincipal else colors.onPrimary,
                 border = if (seleccionado) null else androidx.compose.foundation.BorderStroke(1.dp, colors.outlineVariant)
@@ -740,101 +729,3 @@ private fun formatFechaCierre(fecha: String?): String {
         fecha
     }
 }
-
-
-@Composable
-private fun BarraInferiorPeriodoDetalle(
-    onInicioClick: () -> Unit,
-    onAsambleasClick: () -> Unit,
-    onPeriodosClick: () -> Unit,
-    onMiCuentaClick: () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-    val colorPrincipal = colors.primary
-
-    NavigationBar(
-        containerColor = colorPrincipal,
-        tonalElevation = 0.dp
-    ) {
-
-        // INICIO
-        NavigationBarItem(
-            selected = false,
-            onClick = onInicioClick,
-            icon = {
-                Icon(
-                    Icons.Outlined.Home,
-                    contentDescription = "Inicio"
-                )
-            },
-            label = {
-                Text("Inicio")
-            },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = colors.onPrimary.copy(alpha = 0.75f),
-                unselectedTextColor = colors.onPrimary.copy(alpha = 0.75f)
-            )
-        )
-
-        // ASAMBLEAS
-        NavigationBarItem(
-            selected = false,
-            onClick = onAsambleasClick,
-            icon = {
-                Icon(
-                    Icons.Outlined.Groups,
-                    contentDescription = "Asambleas"
-                )
-            },
-            label = {
-                Text("Asambleas")
-            },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = colors.onPrimary.copy(alpha = 0.75f),
-                unselectedTextColor = colors.onPrimary.copy(alpha = 0.75f)
-            )
-        )
-
-        // PERÍODOS
-        NavigationBarItem(
-            selected = true,
-            onClick = onPeriodosClick,
-            icon = {
-                Icon(
-                    Icons.Outlined.CalendarToday,
-                    contentDescription = "Períodos"
-                )
-            },
-            label = {
-                Text("Períodos")
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = colorPrincipal,
-                selectedTextColor = colors.onPrimary,
-                indicatorColor = colors.onPrimary,
-                unselectedIconColor = colors.onPrimary.copy(alpha = 0.75f),
-                unselectedTextColor = colors.onPrimary.copy(alpha = 0.75f)
-            )
-        )
-
-        // MI CUENTA
-        NavigationBarItem(
-            selected = false,
-            onClick = onMiCuentaClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Person,
-                    contentDescription = "Mi cuenta"
-                )
-            },
-            label = {
-                Text("Mi cuenta")
-            },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = colors.onPrimary.copy(alpha = 0.75f),
-                unselectedTextColor = colors.onPrimary.copy(alpha = 0.75f)
-            )
-        )
-    }
-}
-
