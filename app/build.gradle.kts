@@ -107,4 +107,5 @@ dependencies {
     // Lottie - animaciones de ZOE
     implementation("com.airbnb.android:lottie-compose:6.7.1")
     implementation("com.vanniktech:android-image-cropper:4.6.0")
+    implementation("com.facebook.android:facebook-login:17.0.2")
 }

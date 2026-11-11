@@ -11,45 +11,47 @@ fun SIGEFIVTheme(
     darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
-
-    // 🌱🇵🇪🎄 Detectar temporada automáticamente
+    // 🌱 Detectar temporada automáticamente
     val season = SeasonalTheme.getSeason()
 
     // Color principal según la temporada
     val seasonalPrimary = SeasonalColors.primary(season)
 
     val colorScheme = if (darkTheme) {
-
         darkColorScheme(
             primary = seasonalPrimary,
             secondary = seasonalPrimary,
             tertiary = seasonalPrimary,
 
-            background = Color(0xFF0D1117),
-            surface = Color(0xFF161B22),
-            surfaceVariant = Color(0xFF21262D),
+            background = DarkBackground,
+            surface = DarkSurface,
+            surfaceVariant = DarkSurfaceVariant,
 
-            onBackground = Color(0xFFE6EDF3),
-            onSurface = Color(0xFFE6EDF3),
-            onSurfaceVariant = Color(0xFFB0BAC5),
+            onBackground = DarkOnBackground,
+            onSurface = DarkOnSurface,
+            onSurfaceVariant = DarkOnSurfaceVariant,
+
+            outline = DarkOutline,
+            outlineVariant = DarkOutline.copy(alpha = 0.5f),
 
             onPrimary = Color.White
         )
-
     } else {
-
         lightColorScheme(
             primary = seasonalPrimary,
             secondary = seasonalPrimary,
             tertiary = seasonalPrimary,
 
-            background = Color(0xFFF8F9FC),
-            surface = Color.White,
-            surfaceVariant = Color(0xFFF0F2F5),
+            background = LightBackground,
+            surface = LightSurface,
+            surfaceVariant = LightSurfaceVariant,
 
-            onBackground = Color(0xFF1A2333),
-            onSurface = Color(0xFF1A2333),
-            onSurfaceVariant = Color(0xFF64748B),
+            onBackground = LightOnBackground,
+            onSurface = LightOnSurface,
+            onSurfaceVariant = LightOnSurfaceVariant,
+
+            outline = LightOutline,
+            outlineVariant = LightOutline.copy(alpha = 0.6f),
 
             onPrimary = Color.White
         )

@@ -1,12 +1,12 @@
 package com.sigefiv.app
 
 import android.os.Build
-import com.sigefiv.app.BuildConfig
+
 object ServidorConfig {
 
     // Cambia a 'true' solo si necesitas probar offline con IP local
-   // private const val MODO_LOCAL = false
-    private val MODO_LOCAL: Boolean = BuildConfig.DEBUG
+    private const val MODO_LOCAL = false
+    //private val MODO_LOCAL: Boolean = BuildConfig.DEBUG
     private const val IP_PC = "192.168.1.49"
     private const val DOMINIO_PROD = "api.sigefiv.win"
 
@@ -46,19 +46,31 @@ object ServidorConfig {
 
     /**
      * Normaliza cualquier URL o ruta de archivo proveniente del backend:
-     * - Convierte rutas relativas ("storage/..." o "/storage/...") a URLs absolutas válidas con BASE_URL.
+     * - Convierte rutas relativas ("emprendimientos/...", "storage/...", etc.) a URLs absolutas válidas con BASE_URL.
+     * - Asegura el prefijo "storage/" para archivos del disco público de Laravel sin duplicarlo.
      * - Reemplaza URLs absolutas que apunten a dominios locales obsoletos (localhost, 10.0.2.2 con o sin puerto).
-     * - Devuelve URLs externas intactas si son de servicios terceros (Google, Firebase Storage, etc.).
+     * - Devuelve URLs externas intactas si son de servicios terceros.
      */
     fun normalizarUrlArchivo(url: String?): String? {
         if (url.isNullOrBlank()) return null
 
         val urlLimpia = url.trim()
 
-        // 1. Caso ruta relativa devuelta por Laravel ("storage/..." o "/storage/...")
-        if (!urlLimpia.startsWith("http://", ignoreCase = true) && !urlLimpia.startsWith("https://", ignoreCase = true)) {
-            val path = if (urlLimpia.startsWith("/")) urlLimpia.substring(1) else urlLimpia
-            return "$BASE_URL/$path"
+        // 1. Caso ruta relativa devuelta por Laravel
+        if (!urlLimpia.startsWith("http://", ignoreCase = true) &&
+            !urlLimpia.startsWith("https://", ignoreCase = true)
+        ) {
+            val path = urlLimpia.removePrefix("/")
+            val rutaConStorage = if (
+                path.startsWith("storage/") ||
+                path.startsWith("documentos/") ||
+                path.startsWith("images/")
+            ) {
+                path
+            } else {
+                "storage/$path"
+            }
+            return "$BASE_URL/$rutaConStorage"
         }
 
         // 2. Caso URL absoluta con localhost o 10.0.2.2 guardada en BD

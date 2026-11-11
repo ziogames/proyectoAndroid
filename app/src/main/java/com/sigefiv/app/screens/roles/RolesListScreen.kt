@@ -1,10 +1,12 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.sigefiv.app.screens.roles
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,39 +19,40 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AdminPanelSettings
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.AdminPanelSettings
+import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,33 +62,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.RolDetalle
 import com.sigefiv.app.viewmodel.RolViewModel
-import com.sigefiv.app.ui.theme.AppSeason
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
-
-/*
-|--------------------------------------------------------------------------
-| DESIGN SYSTEM: SIGEFIV ROLES
-|--------------------------------------------------------------------------
-*/
-private val VerdeSuave = Color(0xFFDCFCE7)
-private val VerdeBorde = Color(0xFFBBF7D0)
-
-
-private val RojoPeligro = Color(0xFFEF4444)
-private val RojoPeligroFondo = Color(0xFFFEF2F2)
-private val RojoBorde = Color(0xFFFEE2E2)
-
-private val AzulInfo = Color(0xFF0284C7)
-private val AzulInfoFondo = Color(0xFFF0F9FF)
 
 @Composable
 fun RolesListScreen(
@@ -95,11 +79,7 @@ fun RolesListScreen(
     onEditarRol: (RolDetalle) -> Unit,
     onEliminarRol: (RolDetalle) -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
-    val colorPrincipalOscuro = colorPrincipal.copy(alpha = 0.88f)
-
+    val primaryColor = MaterialTheme.colorScheme.primary
     val uiState by viewModel.uiState.collectAsState()
     var textoBusqueda by remember { mutableStateOf("") }
 
@@ -115,283 +95,260 @@ fun RolesListScreen(
         uiState.roles.sumOf { it.cantidadUsuarios }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Scaffold(
-            containerColor = Color.Transparent,
-            floatingActionButton = {
-                ExtendedFloatingActionButton(
-                    onClick = onNuevoRol,
-                    containerColor = colorPrincipal,
-                    contentColor = Color.White,
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(6.dp),
-                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text("Nuevo Rol", fontWeight = FontWeight.SemiBold, fontSize = 14.sp) }
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Control de Roles",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            text = "Permisos y accesos de usuarios",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.cargarRoles() }) {
+                        Icon(
+                            imageVector = Icons.Outlined.Refresh,
+                            contentDescription = "Actualizar",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
-            }
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = paddingValues.calculateBottomPadding())
-            ) {
-                // Header con degradado corporativo y sombra
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shadowElevation = 6.dp,
-                    color = Color.Transparent
-                ) {
+            )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onNuevoRol,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = CircleShape,
+                elevation = FloatingActionButtonDefaults.elevation(4.dp),
+                icon = { Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(19.dp)) },
+                text = { Text("Nuevo Rol", fontWeight = FontWeight.Bold, fontSize = 13.sp) }
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            when {
+                uiState.cargando -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(
+                                color = primaryColor,
+                                strokeWidth = 3.dp,
+                                modifier = Modifier.size(38.dp)
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = "Sincronizando roles...",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                uiState.error != null -> {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(colorPrincipalOscuro, colorPrincipal)
-                                )
-                            )
-                            .statusBarsPadding()
-                            .padding(horizontal = 20.dp, vertical = 14.dp)
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 2.dp,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    onClick = onBackClick,
-                                    shape = CircleShape,
-                                    color = Color.White.copy(alpha = 0.18f),
-                                    modifier = Modifier.size(42.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = "Volver",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.width(14.dp))
-
-                                Column {
-                                    Text(
-                                        text = "Control de Roles",
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        text = "Permisos y accesos de usuarios",
-                                        fontSize = 12.sp,
-                                        color = Color.White.copy(alpha = 0.85f)
-                                    )
-                                }
-                            }
-
-                            // Botón de refrescar
-                            IconButton(
-                                onClick = { viewModel.cargarRoles() },
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                            Column(
+                                modifier = Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Actualizar",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(54.dp)
+                                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.12f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Security,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "No se pudieron obtener los roles",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center
                                 )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = uiState.error ?: "Error inesperado de comunicación.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 13.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(20.dp))
+                                Button(
+                                    onClick = { viewModel.cargarRoles() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Reintentar conexión", fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
                 }
 
-                // Cuerpo
-                when {
-                    uiState.cargando -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator(
-                                    color = colorPrincipal,
-                                    strokeWidth = 3.dp,
-                                    modifier = Modifier.size(42.dp)
-                                )
-                                Spacer(modifier = Modifier.height(14.dp))
-                                Text(
-                                    text = "Sincronizando roles...",
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        // 1. Tarjeta resumen métrico
+                        item {
+                            ResumenMetricasCard(
+                                totalRoles = uiState.roles.size,
+                                totalUsuarios = totalUsuarios,
+                                primaryColor = primaryColor
+                            )
                         }
-                    }
 
-                    uiState.error != null -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Card(
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(54.dp)
-                                            .background(RojoPeligroFondo, CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Security,
-                                            contentDescription = null,
-                                            tint = RojoPeligro,
-                                            modifier = Modifier.size(28.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(16.dp))
+                        // 2. Buscador en tiempo real
+                        item {
+                            OutlinedTextField(
+                                value = textoBusqueda,
+                                onValueChange = { textoBusqueda = it },
+                                placeholder = {
                                     Text(
-                                        text = "No se pudieron obtener los roles",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        "Buscar rol por nombre...",
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                     )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = uiState.error ?: "Error inesperado",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 13.sp
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Search,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
                                     )
-                                    Spacer(modifier = Modifier.height(20.dp))
-                                    Button(
-                                        onClick = { viewModel.cargarRoles() },
-                                        colors = ButtonDefaults.buttonColors(containerColor = colorPrincipal),
-                                        shape = RoundedCornerShape(10.dp)
+                                },
+                                trailingIcon = {
+                                    AnimatedVisibility(
+                                        visible = textoBusqueda.isNotEmpty(),
+                                        enter = fadeIn(),
+                                        exit = fadeOut()
                                     ) {
-                                        Text("Reintentar conexión", fontWeight = FontWeight.SemiBold)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    else -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            // 1. Tarjeta resumen corporativa (Dashboard Pill)
-                            item {
-                                ResumenMetricasCard(
-                                    totalRoles = uiState.roles.size,
-                                    totalUsuarios = totalUsuarios
-                                )
-                            }
-
-                            // 2. Buscador en tiempo real
-                            item {
-                                OutlinedTextField(
-                                    value = textoBusqueda,
-                                    onValueChange = { textoBusqueda = it },
-                                    placeholder = { Text("Buscar rol por nombre...", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.Search,
-                                            contentDescription = null,
-                                            tint = colorPrincipal,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    },
-                                    trailingIcon = {
-                                        AnimatedVisibility(
-                                            visible = textoBusqueda.isNotEmpty(),
-                                            enter = fadeIn(),
-                                            exit = fadeOut()
-                                        ) {
-                                            IconButton(onClick = { textoBusqueda = "" }) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Clear,
-                                                    contentDescription = "Limpiar",
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
+                                        IconButton(onClick = { textoBusqueda = "" }) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Clear,
+                                                contentDescription = "Limpiar",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(18.dp)
+                                            )
                                         }
-                                    },
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedBorderColor = primaryColor,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+                                    cursorColor = primaryColor,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                ),
+                                singleLine = true
+                            )
+                        }
+
+                        // 3. Estado sin coincidencias
+                        if (rolesFiltrados.isEmpty()) {
+                            item {
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(52.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                                        focusedBorderColor = colorPrincipal,
-                                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                                        cursorColor = colorPrincipal
-                                    ),
-                                    singleLine = true
-                                )
-                            }
-
-                            // 3. Estado sin coincidencias
-                            if (rolesFiltrados.isEmpty()) {
-                                item {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 40.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Icon(
-                                                imageVector = Icons.Default.Shield,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(48.dp)
-                                            )
-                                            Spacer(modifier = Modifier.height(10.dp))
-                                            Text(
-                                                text = "No se encontraron roles",
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 15.sp
-                                            )
-                                            Text(
-                                                text = "Intenta con otro término de búsqueda",
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontSize = 13.sp
-                                            )
-                                        }
+                                        .padding(vertical = 40.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Shield,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                            modifier = Modifier.size(46.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Text(
+                                            text = "No se encontraron roles",
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = "Intenta con otro término de búsqueda",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 13.sp
+                                        )
                                     }
                                 }
-                            } else {
-                                // 4. Listado de Tarjetas de Roles
-                                items(rolesFiltrados, key = { it.id }) { rol ->
-                                    RolItemCardProfesional(
-                                        rol = rol,
-                                        onEditar = { onEditarRol(rol) },
-                                        onEliminar = { onEliminarRol(rol) }
-                                    )
-                                }
                             }
+                        } else {
+                            // 4. Listado de Tarjetas de Roles
+                            items(rolesFiltrados, key = { it.id }) { rol ->
+                                RolItemCardProfesional(
+                                    rol = rol,
+                                    primaryColor = primaryColor,
+                                    onEditar = { onEditarRol(rol) },
+                                    onEliminar = { onEliminarRol(rol) }
+                                )
+                            }
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(72.dp))
                         }
                     }
                 }
@@ -400,24 +357,23 @@ fun RolesListScreen(
     }
 }
 
-/**
- * Tarjeta de Métricas Rápidas en la parte superior
- */
 @Composable
 private fun ResumenMetricasCard(
     totalRoles: Int,
-    totalUsuarios: Int
+    totalUsuarios: Int,
+    primaryColor: Color
 ) {
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp, horizontal = 20.dp),
+                .padding(vertical = 16.dp, horizontal = 18.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -439,25 +395,25 @@ private fun ResumenMetricasCard(
             }
 
             Surface(
-                color = AzulInfoFondo,
+                color = primaryColor.copy(alpha = 0.12f),
                 shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, AzulInfo.copy(alpha = 0.2f))
+                border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Group,
+                        imageVector = Icons.Outlined.Group,
                         contentDescription = null,
-                        tint = AzulInfo,
+                        tint = primaryColor,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "$totalUsuarios usuarios",
-                        color = AzulInfo,
-                        fontSize = 13.sp,
+                        color = primaryColor,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -466,25 +422,21 @@ private fun ResumenMetricasCard(
     }
 }
 
-/**
- * Tarjeta individual de Rol con diseño modular y pulido
- */
 @Composable
 private fun RolItemCardProfesional(
     rol: RolDetalle,
+    primaryColor: Color,
     onEditar: () -> Unit,
     onEliminar: () -> Unit
 ) {
     val esAdmin = rol.name.trim().lowercase() == "administrador"
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
 
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Column(
             modifier = Modifier
@@ -504,15 +456,18 @@ private fun RolItemCardProfesional(
                     Box(
                         modifier = Modifier
                             .size(42.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (esAdmin) VerdeSuave else MaterialTheme.colorScheme.surfaceVariant),
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (esAdmin) primaryColor.copy(alpha = 0.12f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = if (esAdmin) Icons.Default.AdminPanelSettings else Icons.Default.Security,
+                            imageVector = if (esAdmin) Icons.Outlined.AdminPanelSettings else Icons.Outlined.Security,
                             contentDescription = null,
-                            tint = if (esAdmin) colorPrincipal else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(24.dp)
+                            tint = if (esAdmin) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
 
@@ -521,10 +476,11 @@ private fun RolItemCardProfesional(
                     Column {
                         Text(
                             text = rol.name,
-                            fontSize = 17.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
+                        Spacer(modifier = Modifier.height(1.dp))
                         Text(
                             text = if (esAdmin) "Acceso total al sistema" else "Permisos configurados",
                             fontSize = 12.sp,
@@ -534,13 +490,13 @@ private fun RolItemCardProfesional(
                 }
 
                 Surface(
-                    color = VerdeSuave,
+                    color = primaryColor.copy(alpha = 0.10f),
                     shape = RoundedCornerShape(8.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, VerdeBorde)
+                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
                 ) {
                     Text(
                         text = "ID #${rol.id}",
-                        color = colorPrincipal.copy(alpha = 0.88f),
+                        color = primaryColor,
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -556,14 +512,14 @@ private fun RolItemCardProfesional(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 MetricaChip(
-                    icon = Icons.Default.Group,
+                    icon = Icons.Outlined.Group,
                     titulo = "Usuarios",
                     valor = "${rol.cantidadUsuarios}",
                     modifier = Modifier.weight(1f)
                 )
 
                 MetricaChip(
-                    icon = Icons.Default.Key,
+                    icon = Icons.Outlined.Key,
                     titulo = "Permisos",
                     valor = "${rol.cantidadPermisos}",
                     modifier = Modifier.weight(1f)
@@ -578,49 +534,53 @@ private fun RolItemCardProfesional(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Botón Editar
-                Button(
+                // Botón Configurar
+                Surface(
                     onClick = onEditar,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colorPrincipal,
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     modifier = Modifier
                         .weight(1f)
-                        .height(42.dp),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp)
+                        .height(42.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Configurar",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                // Botón Eliminar (Deshabilitado en Administrador)
-                if (!esAdmin) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(RojoPeligroFondo)
-                            .border(1.dp, RojoBorde, RoundedCornerShape(10.dp))
-                            .clickable { onEliminar() },
-                        contentAlignment = Alignment.Center
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "Eliminar Rol",
-                            tint = RojoPeligro,
-                            modifier = Modifier.size(20.dp)
+                            imageVector = Icons.Outlined.Edit,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(16.dp)
                         )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Configurar",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                // Botón Eliminar
+                if (!esAdmin) {
+                    Surface(
+                        onClick = onEliminar,
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.25f)),
+                        modifier = Modifier.size(42.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.DeleteOutline,
+                                contentDescription = "Eliminar Rol",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -628,9 +588,6 @@ private fun RolItemCardProfesional(
     }
 }
 
-/**
- * Contenedor estilizado para métricas dentro de cada tarjeta
- */
 @Composable
 private fun MetricaChip(
     icon: ImageVector,
@@ -640,8 +597,9 @@ private fun MetricaChip(
 ) {
     Surface(
         modifier = modifier,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(10.dp)
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),

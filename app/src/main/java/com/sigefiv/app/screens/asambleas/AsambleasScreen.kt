@@ -68,27 +68,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sigefiv.app.data.model.Asamblea
+import com.sigefiv.app.ui.components.AppBottomBar
 import com.sigefiv.app.viewmodel.AsambleasViewModel
 import kotlinx.coroutines.launch
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
-import com.sigefiv.app.ui.components.AppBottomBar // 👈 Importamos nuestra barra unificada
-
 
 /*
 |--------------------------------------------------------------------------
-| PALETA DE COLORES PROFESIONAL (ESTILO SIGEFIV)
+| COLORES SEMÁNTICOS ADAPTATIVOS
 |--------------------------------------------------------------------------
 */
 
-private val VerdeSuave = Color(0xFFCCFBF1)
-private val VerdeTexto = Color(0xFF0D9488)
-private val Blanco = Color.White
-
-private val AzulBadge = Color(0xFF2563EB)
-private val AzulSuave = Color(0xFFDBEAFE)
-private val RojoEgreso = Color(0xFFE11D48)
-private val RojoSuave = Color(0xFFFFE4E6)
+private val VerdePublicado = Color(0xFF16A34A)
+private val RojoCancelado = Color(0xFFDC2626)
+private val AzulBorrador = Color(0xFF2563EB)
 
 /*
 |--------------------------------------------------------------------------
@@ -116,7 +108,7 @@ fun AsambleasScreen(
     onAsambleaClick: (Asamblea) -> Unit = {},
     onInicioClick: () -> Unit = {},
     onAsambleasClick: () -> Unit = {},
-    onEmprendimientosClick: () -> Unit = {}, // 👈 Callback de Negocios añadido
+    onEmprendimientosClick: () -> Unit = {},
     onPeriodosClick: () -> Unit = {},
     onMiCuentaClick: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
@@ -128,6 +120,7 @@ fun AsambleasScreen(
     var asambleaParaPublicar by remember { mutableStateOf<Asamblea?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     LaunchedEffect(uiState.error, uiState.mensaje) {
         uiState.error?.let {
@@ -153,60 +146,91 @@ fun AsambleasScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = "Asambleas",
-                            color = Blanco,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${uiState.asambleas.size} " + if (uiState.asambleas.size == 1) "registrada" else "registradas",
-                            color = Blanco.copy(alpha = 0.8f),
-                            fontSize = 12.sp
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Column {
+                            Text(
+                                text = "Asambleas",
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                            Text(
+                                text = "Convocatorias y acuerdos",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = primaryColor.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
+                        ) {
+                            Text(
+                                text = "${uiState.asambleas.size}",
+                                color = primaryColor,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) {
-                        Icon(
-                            imageVector = Icons.Outlined.Menu,
-                            contentDescription = "Abrir menú",
-                            tint = Blanco
-                        )
+                    Surface(
+                        onClick = onOpenDrawer,
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .size(38.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.Menu,
+                                contentDescription = "Abrir menú",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.cargarAsambleas() }) {
+                    IconButton(
+                        onClick = { viewModel.cargarAsambleas() },
+                        modifier = Modifier.padding(end = 4.dp)
+                    ) {
                         if (uiState.cargando) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp,
-                                color = Blanco
+                                color = primaryColor
                             )
                         } else {
                             Icon(
                                 imageVector = Icons.Outlined.Refresh,
                                 contentDescription = "Actualizar",
-                                tint = Blanco
+                                tint = primaryColor
                             )
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = SeasonalColors.primary(
-                        SeasonalTheme.getSeason()
-                    )
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onCrearClick,
-                containerColor =  SeasonalColors.primary(
-                    SeasonalTheme.getSeason()
-                ),
-                contentColor = Blanco
+                containerColor = primaryColor,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = CircleShape,
+                elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(4.dp)
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Add,
@@ -214,11 +238,6 @@ fun AsambleasScreen(
                 )
             }
         },
-        /*
-        |--------------------------------------------------------------------------
-        | BARRA INFERIOR UNIFICADA (AppBottomBar con los 5 botones)
-        |--------------------------------------------------------------------------
-        */
         bottomBar = {
             AppBottomBar(
                 pantallaActual = "Asamblea",
@@ -237,7 +256,7 @@ fun AsambleasScreen(
         ) {
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(FiltroAsamblea.entries.toTypedArray()) { filtro ->
@@ -248,18 +267,24 @@ fun AsambleasScreen(
                             .clickable { filtroActual = filtro },
                         shape = RoundedCornerShape(12.dp),
                         color = if (seleccionado) {
-                            SeasonalColors.primary(
-                                SeasonalTheme.getSeason()
-                            )
+                            primaryColor
                         } else {
-                            Blanco
+                            MaterialTheme.colorScheme.surface
                         },
-                        border = if (seleccionado) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        border = if (seleccionado) {
+                            null
+                        } else {
+                            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                        }
                     ) {
                         Text(
                             text = filtro.titulo,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            color = if (seleccionado) Blanco else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (seleccionado) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             fontSize = 13.sp,
                             fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Medium
                         )
@@ -283,11 +308,13 @@ fun AsambleasScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator(color = SeasonalColors.primary(
-                                    SeasonalTheme.getSeason()
-                                ))
+                                CircularProgressIndicator(color = primaryColor, strokeWidth = 3.dp)
                                 Spacer(modifier = Modifier.height(12.dp))
-                                Text("Obteniendo asambleas...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                                Text(
+                                    text = "Obteniendo asambleas...",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 13.sp
+                                )
                             }
                         }
                     }
@@ -331,7 +358,7 @@ fun AsambleasScreen(
                     )
                 }
 
-                item { Spacer(modifier = Modifier.height(12.dp)) }
+                item { Spacer(modifier = Modifier.height(16.dp)) }
             }
         }
     }
@@ -339,14 +366,26 @@ fun AsambleasScreen(
     asambleaParaPublicar?.let { asamblea ->
         AlertDialog(
             onDismissRequest = { asambleaParaPublicar = null },
-            title = { Text("Publicar asamblea", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
-            text = { Text("¿Deseas publicar la asamblea \"${asamblea.titulo ?: "Sin título"}\"? Una vez publicada ya no podrá editarse.") },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = {
+                Text(
+                    text = "Publicar asamblea",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "¿Deseas publicar la asamblea \"${asamblea.titulo ?: "Sin título"}\"? Una vez publicada ya no podrá editarse.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.publicarAsamblea(asamblea.id)
                     asambleaParaPublicar = null
                 }) {
-                    Text("Publicar", color = VerdeTexto, fontWeight = FontWeight.Bold)
+                    Text("Publicar", color = primaryColor, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -360,14 +399,26 @@ fun AsambleasScreen(
     asambleaParaEliminar?.let { asamblea ->
         AlertDialog(
             onDismissRequest = { asambleaParaEliminar = null },
-            title = { Text("Eliminar asamblea", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
-            text = { Text("¿Deseas eliminar la asamblea \"${asamblea.titulo ?: "Sin título"}\"?") },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = {
+                Text(
+                    text = "Eliminar asamblea",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "¿Deseas eliminar la asamblea \"${asamblea.titulo ?: "Sin título"}\"?",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.eliminarAsamblea(asamblea.id)
                     asambleaParaEliminar = null
                 }) {
-                    Text("Eliminar", color = RojoEgreso, fontWeight = FontWeight.Bold)
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -393,16 +444,17 @@ private fun AsambleaCard(
     onDeleteClick: () -> Unit
 ) {
     val esBorrador = asamblea.estado.equals("borrador", ignoreCase = true)
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(18.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(
             modifier = Modifier
@@ -413,18 +465,20 @@ private fun AsambleaCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(VerdeSuave, CircleShape),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    modifier = Modifier.size(42.dp),
+                    shape = CircleShape,
+                    color = primaryColor.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Event,
-                        contentDescription = null,
-                        tint = VerdeTexto,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.Event,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
@@ -432,7 +486,7 @@ private fun AsambleaCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = asamblea.titulo?.takeIf { it.isNotBlank() } ?: "Sin título",
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -441,7 +495,7 @@ private fun AsambleaCard(
                     Text(
                         text = textoTipo(asamblea.tipo),
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -454,8 +508,12 @@ private fun AsambleaCard(
                     Icon(
                         imageVector = Icons.Outlined.Delete,
                         contentDescription = if (esBorrador) "Eliminar" else "No se puede eliminar",
-                        tint = if (esBorrador) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f) else MaterialTheme.colorScheme.outlineVariant,
-                        modifier = Modifier.size(20.dp)
+                        tint = if (esBorrador) {
+                            MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        },
+                        modifier = Modifier.size(19.dp)
                     )
                 }
             }
@@ -513,14 +571,15 @@ private fun AsambleaCard(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                    border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
                             text = "AGENDA (${asamblea.agendas.size})",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = VerdeTexto,
+                            color = primaryColor,
                             letterSpacing = 0.5.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
@@ -538,9 +597,7 @@ private fun AsambleaCard(
                             Text(
                                 text = "+ ${asamblea.agendas.size - 3} puntos más",
                                 fontSize = 11.sp,
-                                color = SeasonalColors.primary(
-                                    SeasonalTheme.getSeason()
-                                ),
+                                color = primaryColor,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(top = 2.dp)
                             )
@@ -550,31 +607,35 @@ private fun AsambleaCard(
             }
 
             if (esBorrador) {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    IconButton(
+                    Surface(
                         onClick = onPublicarClick,
-                        modifier = Modifier
-                            .size(38.dp)
-                            .background(SeasonalColors.primary(
-                                SeasonalTheme.getSeason()
-                            ), CircleShape),
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = SeasonalColors.primary(
-                                SeasonalTheme.getSeason()
-                            ),
-                            contentColor = Blanco
-                        )
+                        shape = RoundedCornerShape(10.dp),
+                        color = primaryColor.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Publish,
-                            contentDescription = "Publicar asamblea",
-                            tint = Blanco,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Publish,
+                                contentDescription = "Publicar",
+                                tint = primaryColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Publicar convocatoria",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = primaryColor
+                            )
+                        }
                     }
                 }
             }
@@ -594,6 +655,8 @@ private fun InfoItem(
     text: String,
     modifier: Modifier = Modifier
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
@@ -601,9 +664,7 @@ private fun InfoItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = SeasonalColors.primary(
-                SeasonalTheme.getSeason()
-            ),
+            tint = primaryColor,
             modifier = Modifier.size(16.dp)
         )
         Spacer(modifier = Modifier.width(6.dp))
@@ -620,50 +681,56 @@ private fun InfoItem(
 @Composable
 private fun EstadoChip(estado: String?) {
     val estadoNormalizado = estado?.trim()?.lowercase() ?: ""
-    val (texto, fondo, color) = when (estadoNormalizado) {
-        "publicada" -> Triple("Publicada", VerdeSuave, VerdeTexto)
-        "cancelada" -> Triple("Cancelada", RojoSuave, RojoEgreso)
-        else -> Triple("Borrador", AzulSuave, AzulBadge)
+    val (texto, colorBase) = when (estadoNormalizado) {
+        "publicada" -> Pair("Publicada", VerdePublicado)
+        "cancelada" -> Pair("Cancelada", RojoCancelado)
+        else -> Pair("Borrador", AzulBorrador)
     }
 
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = fondo
+        color = colorBase.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, colorBase.copy(alpha = 0.25f))
     ) {
         Text(
             text = texto,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
-            color = color
+            color = colorBase
         )
     }
 }
 
 @Composable
 private fun EmptyAsambleas() {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 20.dp),
         shape = RoundedCornerShape(16.dp),
-        color = Blanco,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(
             modifier = Modifier.padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(VerdeSuave, CircleShape),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.size(54.dp),
+                shape = CircleShape,
+                color = primaryColor.copy(alpha = 0.12f)
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Event,
-                    contentDescription = null,
-                    tint = VerdeTexto,
-                    modifier = Modifier.size(28.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Outlined.Event,
+                        contentDescription = null,
+                        tint = primaryColor,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(
@@ -676,7 +743,7 @@ private fun EmptyAsambleas() {
             Text(
                 text = "No se encontraron registros en este filtro.",
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
         }

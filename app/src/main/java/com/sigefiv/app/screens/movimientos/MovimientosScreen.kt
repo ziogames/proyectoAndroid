@@ -3,78 +3,28 @@
 package com.sigefiv.app.screens.movimientos
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowUpward
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.SmartToy
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -90,37 +40,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import kotlin.math.roundToInt
 import com.sigefiv.app.data.model.Categoria
 import com.sigefiv.app.data.model.Movimiento
 import com.sigefiv.app.data.model.Periodo
+import com.sigefiv.app.notifications.NotificacionEventBus
+import com.sigefiv.app.ui.components.AppBottomBar
 import com.sigefiv.app.viewmodel.CategoriasViewModel
 import com.sigefiv.app.viewmodel.MovimientosViewModel
 import com.sigefiv.app.viewmodel.PeriodoViewModel
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
-import androidx.compose.material.icons.outlined.Lock
-import com.sigefiv.app.notifications.NotificacionEventBus
+import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
+import kotlin.math.roundToInt
+import androidx.compose.ui.draw.clip
 
-
-/*
-|--------------------------------------------------------------------------
-| COLORES SIGEFIV (ESTILO DASHBOARD)
-|--------------------------------------------------------------------------
-*/
-
-private val FondoSIGEFIV = Color(0xFFF8FAFC)
-private val FondoTarjeta = Color(0xFFFFFFFF)
-
+private val ColorIngreso = Color(0xFF16A34A)
+private val ColorEgreso = Color(0xFFDC2626)
 private val AzulEditar = Color(0xFF2563EB)
-private val VerdeSuave = Color(0xFFDCFCE7)
-private val Blanco = Color(0xFFFFFFFF)
-private val TextoPrincipal = Color(0xFF0F172A)
-private val GrisClaro = Color(0xFF64748B)
-private val Verde = Color(0xFF15803D)
-private val Rojo = Color(0xFFDC2626)
-private val FondoDetalle = Color(0xFFFFFFFF)
-private val FondoFecha = Color(0xFFE2E8F0)
 
 @Composable
 fun MovimientosScreen(
@@ -128,20 +66,20 @@ fun MovimientosScreen(
     categoriasViewModel: CategoriasViewModel? = null,
     periodoViewModel: PeriodoViewModel? = null,
     onMenuClick: () -> Unit = {},
-    onNotificacionesClick: () -> Unit = {},
     onInicioClick: () -> Unit = {},
     onAsambleasClick: () -> Unit = {},
+    onEmprendimientosClick: () -> Unit = {},
     onPeriodosClick: () -> Unit = {},
     onMiCuentaClick: () -> Unit = {},
-    onNuevoMovimientoClick: () -> Unit = {},
-    onSigiClick: () -> Unit = {},
+    onNuevoIngresoClick: () -> Unit = {},
+    onNuevoEgresoClick: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
     onMovimientoClick: (Movimiento) -> Unit = {},
     puedeCerrarPeriodo: Boolean = false,
     onCerrarPeriodoClick: () -> Unit = {}
-
 ) {
     val context = LocalContext.current
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     val categoriasVM = categoriasViewModel ?: remember { CategoriasViewModel(context) }
     val periodoVM = periodoViewModel ?: remember { PeriodoViewModel(context) }
@@ -160,12 +98,11 @@ fun MovimientosScreen(
     val cargandoPeriodo by periodoVM.cargando.collectAsState()
 
     var filtroActual by remember { mutableStateOf("Todos") }
+    var mostrarModalNuevoMovimiento by remember { mutableStateOf(false) }
     var mostrarFormulario by remember { mutableStateOf(false) }
     var movimientoEditar by remember { mutableStateOf<Movimiento?>(null) }
     var movimientoEliminar by remember { mutableStateOf<Movimiento?>(null) }
-    var mostrarDialogoCerrarPeriodo by remember {
-        mutableStateOf(false)
-    }
+    var mostrarDialogoCerrarPeriodo by remember { mutableStateOf(false) }
 
     val handleOpenMenu = {
         onOpenDrawer()
@@ -173,40 +110,21 @@ fun MovimientosScreen(
     }
 
     LaunchedEffect(Unit) {
-
-        // Carga inicial.
         movimientosViewModel.cargarMovimientos()
         categoriasVM.cargarCategoriasParaMovimientos()
         periodoVM.cargarPeriodoAbierto()
 
-        // Escucha cambios realizados desde otros dispositivos.
         NotificacionEventBus.movimientoActualizado.collect {
-
-            // Recarga los movimientos automáticamente.
             movimientosViewModel.cargarMovimientos()
-
-            // Actualiza también el período activo.
             periodoVM.cargarPeriodoAbierto()
         }
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | FILTRO
-    |--------------------------------------------------------------------------
-    */
 
     val movimientosFiltrados = when (filtroActual) {
         "Ingresos" -> movimientos.filter { it.tipo.equals("Ingreso", ignoreCase = true) }
         "Egresos" -> movimientos.filter { it.tipo.equals("Egreso", ignoreCase = true) }
         else -> movimientos
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | TOTALES
-    |--------------------------------------------------------------------------
-    */
 
     val totalIngresos = movimientos
         .filter { it.tipo.equals("Ingreso", ignoreCase = true) }
@@ -216,28 +134,18 @@ fun MovimientosScreen(
         .filter { it.tipo.equals("Egreso", ignoreCase = true) }
         .sumOf { it.monto }
 
-    /*
-    |--------------------------------------------------------------------------
-    | MOVIMIENTOS AGRUPADOS POR FECHA
-    |--------------------------------------------------------------------------
-    */
-
     val movimientosPorFecha = movimientosFiltrados
         .groupBy { it.fecha ?: "Sin fecha" }
-        .toSortedMap(
-            compareByDescending { fecha ->
-                if (fecha == "Sin fecha") "" else fecha
-            }
-        )
+        .toSortedMap(compareByDescending { if (it == "Sin fecha") "" else it })
 
     Scaffold(
-        containerColor = FondoSIGEFIV,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "Movimientos",
-                        color = Blanco,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
                         fontSize = 19.sp
                     )
@@ -247,55 +155,47 @@ fun MovimientosScreen(
                         Icon(
                             imageVector = Icons.Outlined.Menu,
                             contentDescription = "Abrir menú",
-                            tint = Blanco
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
                 actions = {
-
                     if (puedeCerrarPeriodo && periodo != null) {
-                        IconButton(
-                            onClick = {
-                                mostrarDialogoCerrarPeriodo = true
-                            }
-                        ) {
+                        IconButton(onClick = { mostrarDialogoCerrarPeriodo = true }) {
                             Icon(
                                 imageVector = Icons.Outlined.Lock,
                                 contentDescription = "Cerrar período",
-                                tint = Blanco
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-
-                    IconButton(onClick = onSigiClick) {
-                        Icon(
-                            imageVector = Icons.Outlined.SmartToy,
-                            contentDescription = "SIGI",
-                            tint = Blanco
-                        )
-                    }
-
-                    IconButton(onClick = onNotificacionesClick) {
-                        Icon(
-                            imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "Notificaciones",
-                            tint = Blanco
-                        )
-                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = SeasonalColors.primary(
-                        SeasonalTheme.getSeason()
-                    )
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { mostrarModalNuevoMovimiento = true },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = CircleShape,
+                elevation = FloatingActionButtonDefaults.elevation(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Add,
+                    contentDescription = "Nuevo movimiento",
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+        },
         bottomBar = {
-            BarraInferiorMovimientos(
+            AppBottomBar(
+                pantallaActual = "Movimientos",
                 onInicioClick = onInicioClick,
                 onAsambleasClick = onAsambleasClick,
-                onNuevoMovimientoClick = onNuevoMovimientoClick,
-                puedeCrearMovimiento = true,
+                onEmprendimientosClick = onEmprendimientosClick,
                 onPeriodosClick = onPeriodosClick,
                 onMiCuentaClick = onMiCuentaClick
             )
@@ -305,84 +205,44 @@ fun MovimientosScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(FondoSIGEFIV)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
         ) {
-
-            /*
-            |--------------------------------------------------------------------------
-            | RESUMEN DE INGRESOS Y EGRESOS
-            |--------------------------------------------------------------------------
-            */
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                ResumenTotalCard(
-                    modifier = Modifier.weight(1f),
-                    titulo = "Ingresos",
-                    monto = totalIngresos,
-                    color = Verde
-                )
-
-                ResumenTotalCard(
-                    modifier = Modifier.weight(1f),
-                    titulo = "Egresos",
-                    monto = totalEgresos,
-                    color = Rojo
-                )
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | FILTROS
-            |--------------------------------------------------------------------------
-            */
+            SeccionBalanceGeneral(
+                periodoNombre = periodo?.let { "${it.nombre} ${it.anio}" },
+                totalIngresos = totalIngresos,
+                totalEgresos = totalEgresos,
+                primaryColor = primaryColor
+            )
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 2.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Filtro(
                     texto = "Todos",
                     seleccionado = filtroActual == "Todos",
+                    primaryColor = primaryColor,
                     onClick = { filtroActual = "Todos" }
                 )
 
                 Filtro(
                     texto = "Ingresos",
                     seleccionado = filtroActual == "Ingresos",
+                    primaryColor = primaryColor,
                     onClick = { filtroActual = "Ingresos" }
                 )
 
                 Filtro(
                     texto = "Egresos",
                     seleccionado = filtroActual == "Egresos",
+                    primaryColor = primaryColor,
                     onClick = { filtroActual = "Egresos" }
                 )
-
-                IconButton(onClick = {}) {
-                    Icon(
-                        imageVector = Icons.Outlined.FilterList,
-                        contentDescription = "Filtros",
-                        tint = SeasonalColors.primary(
-                            SeasonalTheme.getSeason()
-                        )
-                    )
-                }
             }
-
-            /*
-            |--------------------------------------------------------------------------
-            | TÍTULO Y CANTIDAD
-            |--------------------------------------------------------------------------
-            */
 
             Row(
                 modifier = Modifier
@@ -393,72 +253,68 @@ fun MovimientosScreen(
             ) {
                 Text(
                     text = when (filtroActual) {
-                        "Ingresos" -> "Ingresos"
-                        "Egresos" -> "Egresos"
+                        "Ingresos" -> "Ingresos registrados"
+                        "Egresos" -> "Egresos registrados"
                         else -> "Movimientos recientes"
                     },
-                    color = TextoPrincipal,
-                    fontSize = 17.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
 
-                Text(
-                    text = "${movimientosFiltrados.size}",
-                    color = SeasonalColors.primary(
-                        SeasonalTheme.getSeason()
-                    ),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = primaryColor.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = "${movimientosFiltrados.size}",
+                        color = primaryColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
             }
-
-            /*
-            |--------------------------------------------------------------------------
-            | MENSAJES
-            |--------------------------------------------------------------------------
-            */
 
             if (!mensaje.isNullOrBlank()) {
                 Text(
                     text = mensaje!!,
-                    color = Rojo,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-
-            if (!cargandoCategorias && !mensajeCategorias.isNullOrBlank()) {
-                Text(
-                    text = mensajeCategorias!!,
-                    color = Rojo,
+                    color = MaterialTheme.colorScheme.error,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
             }
 
             if (cargando && movimientos.isEmpty()) {
-                Text(
-                    text = "Cargando movimientos...",
-                    color = GrisClaro,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = primaryColor)
+                }
+            } else if (!cargando && movimientosFiltrados.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(40.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.ReceiptLong,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "No hay movimientos registrados",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 14.sp
+                    )
+                }
             }
-
-            if (!cargando && movimientosFiltrados.isEmpty() && mensaje.isNullOrBlank()) {
-                Text(
-                    text = "No hay movimientos para mostrar.",
-                    color = GrisClaro,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp)
-                )
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | LISTA AGRUPADA POR FECHA
-            |--------------------------------------------------------------------------
-            */
 
             LazyColumn(
                 modifier = Modifier
@@ -467,7 +323,6 @@ fun MovimientosScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 movimientosPorFecha.entries.forEach { (fecha, movimientosDia) ->
-
                     item(key = "fecha_$fecha") {
                         FechaHeader(fecha = fecha)
                     }
@@ -478,14 +333,12 @@ fun MovimientosScreen(
                     ) { movimiento ->
                         MovimientoCard(
                             movimiento = movimiento,
-                            onClick = {
-                                onMovimientoClick(movimiento)
-                            },
+                            primaryColor = primaryColor,
+                            onClick = { onMovimientoClick(movimiento) },
                             onEditar = {
-                                movimientosViewModel.obtenerMovimientoPorId(movimiento.id) { movimientoActualizado ->
-
-                                    if (movimientoActualizado != null) {
-                                        movimientoEditar = movimientoActualizado
+                                movimientosViewModel.obtenerMovimientoPorId(movimiento.id) { actualizado ->
+                                    if (actualizado != null) {
+                                        movimientoEditar = actualizado
                                         mostrarFormulario = true
                                         movimientosViewModel.limpiarMensaje()
                                     }
@@ -500,18 +353,27 @@ fun MovimientosScreen(
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(80.dp))
+                    Spacer(modifier = Modifier.height(88.dp))
                 }
             }
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | FORMULARIO
-    |--------------------------------------------------------------------------
-    */
+    if (mostrarModalNuevoMovimiento) {
+        NuevoMovimientoBottomSheet(
+            onDismiss = { mostrarModalNuevoMovimiento = false },
+            onIngresoClick = {
+                mostrarModalNuevoMovimiento = false
+                onNuevoIngresoClick()
+            },
+            onEgresoClick = {
+                mostrarModalNuevoMovimiento = false
+                onNuevoEgresoClick()
+            }
+        )
+    }
 
+    // Modal para editar movimiento con animación fluida
     if (mostrarFormulario) {
         NuevoMovimientoDialog(
             movimientoEditar = movimientoEditar,
@@ -519,8 +381,9 @@ fun MovimientosScreen(
             cargandoCategorias = cargandoCategorias,
             periodo = periodo,
             cargandoPeriodo = cargandoPeriodo,
-            guardando = movimientosViewModel.guardando.collectAsState().value,
+            guardando = guardando,
             mensaje = mensaje,
+            primaryColor = primaryColor,
             onCerrar = {
                 if (!guardando) {
                     mostrarFormulario = false
@@ -528,125 +391,100 @@ fun MovimientosScreen(
                     movimientosViewModel.limpiarMensaje()
                 }
             },
-            onGuardar = { fecha, categoriaId, concepto, persona, formaPago, monto, referencia, observaciones ->
-
-                // Guardamos la referencia ANTES de cerrar el modal.
-                val movimientoParaEditar = movimientoEditar
-
-                // El modal desaparece inmediatamente al pulsar Guardar.
+            onGuardar = { fecha, catId, conc, pers, fp, mnt, ref, obs ->
+                val paraEditar = movimientoEditar
                 mostrarFormulario = false
                 movimientoEditar = null
 
-                if (movimientoParaEditar == null) {
-
-                    movimientosViewModel.crearMovimiento(
-                        fecha = fecha,
-                        categoriaId = categoriaId,
-                        concepto = concepto,
-                        persona = persona,
-                        formaPago = formaPago,
-                        monto = monto,
-                        referencia = referencia,
-                        observaciones = observaciones,
-                        comprobanteUri = null
-                    )
-
-                } else {
-
-                    movimientosViewModel.actualizarMovimiento(
-                        id = movimientoParaEditar.id,
-                        fecha = fecha,
-                        categoriaId = categoriaId,
-                        concepto = concepto,
-                        persona = persona,
-                        formaPago = formaPago,
-                        monto = monto,
-                        referencia = referencia,
-                        observaciones = observaciones
-                    )
+                if (paraEditar != null) {
+                    movimientosViewModel.actualizarMovimiento(paraEditar.id, fecha, catId, conc, pers, fp, mnt, ref, obs)
                 }
             }
         )
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | DIÁLOGO DE ELIMINACIÓN CON ANIMACIÓN SUAVE
-    |--------------------------------------------------------------------------
-    */
+    // Modal de confirmación para eliminar con animación fluida
     movimientoEliminar?.let { movimiento ->
         Dialog(
-            onDismissRequest = {
-                if (!eliminando) {
-                    movimientoEliminar = null
-                }
-            },
+            onDismissRequest = { if (!eliminando) movimientoEliminar = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
             AnimatedVisibility(
                 visible = true,
-                enter = fadeIn(
-                    animationSpec = androidx.compose.animation.core.tween(220)
-                ) + scaleIn(
-                    initialScale = 0.92f,
-                    animationSpec = androidx.compose.animation.core.tween(220)
-                )
+                enter = fadeIn(animationSpec = tween(220)) + scaleIn(initialScale = 0.90f, animationSpec = tween(220)),
+                exit = fadeOut(animationSpec = tween(180)) + scaleOut(targetScale = 0.90f, animationSpec = tween(180))
             ) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(0.88f),
-                    shape = RoundedCornerShape(22.dp),
-                    color = FondoDetalle,
-                    tonalElevation = 8.dp
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 6.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 ) {
                     Column(
-                        modifier = Modifier.padding(24.dp)
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Outlined.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         Text(
                             text = "Eliminar movimiento",
                             fontWeight = FontWeight.Bold,
-                            color = TextoPrincipal,
-                            fontSize = 18.sp
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 19.sp,
+                            textAlign = TextAlign.Center
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "¿Deseas eliminar el movimiento N° ${movimiento.numero}?\n\n${movimiento.concepto}",
-                            color = TextoPrincipal,
-                            fontSize = 14.sp
+                            text = "¿Deseas eliminar el movimiento N° ${movimiento.numero}?\n\"${movimiento.concepto}\"",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 20.sp
                         )
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             TextButton(
                                 onClick = { movimientoEliminar = null },
-                                enabled = !eliminando
+                                enabled = !eliminando,
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Text("Cancelar", color = GrisClaro)
+                                Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
 
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            TextButton(
+                            Button(
                                 onClick = {
-                                    // Cerrar el modal inmediatamente.
-                                    val idMovimiento = movimiento.id
+                                    val id = movimiento.id
                                     movimientoEliminar = null
-
-                                    // Ejecutar DELETE en segundo plano.
-                                    movimientosViewModel.eliminarMovimiento(idMovimiento)
+                                    movimientosViewModel.eliminarMovimiento(id)
                                 },
-                                enabled = !eliminando
+                                enabled = !eliminando,
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text(
-                                    text = if (eliminando) "Eliminando..." else "Eliminar",
-                                    color = Rojo,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Text(if (eliminando) "Eliminando..." else "Eliminar")
                             }
                         }
                     }
@@ -655,373 +493,327 @@ fun MovimientosScreen(
         }
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | DIÁLOGO DE CONFIRMACIÓN — CERRAR PERÍODO
-    |--------------------------------------------------------------------------
-    */
-
-    if (mostrarDialogoCerrarPeriodo) {
-
-        val periodoActual = periodo
-
-        if (periodoActual != null) {
-
-            AlertDialog(
-                onDismissRequest = {
-                    mostrarDialogoCerrarPeriodo = false
-                },
-
-                title = {
+    if (mostrarDialogoCerrarPeriodo && periodo != null) {
+        val p = periodo!!
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoCerrarPeriodo = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = {
+                Text("Cerrar período", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("¿Deseas cerrar el período ${p.nombre_completo}?", color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Saldo anterior: S/ %.2f".format(p.saldo_inicial), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                    Text("Ingresos: S/ %.2f".format(totalIngresos), color = ColorIngreso, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Egresos: S/ %.2f".format(totalEgresos), color = ColorEgreso, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = "Cerrar período",
-                        color = TextoPrincipal,
-                        fontWeight = FontWeight.Bold
+                        "Saldo final: S/ %.2f".format(p.saldo_inicial + totalIngresos - totalEgresos),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
                     )
-                },
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        mostrarDialogoCerrarPeriodo = false
+                        onCerrarPeriodoClick()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                ) {
+                    Text("Cerrar período")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogoCerrarPeriodo = false }) {
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        )
+    }
+}
 
-                text = {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+// ============================================================================
+// COMPONENTES AUXILIARES ACTUALIZADOS
+// ============================================================================
 
-                        Text(
-                            text = "¿Deseas cerrar el período ${periodoActual.nombre_completo}?",
-                            color = TextoPrincipal,
-                            fontSize = 14.sp
-                        )
+@Composable
+private fun SeccionBalanceGeneral(
+    periodoNombre: String?,
+    totalIngresos: Double,
+    totalEgresos: Double,
+    primaryColor: Color
+) {
+    val balanceNeto = totalIngresos - totalEgresos
+    val colorBalance = if (balanceNeto >= 0) ColorIngreso else ColorEgreso
 
-                        Spacer(
-                            modifier = Modifier.height(4.dp)
-                        )
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Balance del Período",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
 
-                        Text(
-                            text = "Saldo anterior: S/ %.2f"
-                                .format(periodoActual.saldo_inicial),
-                            color = TextoPrincipal,
-                            fontSize = 14.sp
-                        )
-
-                        Text(
-                            text = "Ingresos: S/ %.2f"
-                                .format(totalIngresos),
-                            color = Verde,
-                            fontSize = 14.sp
-                        )
-
-                        Text(
-                            text = "Egresos: S/ %.2f"
-                                .format(totalEgresos),
-                            color = Rojo,
-                            fontSize = 14.sp
-                        )
-
-                        Text(
-                            text = "Saldo final: S/ %.2f"
-                                .format(
-                                    periodoActual.saldo_inicial +
-                                            totalIngresos -
-                                            totalEgresos
-                                ),
-                            color = TextoPrincipal,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(4.dp)
-                        )
-
-                        Text(
-                            text = "Una vez cerrado, no podrás registrar nuevos movimientos en este período.",
-                            color = GrisClaro,
-                            fontSize = 12.sp
-                        )
-                    }
-                },
-
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            mostrarDialogoCerrarPeriodo = false
-                            onCerrarPeriodoClick()
-                        }
+                if (!periodoNombre.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = primaryColor.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
                     ) {
                         Text(
-                            text = "Cerrar período",
-                            color = SeasonalColors.primary(
-                                SeasonalTheme.getSeason()
-                            ),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                },
-
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            mostrarDialogoCerrarPeriodo = false
-                        }
-                    ) {
-                        Text(
-                            text = "Cancelar",
-                            color = GrisClaro
+                            text = periodoNombre,
+                            color = primaryColor,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
                 }
-            )
-        }
-    }
-
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| RESUMEN SUPERIOR
-|--------------------------------------------------------------------------
-*/
-
-@Composable
-private fun ResumenTotalCard(
-    modifier: Modifier,
-    titulo: String,
-    monto: Double,
-    color: Color
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
-        ) {
-            Text(
-                text = titulo,
-                color = TextoPrincipal,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
-            )
+            }
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "S/ %.2f".format(monto),
-                color = color,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold
+                text = "S/ %.2f".format(balanceNeto),
+                color = colorBalance,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.ExtraBold
             )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .background(ColorIngreso.copy(alpha = 0.12f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Outlined.ArrowUpward, contentDescription = null, tint = ColorIngreso, modifier = Modifier.size(15.dp))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(text = "Ingresos", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                        Text(text = "S/ %.2f".format(totalIngresos), color = ColorIngreso, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .background(ColorEgreso.copy(alpha = 0.12f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Outlined.ArrowDownward, contentDescription = null, tint = ColorEgreso, modifier = Modifier.size(15.dp))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(text = "Egresos", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                        Text(text = "S/ %.2f".format(totalEgresos), color = ColorEgreso, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
     }
 }
-
-/*
-|--------------------------------------------------------------------------
-| CABECERA DE FECHA
-|--------------------------------------------------------------------------
-*/
 
 @Composable
 private fun FechaHeader(fecha: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(FondoFecha, shape = RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = formatearFecha(fecha),
-            color = TextoPrincipal,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+            border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+        ) {
+            Text(
+                text = formatearFecha(fecha),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            )
+        }
     }
 }
 
 private fun formatearFecha(fecha: String): String {
-    if (fecha.isBlank() || fecha == "Sin fecha") {
-        return "Sin fecha"
-    }
-
+    if (fecha.isBlank() || fecha == "Sin fecha") return "Sin fecha"
     val partes = fecha.split("-")
-    if (partes.size != 3) {
-        return fecha
-    }
-
+    if (partes.size != 3) return fecha
     return "${partes[2]}/${partes[1]}/${partes[0]}"
 }
-
-/*
-|--------------------------------------------------------------------------
-| FILTRO
-|--------------------------------------------------------------------------
-*/
 
 @Composable
 private fun Filtro(
     texto: String,
     seleccionado: Boolean,
+    primaryColor: Color,
     onClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .background(
-                color = if (seleccionado) VerdeSuave else FondoTarjeta,
-                shape = RoundedCornerShape(20.dp)
-            )
-            .padding(horizontal = 15.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = if (seleccionado) primaryColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        border = BorderStroke(
+            1.dp,
+            if (seleccionado) primaryColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
     ) {
         Text(
             text = texto,
-            color = if (seleccionado) SeasonalColors.primary(
-                SeasonalTheme.getSeason()
-            ) else GrisClaro,
-            fontSize = 13.sp,
-            fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Normal
+            color = if (seleccionado) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 12.sp,
+            fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
         )
     }
 }
 
 /*
 |--------------------------------------------------------------------------
-| MOVIMIENTO (CON SWIPE CORREGIDO)
+| MOVIMIENTO CARD CON SWIPE ANCLADO Y BOTONES REVELADOS
 |--------------------------------------------------------------------------
 */
 
 @Composable
 private fun MovimientoCard(
     movimiento: Movimiento,
+    primaryColor: Color,
     onClick: () -> Unit,
     onEditar: () -> Unit,
     onEliminar: () -> Unit
 ) {
     val ingreso = movimiento.tipo.equals("Ingreso", ignoreCase = true)
-
-    var offsetX by remember(movimiento.id) { mutableStateOf(0f) }
-    var accionDisparada by remember(movimiento.id) { mutableStateOf(false) }
-
-    val actionWidth = 120.dp
-    val maxOffset = with(LocalDensity.current) {
-        actionWidth.toPx()
-    }
-
-    val umbralAccion = maxOffset * 0.75f
+    val actionWidth = 84.dp
+    val actionWidthPx = with(LocalDensity.current) { actionWidth.toPx() }
+    val offsetX = remember(movimiento.id) { Animatable(0f) }
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 64.dp)
+            .heightIn(min = 68.dp)
     ) {
-        /*
-         * Fondo de acciones corregido:
-         * IZQUIERDA = EDITAR (AZUL) -> Se revela al deslizar a la DERECHA
-         * DERECHA   = ELIMINAR (ROJO) -> Se revela al deslizar a la IZQUIERDA
-         */
+        // Capa de fondo con botones que quedan descubiertos
         Row(
             modifier = Modifier
-                .matchParentSize(),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .matchParentSize()
+                .padding(vertical = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // EDITAR — aparece al deslizar hacia la DERECHA
+            // Botón Editar (Izquierda - Azul)
             Box(
                 modifier = Modifier
                     .width(actionWidth)
-                    .fillMaxSize()
-                    .background(
-                        color = AzulEditar,
-                        shape = RoundedCornerShape(12.dp)
-                    ),
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(topStart = 14.dp, bottomStart = 14.dp))
+                    .background(AzulEditar)
+                    .clickable {
+                        scope.launch { offsetX.animateTo(0f, tween(200)) }
+                        onEditar()
+                    },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Edit,
-                    contentDescription = "Editar movimiento",
-                    tint = Blanco,
-                    modifier = Modifier.size(24.dp)
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Outlined.Edit, "Editar", tint = Color.White, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text("Editar", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
             }
 
-            // ELIMINAR — aparece al deslizar hacia la IZQUIERDA
+            // Botón Eliminar (Derecha - Rojo)
             Box(
                 modifier = Modifier
                     .width(actionWidth)
-                    .fillMaxSize()
-                    .background(
-                        color = Rojo,
-                        shape = RoundedCornerShape(12.dp)
-                    ),
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(topEnd = 14.dp, bottomEnd = 14.dp))
+                    .background(MaterialTheme.colorScheme.error)
+                    .clickable {
+                        scope.launch { offsetX.animateTo(0f, tween(200)) }
+                        onEliminar()
+                    },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Delete,
-                    contentDescription = "Eliminar movimiento",
-                    tint = Blanco,
-                    modifier = Modifier.size(24.dp)
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Outlined.Delete, "Eliminar", tint = Color.White, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text("Eliminar", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
 
-        Card(
+        // Tarjeta principal frontal con gestos
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .offset {
-                    IntOffset(offsetX.roundToInt(), 0)
-                }
+                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
                 .pointerInput(movimiento.id) {
                     detectHorizontalDragGestures(
                         onHorizontalDrag = { _, dragAmount ->
-
-                            if (accionDisparada) {
-                                return@detectHorizontalDragGestures
-                            }
-
-                            offsetX = (offsetX + dragAmount)
-                                .coerceIn(-maxOffset, maxOffset)
-
-                            // DERECHA -> EDITAR (AZUL)
-                            if (offsetX >= umbralAccion) {
-                                accionDisparada = true
-                                offsetX = 0f
-                                onEditar()
-                                return@detectHorizontalDragGestures
-                            }
-
-                            // IZQUIERDA -> ELIMINAR (ROJO)
-                            if (offsetX <= -umbralAccion) {
-                                accionDisparada = true
-                                offsetX = 0f
-                                onEliminar()
-                                return@detectHorizontalDragGestures
+                            scope.launch {
+                                val nuevoValor = (offsetX.value + dragAmount).coerceIn(-actionWidthPx, actionWidthPx)
+                                offsetX.snapTo(nuevoValor)
                             }
                         },
                         onDragEnd = {
-                            offsetX = 0f
-                            accionDisparada = false
+                            scope.launch {
+                                val objetivo = when {
+                                    offsetX.value > actionWidthPx * 0.45f -> actionWidthPx
+                                    offsetX.value < -actionWidthPx * 0.45f -> -actionWidthPx
+                                    else -> 0f
+                                }
+                                offsetX.animateTo(objetivo, tween(250))
+                            }
                         },
                         onDragCancel = {
-                            offsetX = 0f
-                            accionDisparada = false
+                            scope.launch { offsetX.animateTo(0f, tween(200)) }
                         }
                     )
                 }
                 .clickable {
-                    if (offsetX != 0f) {
-                        offsetX = 0f
+                    if (offsetX.value != 0f) {
+                        scope.launch { offsetX.animateTo(0f, tween(200)) }
                     } else {
                         onClick()
                     }
                 },
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 1.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
         ) {
             Row(
                 modifier = Modifier
@@ -1031,26 +823,18 @@ private fun MovimientoCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(40.dp)
                         .background(
-                            color = if (ingreso) {
-                                VerdeSuave
-                            } else {
-                                Color(0xFFFEE2E2)
-                            },
+                            color = if (ingreso) ColorIngreso.copy(alpha = 0.12f) else ColorEgreso.copy(alpha = 0.12f),
                             shape = RoundedCornerShape(10.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = if (ingreso) {
-                            Icons.Outlined.ArrowUpward
-                        } else {
-                            Icons.Outlined.ArrowDownward
-                        },
-                        contentDescription = movimiento.concepto,
-                        tint = if (ingreso) Verde else Rojo,
-                        modifier = Modifier.size(20.dp)
+                        imageVector = if (ingreso) Icons.Outlined.ArrowUpward else Icons.Outlined.ArrowDownward,
+                        contentDescription = null,
+                        tint = if (ingreso) ColorIngreso else ColorEgreso,
+                        modifier = Modifier.size(19.dp)
                     )
                 }
 
@@ -1059,32 +843,53 @@ private fun MovimientoCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = movimiento.concepto,
-                        color = TextoPrincipal,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
 
                     Spacer(modifier = Modifier.height(2.dp))
 
-                    Text(
-                        text = movimiento.categoria ?: "Sin categoría",
-                        color = SeasonalColors.primary(
-                            SeasonalTheme.getSeason()
-                        ),
-                        fontSize = 11.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = movimiento.categoria ?: "Sin categoría",
+                            color = primaryColor,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        if (!movimiento.persona.isNullOrBlank()) {
+                            Text(text = "•", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+                            Text(
+                                text = movimiento.persona!!,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp,
+                                maxLines = 1
+                            )
+                        }
+                    }
                 }
 
-                Text(
-                    text = if (ingreso) {
-                        "+ S/ %.2f".format(movimiento.monto)
-                    } else {
-                        "- S/ %.2f".format(movimiento.monto)
-                    },
-                    color = if (ingreso) Verde else Rojo,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = if (ingreso) "+ S/ %.2f".format(movimiento.monto) else "- S/ %.2f".format(movimiento.monto),
+                        color = if (ingreso) ColorIngreso else ColorEgreso,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    if (!movimiento.forma_pago.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = movimiento.forma_pago!!,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
             }
         }
     }
@@ -1092,7 +897,7 @@ private fun MovimientoCard(
 
 /*
 |--------------------------------------------------------------------------
-| FORMULARIO NUEVO MOVIMIENTO
+| MODAL PARA EDITAR MOVIMIENTO (MODERNIZADO CON ANIMACIÓN)
 |--------------------------------------------------------------------------
 */
 
@@ -1105,23 +910,12 @@ private fun NuevoMovimientoDialog(
     cargandoPeriodo: Boolean,
     guardando: Boolean,
     mensaje: String?,
+    primaryColor: Color,
     onCerrar: () -> Unit,
-    onGuardar: (
-        String,
-        Int,
-        String,
-        String?,
-        String,
-        Double,
-        String?,
-        String?
-    ) -> Unit
+    onGuardar: (String, Int, String, String?, String, Double, String?, String?) -> Unit
 ) {
-    val hoy = remember { java.time.LocalDate.now() }
-
-    val fechaInicial = remember(periodo?.id) {
-        periodo?.let { java.time.LocalDate.of(it.anio, it.mes, 1) } ?: hoy
-    }
+    val hoy = remember { LocalDate.now() }
+    val fechaInicial = remember(periodo?.id) { periodo?.let { LocalDate.of(it.anio, it.mes, 1) } ?: hoy }
 
     var fecha by remember(periodo?.id) { mutableStateOf(fechaInicial.toString()) }
     var mostrarCalendario by remember { mutableStateOf(false) }
@@ -1135,85 +929,44 @@ private fun NuevoMovimientoDialog(
     var referencia by remember { mutableStateOf("") }
     var observaciones by remember { mutableStateOf("") }
 
-    val periodoInicio = remember(periodo?.id) {
-        periodo?.let { java.time.LocalDate.of(it.anio, it.mes, 1) }
-    }
+    val periodoInicio = remember(periodo?.id) { periodo?.let { LocalDate.of(it.anio, it.mes, 1) } }
+    val periodoFin = remember(periodo?.id) { periodoInicio?.withDayOfMonth(periodoInicio.lengthOfMonth()) }
 
-    val periodoFin = remember(periodo?.id) {
-        periodoInicio?.withDayOfMonth(periodoInicio.lengthOfMonth())
-    }
+    // Color semántico según sea ingreso o egreso
+    val esEgreso = movimientoEditar?.tipo?.equals("Egreso", ignoreCase = true) == true
+    val colorMonto = if (esEgreso) ColorEgreso else ColorIngreso
 
     val selectedDateMillis = remember(fecha) {
         runCatching {
-            java.time.LocalDate.parse(fecha)
-                .atStartOfDay(java.time.ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli()
+            LocalDate.parse(fecha).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         }.getOrNull()
     }
 
     val initialMonthMillis = remember(periodo?.id) {
-        periodoInicio
-            ?.atStartOfDay(java.time.ZoneId.systemDefault())
-            ?.toInstant()
-            ?.toEpochMilli()
+        periodoInicio?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
     }
 
-    val datePickerState = androidx.compose.material3.rememberDatePickerState(
+    val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = selectedDateMillis,
         initialDisplayedMonthMillis = initialMonthMillis,
         selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                val date = java.time.Instant
-                    .ofEpochMilli(utcTimeMillis)
-                    .atZone(java.time.ZoneOffset.UTC)
-                    .toLocalDate()
-
-                return periodoInicio != null &&
-                        periodoFin != null &&
-                        !date.isBefore(periodoInicio) &&
-                        !date.isAfter(periodoFin)
+                val date = Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneOffset.UTC).toLocalDate()
+                return periodoInicio != null && periodoFin != null && !date.isBefore(periodoInicio) && !date.isAfter(periodoFin)
             }
         }
     )
 
-    LaunchedEffect(periodo?.id, movimientoEditar?.id) {
-        periodoInicio?.let { inicio ->
-            val fechaObjetivo = movimientoEditar?.fecha
-                ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
-                ?.takeIf { fechaEditada ->
-                    periodoFin?.let { fin ->
-                        !fechaEditada.isBefore(inicio) && !fechaEditada.isAfter(fin)
-                    } == true
-                }
-                ?: inicio
-
-            datePickerState.displayedMonthMillis = fechaObjetivo
-                .atStartOfDay(java.time.ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli()
-
-            datePickerState.selectedDateMillis = fechaObjetivo
-                .atStartOfDay(java.time.ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli()
-
-            fecha = fechaObjetivo.toString()
-        }
-    }
-
     LaunchedEffect(movimientoEditar?.id, categorias) {
-        movimientoEditar?.let { movimiento ->
-            fecha = movimiento.fecha ?: fecha
-            categoriaSeleccionada = categorias.firstOrNull {
-                it.nombre.equals(movimiento.categoria, ignoreCase = true)
-            }
-            concepto = movimiento.concepto
-            persona = movimiento.persona.orEmpty()
-            formaPago = movimiento.forma_pago ?: "Efectivo"
-            monto = movimiento.monto.toString()
-            referencia = movimiento.referencia.orEmpty()
-            observaciones = movimiento.observaciones.orEmpty()
+        movimientoEditar?.let { mov ->
+            fecha = mov.fecha ?: fecha
+            categoriaSeleccionada = categorias.firstOrNull { it.nombre.equals(mov.categoria, ignoreCase = true) }
+            concepto = mov.concepto
+            persona = mov.persona.orEmpty()
+            formaPago = mov.forma_pago ?: "Efectivo"
+            monto = "%.2f".format(mov.monto).replace(",", ".")
+            referencia = mov.referencia.orEmpty()
+            observaciones = mov.observaciones.orEmpty()
         }
     }
 
@@ -1221,265 +974,194 @@ private fun NuevoMovimientoDialog(
             categoriaSeleccionada != null &&
             concepto.isNotBlank() &&
             formaPago.isNotBlank() &&
-            monto.toDoubleOrNull() != null &&
-            monto.toDoubleOrNull()!! > 0 &&
+            monto.replace(",", ".").toDoubleOrNull() != null &&
+            monto.replace(",", ".").toDoubleOrNull()!! > 0 &&
             periodo != null
 
     Dialog(
-        onDismissRequest = {
-            if (!guardando) {
-                onCerrar()
-            }
-        },
+        onDismissRequest = { if (!guardando) onCerrar() },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         AnimatedVisibility(
             visible = true,
-            enter = fadeIn(
-                animationSpec = androidx.compose.animation.core.tween(220)
-            ) + scaleIn(
-                initialScale = 0.92f,
-                animationSpec = androidx.compose.animation.core.tween(220)
-            )
+            enter = fadeIn(animationSpec = tween(220)) + scaleIn(initialScale = 0.90f, animationSpec = tween(220)),
+            exit = fadeOut(animationSpec = tween(180)) + scaleOut(targetScale = 0.90f, animationSpec = tween(180))
         ) {
             Surface(
                 modifier = Modifier
-                    .fillMaxWidth(0.94f)
+                    .fillMaxWidth(0.92f)
                     .heightIn(max = 720.dp),
-                shape = RoundedCornerShape(22.dp),
-                color = FondoDetalle,
-                tonalElevation = 8.dp
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 22.dp, top = 20.dp, end = 12.dp, bottom = 12.dp),
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = if (movimientoEditar == null) "Nuevo movimiento" else "Editar movimiento",
-                                color = TextoPrincipal,
-                                fontSize = 20.sp,
+                                text = "Editar movimiento",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
                             Text(
-                                text = if (periodo != null) {
-                                    "Período activo: ${periodo.nombre} ${periodo.anio}"
-                                } else {
-                                    "Registrar movimiento contable"
-                                },
-                                color = GrisClaro,
+                                text = periodo?.let { "Período: ${it.nombre} ${it.anio}" } ?: "Actualizar datos",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp
                             )
                         }
 
-                        IconButton(
-                            onClick = {
-                                if (!guardando) onCerrar()
-                            },
-                            enabled = !guardando
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Close,
-                                contentDescription = "Cerrar",
-                                tint = GrisClaro
-                            )
+                        IconButton(onClick = { if (!guardando) onCerrar() }, enabled = !guardando) {
+                            Icon(Icons.Outlined.Close, contentDescription = "Cerrar", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
 
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 22.dp),
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
 
-                        when {
-                            cargandoPeriodo -> {
+                        // =======================================================
+                        // TARJETA DE MONTO PROFESIONAL DESTACADA
+                        // =======================================================
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            border = BorderStroke(1.dp, colorMonto.copy(alpha = 0.35f))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
                                 Text(
-                                    text = "Cargando período activo...",
-                                    color = GrisClaro,
-                                    fontSize = 13.sp
-                                )
-                            }
-
-                            periodo == null -> {
-                                Text(
-                                    text = mensaje ?: "No existe un período contable abierto.",
-                                    color = Rojo,
-                                    fontSize = 13.sp
-                                )
-                            }
-
-                            else -> {
-                                Text(
-                                    text = "Selecciona una fecha de ${periodo.nombre} ${periodo.anio}",
-                                    color = SeasonalColors.primary(
-                                        SeasonalTheme.getSeason()
-                                    ),
+                                    text = if (esEgreso) "Monto del egreso" else "Monto del ingreso",
                                     fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                OutlinedTextField(
+                                    value = monto,
+                                    onValueChange = { nuevoValor ->
+                                        if (nuevoValor.matches(Regex("^\\d*(\\.\\d{0,2})?$"))) {
+                                            monto = nuevoValor
+                                        }
+                                    },
+                                    enabled = !guardando,
+                                    placeholder = {
+                                        Text(
+                                            "0.00",
+                                            fontSize = 24.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                        )
+                                    },
+                                    prefix = {
+                                        Text(
+                                            "S/ ",
+                                            color = colorMonto,
+                                            fontSize = 24.sp,
+                                            fontWeight = FontWeight.ExtraBold
+                                        )
+                                    },
+                                    textStyle = TextStyle(
+                                        fontSize = 24.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.Start
+                                    ),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = colorMonto,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        cursorColor = colorMonto
+                                    )
                                 )
                             }
                         }
 
+                        // Fecha
                         OutlinedTextField(
                             value = fecha,
                             onValueChange = {},
                             readOnly = true,
-                            enabled = periodo != null && !cargandoPeriodo && !guardando,
                             label = { Text("Fecha") },
-                            placeholder = { Text("Seleccionar fecha") },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable(
-                                    enabled = periodo != null && !cargandoPeriodo && !guardando
-                                ) {
-                                    mostrarCalendario = true
-                                },
-                            singleLine = true,
+                                .clickable { mostrarCalendario = true },
                             trailingIcon = {
-                                IconButton(
-                                    onClick = { mostrarCalendario = true },
-                                    enabled = periodo != null && !cargandoPeriodo && !guardando
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.DateRange,
-                                        contentDescription = "Seleccionar fecha",
-                                        tint = SeasonalColors.primary(
-                                            SeasonalTheme.getSeason()
-                                        )
-                                    )
-                                }
+                                Icon(Icons.Outlined.DateRange, contentDescription = null, tint = primaryColor)
                             },
                             colors = coloresCampo()
                         )
 
+                        // Categoría
                         Box(modifier = Modifier.fillMaxWidth()) {
                             OutlinedTextField(
                                 value = categoriaSeleccionada?.nombre ?: "",
                                 onValueChange = {},
                                 readOnly = true,
-                                enabled = !cargandoCategorias && !guardando,
                                 label = { Text("Categoría") },
-                                placeholder = {
-                                    Text(
-                                        if (cargandoCategorias) "Cargando categorías..." else "Seleccionar categoría"
-                                    )
-                                },
+                                placeholder = { Text(if (cargandoCategorias) "Cargando..." else "Seleccionar categoría") },
                                 modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                trailingIcon = { Text(text = "▼", color = SeasonalColors.primary(
-                                    SeasonalTheme.getSeason()
-                                )) },
+                                trailingIcon = { Text("▼", color = primaryColor) },
                                 colors = coloresCampo()
                             )
-
                             Box(
                                 modifier = Modifier
                                     .matchParentSize()
-                                    .clickable(
-                                        enabled = !cargandoCategorias && !guardando
-                                    ) {
-                                        categoriaMenuAbierto = true
-                                    }
+                                    .clickable { categoriaMenuAbierto = true }
                             )
 
                             DropdownMenu(
                                 expanded = categoriaMenuAbierto,
                                 onDismissRequest = { categoriaMenuAbierto = false }
                             ) {
-                                val ingresos = categorias.filter { it.tipo.equals("Ingreso", ignoreCase = true) }
-                                val egresos = categorias.filter { it.tipo.equals("Egreso", ignoreCase = true) }
-
-                                if (ingresos.isNotEmpty()) {
-                                    Text(
-                                        text = "INGRESOS",
-                                        color = Verde,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                                categorias.forEach { cat ->
+                                    DropdownMenuItem(
+                                        text = { Text(cat.nombre, color = MaterialTheme.colorScheme.onSurface) },
+                                        onClick = {
+                                            categoriaSeleccionada = cat
+                                            categoriaMenuAbierto = false
+                                        }
                                     )
-
-                                    ingresos.forEach { categoria ->
-                                        DropdownMenuItem(
-                                            text = { Text(categoria.nombre, color = TextoPrincipal) },
-                                            onClick = {
-                                                categoriaSeleccionada = categoria
-                                                categoriaMenuAbierto = false
-                                            }
-                                        )
-                                    }
-                                }
-
-                                if (ingresos.isNotEmpty() && egresos.isNotEmpty()) {
-                                    HorizontalDivider(color = GrisClaro.copy(alpha = 0.15f))
-                                }
-
-                                if (egresos.isNotEmpty()) {
-                                    Text(
-                                        text = "EGRESOS",
-                                        color = Rojo,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
-                                    )
-
-                                    egresos.forEach { categoria ->
-                                        DropdownMenuItem(
-                                            text = { Text(categoria.nombre, color = TextoPrincipal) },
-                                            onClick = {
-                                                categoriaSeleccionada = categoria
-                                                categoriaMenuAbierto = false
-                                            }
-                                        )
-                                    }
                                 }
                             }
                         }
 
-                        CampoMovimiento(
-                            valor = concepto,
-                            onValueChange = { concepto = it },
-                            etiqueta = "Concepto",
-                            placeholder = "Descripción del movimiento"
-                        )
+                        // Concepto
+                        CampoMovimiento(valor = concepto, onValueChange = { concepto = it }, etiqueta = "Concepto", placeholder = "Descripción")
 
-                        CampoMovimiento(
-                            valor = persona,
-                            onValueChange = { persona = it },
-                            etiqueta = "Persona",
-                            placeholder = "Persona relacionada",
-                            requerido = false
-                        )
+                        // Persona
+                        CampoMovimiento(valor = persona, onValueChange = { persona = it }, etiqueta = "Persona", placeholder = "Opcional", requerido = false)
 
+                        // Forma de pago
                         Box(modifier = Modifier.fillMaxWidth()) {
                             OutlinedTextField(
                                 value = formaPago,
                                 onValueChange = {},
                                 readOnly = true,
-                                enabled = !guardando,
                                 label = { Text("Forma de pago") },
                                 modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                trailingIcon = { Text(text = "▼", color = SeasonalColors.primary(
-                                    SeasonalTheme.getSeason()
-                                )) },
+                                trailingIcon = { Text("▼", color = primaryColor) },
                                 colors = coloresCampo()
                             )
-
                             Box(
                                 modifier = Modifier
                                     .matchParentSize()
-                                    .clickable(enabled = !guardando) {
-                                        formaPagoMenuAbierto = true
-                                    }
+                                    .clickable { formaPagoMenuAbierto = true }
                             )
 
                             DropdownMenu(
@@ -1498,100 +1180,39 @@ private fun NuevoMovimientoDialog(
                             }
                         }
 
-                        OutlinedTextField(
-                            value = monto,
-                            onValueChange = { valor ->
-                                monto = valor.filter { it.isDigit() || it == '.' }
-                            },
-                            label = { Text("Monto") },
-                            placeholder = { Text("0.00") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            textStyle = TextStyle(textAlign = TextAlign.End),
-                            prefix = { Text("S/ ", color = GrisClaro) },
-                            colors = coloresCampo()
-                        )
+                        // Referencia
+                        CampoMovimiento(valor = referencia, onValueChange = { referencia = it }, etiqueta = "Referencia", placeholder = "Opcional", requerido = false)
 
-                        CampoMovimiento(
-                            valor = referencia,
-                            onValueChange = { referencia = it },
-                            etiqueta = "Referencia",
-                            placeholder = "Referencia opcional",
-                            requerido = false
-                        )
-
-                        CampoMovimiento(
-                            valor = observaciones,
-                            onValueChange = { observaciones = it },
-                            etiqueta = "Observaciones",
-                            placeholder = "Observaciones adicionales",
-                            requerido = false,
-                            singleLine = false,
-                            minLines = 3
-                        )
-
-                        if (!mensaje.isNullOrBlank()) {
-                            Text(
-                                text = mensaje,
-                                color = if (mensaje.contains("correctamente", ignoreCase = true)) Verde else Rojo,
-                                fontSize = 13.sp
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
+                        // Observaciones
+                        CampoMovimiento(valor = observaciones, onValueChange = { observaciones = it }, etiqueta = "Observaciones", placeholder = "Opcional", requerido = false, singleLine = false, minLines = 2)
                     }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 18.dp, vertical = 12.dp),
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        TextButton(
-                            onClick = onCerrar,
-                            enabled = !guardando,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(text = "Cancelar", color = GrisClaro)
+                        TextButton(onClick = onCerrar, enabled = !guardando, modifier = Modifier.weight(1f)) {
+                            Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
 
                         Button(
                             onClick = {
-                                val categoria = categoriaSeleccionada
-                                val montoNumerico = monto.toDoubleOrNull()
-
-                                if (
-                                    categoria != null &&
-                                    montoNumerico != null &&
-                                    montoNumerico > 0.0 &&
-                                    fecha.isNotBlank() &&
-                                    concepto.isNotBlank() &&
-                                    formaPago.isNotBlank()
-                                ) {
-                                    onGuardar(
-                                        fecha,
-                                        categoria.id,
-                                        concepto.trim(),
-                                        persona.trim().ifBlank { null },
-                                        formaPago,
-                                        montoNumerico,
-                                        referencia.trim().ifBlank { null },
-                                        observaciones.trim().ifBlank { null }
-                                    )
+                                val cat = categoriaSeleccionada
+                                val mnt = monto.replace(",", ".").toDoubleOrNull()
+                                if (cat != null && mnt != null && mnt > 0.0) {
+                                    onGuardar(fecha, cat.id, concepto.trim(), persona.trim().ifBlank { null }, formaPago, mnt, referencia.trim().ifBlank { null }, observaciones.trim().ifBlank { null })
                                 }
                             },
                             enabled = formularioValido && !guardando,
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
-                                contentColor = Blanco
-                            )
+                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text(
-                                text = if (guardando) "Guardando..." else "Guardar",
-                                fontWeight = FontWeight.Bold
-                            )
+                            Text(if (guardando) "Guardando..." else "Guardar", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -1599,21 +1220,14 @@ private fun NuevoMovimientoDialog(
         }
     }
 
-
     if (mostrarCalendario && periodoInicio != null && periodoFin != null) {
         DatePickerDialog(
-            onDismissRequest = {
-                if (!guardando) mostrarCalendario = false
-            },
+            onDismissRequest = { if (!guardando) mostrarCalendario = false },
             confirmButton = {
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
-                            val seleccion = java.time.Instant
-                                .ofEpochMilli(millis)
-                                .atZone(java.time.ZoneOffset.UTC)
-                                .toLocalDate()
-
+                            val seleccion = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
                             if (!seleccion.isBefore(periodoInicio) && !seleccion.isAfter(periodoFin)) {
                                 fecha = seleccion.toString()
                                 mostrarCalendario = false
@@ -1622,12 +1236,12 @@ private fun NuevoMovimientoDialog(
                     },
                     enabled = datePickerState.selectedDateMillis != null
                 ) {
-                    Text(text = "Aceptar", color = SeasonalColors.primary(SeasonalTheme.getSeason()))
+                    Text(text = "Aceptar", color = primaryColor, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { mostrarCalendario = false }) {
-                    Text(text = "Cancelar", color = GrisClaro)
+                    Text(text = "Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         ) {
@@ -1636,7 +1250,9 @@ private fun NuevoMovimientoDialog(
                 title = {
                     Text(
                         text = "Fecha del movimiento",
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 headline = {
@@ -1652,12 +1268,6 @@ private fun NuevoMovimientoDialog(
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| CAMPO DE MOVIMIENTO
-|--------------------------------------------------------------------------
-*/
-
 @Composable
 private fun CampoMovimiento(
     valor: String,
@@ -1665,173 +1275,29 @@ private fun CampoMovimiento(
     etiqueta: String,
     placeholder: String,
     requerido: Boolean = true,
-    keyboardType: KeyboardType = KeyboardType.Text,
     singleLine: Boolean = true,
     minLines: Int = 1
 ) {
     OutlinedTextField(
         value = valor,
         onValueChange = onValueChange,
-        label = {
-            Text(if (requerido) etiqueta else "$etiqueta (opcional)")
-        },
+        label = { Text(if (requerido) etiqueta else "$etiqueta (opcional)") },
         placeholder = { Text(placeholder) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = singleLine,
         minLines = minLines,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = coloresCampo()
     )
 }
 
-/*
-|--------------------------------------------------------------------------
-| COLORES DE CAMPOS
-|--------------------------------------------------------------------------
-*/
-
 @Composable
-private fun coloresCampo() = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-    focusedTextColor = TextoPrincipal,
-    unfocusedTextColor = TextoPrincipal,
-    disabledTextColor = GrisClaro,
-    focusedBorderColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
-    unfocusedBorderColor = GrisClaro.copy(alpha = 0.35f),
-    focusedLabelColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
-    unfocusedLabelColor = GrisClaro,
-    cursorColor = SeasonalColors.primary(SeasonalTheme.getSeason())
+private fun coloresCampo() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+    focusedLabelColor = MaterialTheme.colorScheme.primary,
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    cursorColor = MaterialTheme.colorScheme.primary
 )
-
-/*
-|--------------------------------------------------------------------------
-| BARRA INFERIOR (Inicio, Asamblea, Periodos, Mi cuenta)
-|--------------------------------------------------------------------------
-*/
-
-@Composable
-private fun BarraInferiorMovimientos(
-    onInicioClick: () -> Unit,
-    onAsambleasClick: () -> Unit,
-    onNuevoMovimientoClick: () -> Unit,
-    puedeCrearMovimiento: Boolean,
-    onPeriodosClick: () -> Unit,
-    onMiCuentaClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-
-        NavigationBar(
-            containerColor = SeasonalColors.primary(SeasonalTheme.getSeason()),
-            tonalElevation = 0.dp
-        ) {
-
-            NavigationBarItem(
-                selected = false,
-                onClick = onInicioClick,
-                icon = {
-                    Icon(
-                        imageVector = Icons.Outlined.Home,
-                        contentDescription = "Inicio"
-                    )
-                },
-                label = { Text(text = "Inicio") },
-                colors = NavigationBarItemDefaults.colors(
-                    unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                    unselectedTextColor = Blanco.copy(alpha = 0.75f)
-                )
-            )
-
-            NavigationBarItem(
-                selected = false,
-                onClick = onAsambleasClick,
-                icon = {
-                    Icon(
-                        imageVector = Icons.Outlined.Groups,
-                        contentDescription = "Asamblea"
-                    )
-                },
-                label = { Text(text = "Asamblea") },
-                colors = NavigationBarItemDefaults.colors(
-                    unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                    unselectedTextColor = Blanco.copy(alpha = 0.75f)
-                )
-            )
-
-            if (puedeCrearMovimiento) {
-
-                // Espacio reservado para el botón circular central.
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onNuevoMovimientoClick,
-                    icon = {
-                        Spacer(
-                            modifier = Modifier.size(64.dp)
-                        )
-                    },
-                    label = null,
-                    colors = NavigationBarItemDefaults.colors(
-                        unselectedIconColor = Blanco.copy(alpha = 0f),
-                        selectedIconColor = Blanco.copy(alpha = 0f),
-                        indicatorColor = Color.Transparent
-                    )
-                )
-            }
-
-            NavigationBarItem(
-                selected = false,
-                onClick = onPeriodosClick,
-                icon = {
-                    Icon(
-                        imageVector = Icons.Outlined.CalendarMonth,
-                        contentDescription = "Periodos"
-                    )
-                },
-                label = { Text(text = "Periodos") },
-                colors = NavigationBarItemDefaults.colors(
-                    unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                    unselectedTextColor = Blanco.copy(alpha = 0.75f)
-                )
-            )
-
-            NavigationBarItem(
-                selected = false,
-                onClick = onMiCuentaClick,
-                icon = {
-                    Icon(
-                        imageVector = Icons.Outlined.Person,
-                        contentDescription = "Mi cuenta"
-                    )
-                },
-                label = { Text(text = "Mi cuenta") },
-                colors = NavigationBarItemDefaults.colors(
-                    unselectedIconColor = Blanco.copy(alpha = 0.75f),
-                    unselectedTextColor = Blanco.copy(alpha = 0.75f)
-                )
-            )
-        }
-
-        if (puedeCrearMovimiento) {
-
-            FloatingActionButton(
-                onClick = onNuevoMovimientoClick,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(y = (-28).dp)
-                    .size(72.dp),
-                containerColor = SeasonalColors.primary(
-                    SeasonalTheme.getSeason()
-                ),
-                contentColor = Blanco,
-                shape = androidx.compose.foundation.shape.CircleShape
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Add,
-                    contentDescription = "Agregar movimiento",
-                    modifier = Modifier.size(34.dp)
-                )
-            }
-        }
-    }
-}
-

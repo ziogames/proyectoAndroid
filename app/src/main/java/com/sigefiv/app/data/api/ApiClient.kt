@@ -149,5 +149,12 @@ object ApiClient {
     fun configuracionApi(context: Context): ConfiguracionApi {
         return createRetrofit(context).create(ConfiguracionApi::class.java)
     }
+    /**
+     * Cliente para la API de Reportes y Balances (JSON, PDF y Excel).
+     */
+    fun reportesApi(context: Context): ReportesApiService {
+        return createRetrofit(context)
+            .create(ReportesApiService::class.java)
+    }
 
 }

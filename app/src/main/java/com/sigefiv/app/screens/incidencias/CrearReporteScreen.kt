@@ -1,12 +1,16 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.sigefiv.app.screens.incidencias
 
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,7 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CameraAlt
@@ -38,10 +42,10 @@ import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.Title
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -68,15 +72,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
-import androidx.compose.foundation.border
+
 private data class CategoriaOpcion(
     val nombre: String,
     val icono: ImageVector
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CrearReporteScreen(
     onEnviarReporte: (titulo: String, categoria: String, mensaje: String, uri: Uri?) -> Unit,
@@ -87,8 +88,7 @@ fun CrearReporteScreen(
     cargando: Boolean,
     onBackClick: () -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
-    val colors = MaterialTheme.colorScheme
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     var titulo by remember { mutableStateOf("") }
     var categoriaSelected by remember { mutableStateOf("Limpieza y Áreas Verdes") }
@@ -105,7 +105,7 @@ fun CrearReporteScreen(
     }
 
     Scaffold(
-        containerColor = colors.background,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
@@ -114,25 +114,27 @@ fun CrearReporteScreen(
                             text = "Nuevo Reporte Vecinal",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
-                            color = colors.onPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Comunícate directamente con la directiva",
                             fontSize = 12.sp,
-                            color = colors.onPrimary.copy(alpha = 0.85f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = "Regresar",
-                            tint = colors.onPrimary
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = colorPrincipal)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
     ) { paddingValues ->
@@ -145,45 +147,46 @@ fun CrearReporteScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // TARJETA DE GUÍA / ENCABEZADO
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = colors.surface),
-                border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.35f)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 1.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             ) {
                 Row(
-                    modifier = Modifier.padding(14.dp),
+                    modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(42.dp)
-                            .background(colorPrincipal.copy(alpha = 0.12f), CircleShape),
+                            .size(44.dp)
+                            .background(primaryColor.copy(alpha = 0.12f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.RateReview,
                             contentDescription = null,
-                            tint = colorPrincipal,
+                            tint = primaryColor,
                             modifier = Modifier.size(22.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(14.dp))
 
                     Column {
                         Text(
                             text = "Detalla tu aviso con precisión",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.onSurface
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "La directiva revisará el caso para darle pronta atención.",
-                            fontSize = 11.5.sp,
-                            color = colors.onSurfaceVariant
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 16.sp
                         )
                     }
                 }
@@ -195,8 +198,8 @@ fun CrearReporteScreen(
                     text = "TÍTULO DEL REPORTE",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = colors.onSurfaceVariant,
-                    letterSpacing = 0.8.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    letterSpacing = 0.6.sp,
                     modifier = Modifier.padding(start = 2.dp)
                 )
 
@@ -204,31 +207,43 @@ fun CrearReporteScreen(
                     value = titulo,
                     onValueChange = { titulo = it },
                     placeholder = {
-                        Text("Ej. Luminaria rota en parque central", fontSize = 13.5.sp, color = colors.onSurfaceVariant)
+                        Text(
+                            text = "Ej. Luminaria rota en parque central",
+                            fontSize = 13.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
                     },
                     leadingIcon = {
-                        Icon(Icons.Outlined.Title, null, tint = colorPrincipal, modifier = Modifier.size(19.dp))
+                        Icon(
+                            imageVector = Icons.Outlined.Title,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(19.dp)
+                        )
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(14.dp),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = colors.surface,
-                        unfocusedContainerColor = colors.surface,
-                        focusedBorderColor = colorPrincipal,
-                        unfocusedBorderColor = colors.outlineVariant.copy(alpha = 0.45f)
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = primaryColor,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+                        cursorColor = primaryColor,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
             }
 
-            // SELECTOR DE CATEGORÍA CON CHIPS E ICONOS
+            // SELECTOR DE CATEGORÍA CON FILTERCHIPS
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "CATEGORÍA O ÁREA AFECTADA",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = colors.onSurfaceVariant,
-                    letterSpacing = 0.8.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    letterSpacing = 0.6.sp,
                     modifier = Modifier.padding(start = 2.dp)
                 )
 
@@ -238,31 +253,37 @@ fun CrearReporteScreen(
                 ) {
                     items(categorias) { item ->
                         val isSelected = categoriaSelected == item.nombre
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (isSelected) colorPrincipal else colors.surface,
-                            border = if (isSelected) null else BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.4f)),
-                            modifier = Modifier.clickable { categoriaSelected = item.nombre }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = item.icono,
-                                    contentDescription = null,
-                                    tint = if (isSelected) colors.onPrimary else colorPrincipal,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { categoriaSelected = item.nombre },
+                            label = {
                                 Text(
                                     text = item.nombre,
                                     fontSize = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) colors.onPrimary else colors.onSurface
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 )
-                            }
-                        }
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = item.icono,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = primaryColor.copy(alpha = 0.14f),
+                                selectedLabelColor = primaryColor,
+                                selectedLeadingIconColor = primaryColor,
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                iconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isSelected) primaryColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                            ),
+                            shape = RoundedCornerShape(20.dp)
+                        )
                     }
                 }
             }
@@ -273,8 +294,8 @@ fun CrearReporteScreen(
                     text = "DESCRIPCIÓN DEL PROBLEMA",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = colors.onSurfaceVariant,
-                    letterSpacing = 0.8.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    letterSpacing = 0.6.sp,
                     modifier = Modifier.padding(start = 2.dp)
                 )
 
@@ -283,25 +304,33 @@ fun CrearReporteScreen(
                     onValueChange = { mensaje = it },
                     placeholder = {
                         Text(
-                            text = "Describe qué sucedió y la ubicación exacta (ej. Frente al lote 14)...",
+                            text = "Describe qué sucedió y la ubicación exacta (ej. Frente a la Mz. I Lote 14)...",
                             fontSize = 13.sp,
-                            color = colors.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     },
                     leadingIcon = {
                         Box(modifier = Modifier.padding(bottom = 60.dp)) {
-                            Icon(Icons.Outlined.Description, null, tint = colorPrincipal, modifier = Modifier.size(19.dp))
+                            Icon(
+                                imageVector = Icons.Outlined.Description,
+                                contentDescription = null,
+                                tint = primaryColor,
+                                modifier = Modifier.size(19.dp)
+                            )
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(120.dp),
-                    shape = RoundedCornerShape(16.dp),
+                        .height(130.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = colors.surface,
-                        unfocusedContainerColor = colors.surface,
-                        focusedBorderColor = colorPrincipal,
-                        unfocusedBorderColor = colors.outlineVariant.copy(alpha = 0.45f)
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = primaryColor,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+                        cursorColor = primaryColor,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
             }
@@ -317,14 +346,14 @@ fun CrearReporteScreen(
                         text = "EVIDENCIA FOTOGRÁFICA",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.onSurfaceVariant,
-                        letterSpacing = 0.8.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        letterSpacing = 0.6.sp,
                         modifier = Modifier.padding(start = 2.dp)
                     )
                     Text(
                         text = "Opcional",
                         fontSize = 11.sp,
-                        color = colors.outline
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
 
@@ -334,8 +363,8 @@ fun CrearReporteScreen(
                             .fillMaxWidth()
                             .height(190.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .background(colors.surfaceVariant.copy(alpha = 0.4f))
-                            .border(BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.4f)), RoundedCornerShape(18.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                            .border(BorderStroke(1.dp, primaryColor.copy(alpha = 0.4f)), RoundedCornerShape(18.dp))
                     ) {
                         AsyncImage(
                             model = imagenUri,
@@ -346,28 +375,30 @@ fun CrearReporteScreen(
 
                         Surface(
                             shape = CircleShape,
-                            color = Color(0xFFDC2626).copy(alpha = 0.85f),
+                            color = MaterialTheme.colorScheme.error,
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(10.dp)
+                                .size(32.dp)
                                 .clickable { onEliminarImagen() }
                         ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Close,
-                                contentDescription = "Eliminar foto",
-                                tint = Color.White,
-                                modifier = Modifier
-                                    .padding(6.dp)
-                                    .size(16.dp)
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Close,
+                                    contentDescription = "Eliminar foto",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
                 } else {
-                    Card(
+                    Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = colors.surface),
-                        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.4f))
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 1.dp,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     ) {
                         Column(
                             modifier = Modifier
@@ -377,14 +408,14 @@ fun CrearReporteScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(44.dp)
-                                    .background(colorPrincipal.copy(alpha = 0.10f), CircleShape),
+                                    .size(46.dp)
+                                    .background(primaryColor.copy(alpha = 0.12f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.AddAPhoto,
                                     contentDescription = null,
-                                    tint = colorPrincipal,
+                                    tint = primaryColor,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -393,9 +424,9 @@ fun CrearReporteScreen(
 
                             Text(
                                 text = "Adjunta una fotografía de evidencia",
-                                fontSize = 12.5.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = colors.onSurface
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
 
                             Spacer(modifier = Modifier.height(14.dp))
@@ -406,24 +437,28 @@ fun CrearReporteScreen(
                             ) {
                                 OutlinedButton(
                                     onClick = onTomarFoto,
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(14.dp),
-                                    border = BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.4f))
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.4f))
                                 ) {
-                                    Icon(Icons.Outlined.CameraAlt, null, tint = colorPrincipal, modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Outlined.CameraAlt, null, tint = primaryColor, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Cámara", color = colorPrincipal, fontSize = 12.5.sp)
+                                    Text("Cámara", color = primaryColor, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                                 }
 
                                 OutlinedButton(
                                     onClick = onElegirGaleria,
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(14.dp),
-                                    border = BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.4f))
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.4f))
                                 ) {
-                                    Icon(Icons.Outlined.Image, null, tint = colorPrincipal, modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Outlined.Image, null, tint = primaryColor, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Galería", color = colorPrincipal, fontSize = 12.5.sp)
+                                    Text("Galería", color = primaryColor, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }
@@ -431,37 +466,38 @@ fun CrearReporteScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // BOTÓN DE ENVIAR
             Button(
                 onClick = { onEnviarReporte(titulo, categoriaSelected, mensaje, imagenUri) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .height(50.dp),
                 enabled = titulo.isNotBlank() && mensaje.isNotBlank() && !cargando,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = colorPrincipal,
-                    contentColor = colors.onPrimary,
-                    disabledContainerColor = colors.surfaceVariant.copy(alpha = 0.6f)
+                    containerColor = primaryColor,
+                    contentColor = Color.White,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                 ),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
             ) {
                 if (cargando) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        color = colors.onPrimary,
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White,
                         strokeWidth = 2.5.dp
                     )
                 } else {
                     Icon(imageVector = Icons.Outlined.Send, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Enviar Reporte a la Directiva", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Enviar Reporte a la Directiva", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

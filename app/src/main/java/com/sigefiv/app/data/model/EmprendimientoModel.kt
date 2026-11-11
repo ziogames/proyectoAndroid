@@ -5,6 +5,7 @@ data class EmprendimientoModel(
     val nombre: String,
     val descripcion: String,
     val categoria: String,
+    val palabrasClave: String? = null,
     val telefono: String,
     val showWhatsapp: Boolean,
     val modalidad: String,

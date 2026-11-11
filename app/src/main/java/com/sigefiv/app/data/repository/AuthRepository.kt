@@ -54,4 +54,8 @@ class AuthRepository(
 
         authApi.logout()
     }
+    suspend fun loginConFacebook(idToken: String): LoginResponse {
+        return authApi.loginConFacebook(mapOf("id_token" to idToken))
+    }
+
 }

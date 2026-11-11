@@ -320,7 +320,7 @@ fun AppDrawer(
                         currentScreen = currentScreen,
                         darkTheme = darkTheme,
                         onNavigate = onNavigate,
-                        disponible = false
+                        disponible = true // <- Habilitado para navegar
                     )
                 }
 

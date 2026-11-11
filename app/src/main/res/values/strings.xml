@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">SIGEFIV</string>
     <string name="default_notification_channel_id">sigefiv_notificaciones</string>
+    <string name="facebook_app_id">2239315893495529</string>
+    <string name="fb_login_protocol_scheme">fb2239315893495529</string>
+    <string name="facebook_client_token">c88af5007047d346c49fef21f45ac04d</string>
 </resources>

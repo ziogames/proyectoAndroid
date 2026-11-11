@@ -4,27 +4,43 @@ package com.sigefiv.app.navigation
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,116 +54,96 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import androidx.core.content.FileProvider
+import com.sigefiv.app.ComprobanteInterpretado
+import com.sigefiv.app.TipoMovimientoDetectado
 import com.sigefiv.app.data.SessionManager
 import com.sigefiv.app.data.api.ApiClient
+import com.sigefiv.app.data.api.EmprendimientoApi
 import com.sigefiv.app.data.model.Asamblea
+import com.sigefiv.app.data.model.EmprendimientoModel
 import com.sigefiv.app.data.model.Movimiento
-import com.sigefiv.app.data.model.Notificacion
 import com.sigefiv.app.data.repository.CajaRepository
 import com.sigefiv.app.data.repository.ChatRepository
+import com.sigefiv.app.data.repository.ConfiguracionRepository
+import com.sigefiv.app.data.repository.EmprendimientoRepository
 import com.sigefiv.app.data.repository.RolRepository
 import com.sigefiv.app.data.repository.UsuarioRepository
+import com.sigefiv.app.notifications.NotificacionEventBus
+import com.sigefiv.app.screens.actividad.ActividadScreen
 import com.sigefiv.app.screens.asambleas.AsambleasScreen
 import com.sigefiv.app.screens.asambleas.ConvocatoriaAsambleaScreen
 import com.sigefiv.app.screens.asambleas.CrearAsambleaScreen
 import com.sigefiv.app.screens.asambleas.DetalleAsambleaScreen
+import com.sigefiv.app.screens.bitacora.BitacoraScreen
 import com.sigefiv.app.screens.caja.CajaScreen
 import com.sigefiv.app.screens.chat.ChatVecinalScreen
+import com.sigefiv.app.screens.configuracion.ConfiguracionScreen
 import com.sigefiv.app.screens.dashboard.DashboardScreen
+import com.sigefiv.app.screens.emprendimiento.DetalleEmprendimientoScreen
+import com.sigefiv.app.screens.emprendimiento.EmprendimientoFormAction
+import com.sigefiv.app.screens.emprendimiento.EmprendimientoFormScreen
+import com.sigefiv.app.screens.emprendimiento.EmprendimientosFavoritosScreen
+import com.sigefiv.app.screens.emprendimiento.EmprendimientosListScreen
+import com.sigefiv.app.screens.emprendimiento.EmprendimientosScreen
+import com.sigefiv.app.screens.emprendimiento.OpinionesScreen
+import com.sigefiv.app.screens.incidencias.CrearReporteScreen
+import com.sigefiv.app.screens.incidencias.GestionIncidenciasDirectivaScreen
+import com.sigefiv.app.screens.incidencias.MisReportesVecinoScreen
+import com.sigefiv.app.screens.mascota.MascotaBurbujaEvento
+import com.sigefiv.app.screens.mascota.MascotaControlador
+import com.sigefiv.app.screens.mascota.MascotaPreferencias
+import com.sigefiv.app.screens.mascota.MascotaSigefiv
 import com.sigefiv.app.screens.movimientos.DetalleMovimientoScreen
 import com.sigefiv.app.screens.movimientos.MovimientosScreen
 import com.sigefiv.app.screens.movimientos.NuevoEgresoScreen
 import com.sigefiv.app.screens.movimientos.NuevoIngresoScreen
 import com.sigefiv.app.screens.movimientos.NuevoMovimientoScreen
-import com.sigefiv.app.screens.actividad.ActividadScreen
-
+import com.sigefiv.app.screens.notificaciones.ConfirmarNotificacionScreen
 import com.sigefiv.app.screens.notificaciones.EnviarNotificacionScreen
 import com.sigefiv.app.screens.notificaciones.NotificacionesScreen
 import com.sigefiv.app.screens.perfil.PerfilScreen
-// Importaciones de las pantallas de emprendimiento
-import com.sigefiv.app.screens.emprendimiento.EmprendimientosListScreen
-import com.sigefiv.app.screens.emprendimiento.EmprendimientoFormScreen
 import com.sigefiv.app.screens.periodos.PeriodoDetalleScreen
 import com.sigefiv.app.screens.periodos.PeriodosAnioScreen
 import com.sigefiv.app.screens.periodos.PeriodosScreen
 import com.sigefiv.app.screens.roles.EditarRolScreen
+import com.sigefiv.app.screens.roles.NuevoRolScreen
 import com.sigefiv.app.screens.roles.RolesListScreen
 import com.sigefiv.app.screens.sigi.SigiScreen
 import com.sigefiv.app.screens.usuarios.UsuariosScreen
 import com.sigefiv.app.ui.components.AppDrawer
+import com.sigefiv.app.viewmodel.ActividadViewModel
 import com.sigefiv.app.viewmodel.AsambleasViewModel
 import com.sigefiv.app.viewmodel.CajaViewModel
 import com.sigefiv.app.viewmodel.CategoriasViewModel
 import com.sigefiv.app.viewmodel.ChatViewModel
+import com.sigefiv.app.viewmodel.ConfiguracionViewModel
 import com.sigefiv.app.viewmodel.DashboardViewModel
-import com.sigefiv.app.viewmodel.FcmPreferenciaViewModel
-import com.sigefiv.app.viewmodel.NotificacionViewModel
+import com.sigefiv.app.viewmodel.EmprendimientoFormViewModel
+import com.sigefiv.app.viewmodel.EmprendimientoViewModel
+import com.sigefiv.app.viewmodel.EmprendimientosListViewModel
 import com.sigefiv.app.viewmodel.EnviarNotificacionViewModel
+import com.sigefiv.app.viewmodel.FcmPreferenciaViewModel
+import com.sigefiv.app.viewmodel.IncidenciasViewModel
 import com.sigefiv.app.viewmodel.LoginViewModel
 import com.sigefiv.app.viewmodel.MovimientosViewModel
+import com.sigefiv.app.viewmodel.NotificacionViewModel
 import com.sigefiv.app.viewmodel.PeriodoViewModel
 import com.sigefiv.app.viewmodel.PeriodosViewModel
 import com.sigefiv.app.viewmodel.PerfilViewModel
-// Importaciones de los ViewModels de emprendimiento
-import com.sigefiv.app.viewmodel.EmprendimientosListViewModel
-import com.sigefiv.app.viewmodel.EmprendimientoFormViewModel
 import com.sigefiv.app.viewmodel.RolViewModel
 import com.sigefiv.app.viewmodel.UsuarioViewModel
-import com.sigefiv.app.viewmodel.ActividadViewModel
 import kotlinx.coroutines.launch
-import com.sigefiv.app.screens.notificaciones.EnviarNotificacionScreen
-import com.sigefiv.app.screens.notificaciones.NotificacionesScreen
-import com.sigefiv.app.screens.notificaciones.ConfirmarNotificacionScreen
-import android.util.Log
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.window.Dialog
-import androidx.compose.material3.Surface
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
-import com.sigefiv.app.ComprobanteInterpretado
-import com.sigefiv.app.TipoMovimientoDetectado
-import com.sigefiv.app.notifications.NotificacionEventBus
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.zIndex
-import kotlin.math.roundToInt
-import com.sigefiv.app.screens.mascota.MascotaEstado
-import com.sigefiv.app.screens.mascota.MascotaPreferencias
-import com.sigefiv.app.screens.mascota.MascotaSigefiv
-import com.sigefiv.app.screens.mascota.MascotaControlador
-import com.sigefiv.app.screens.mascota.MascotaBurbujaEvento
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material3.Icon
-import androidx.compose.material.icons.Icons
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.text.style.TextAlign
-import com.sigefiv.app.data.api.EmprendimientoApi
-import com.sigefiv.app.data.repository.EmprendimientoRepository
-import com.sigefiv.app.screens.emprendimiento.EmprendimientosListScreen
-import com.sigefiv.app.screens.emprendimiento.EmprendimientoFormScreen
-import com.sigefiv.app.screens.roles.NuevoRolScreen
-import com.sigefiv.app.screens.emprendimiento.EmprendimientosScreen
-import com.sigefiv.app.viewmodel.EmprendimientoViewModel
-import com.sigefiv.app.screens.emprendimiento.EmprendimientoFormAction
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.FileProvider
 import java.io.File
-import com.sigefiv.app.screens.configuracion.ConfiguracionScreen
-import com.sigefiv.app.data.repository.ConfiguracionRepository
-import com.sigefiv.app.viewmodel.ConfiguracionViewModel
+import java.net.URLEncoder
+import kotlin.math.roundToInt
+import com.sigefiv.app.viewmodel.ReportesViewModel
+import com.sigefiv.app.screens.reportes.ReportesScreen
 
 enum class AppScreen(val drawerRoute: String) {
     DASHBOARD("dashboard"),
@@ -169,28 +165,25 @@ enum class AppScreen(val drawerRoute: String) {
     PERFIL("perfil"),
     USUARIOS("usuarios"),
     ROLES("roles"),
-
     NUEVO_ROL("roles"),
     EDITAR_ROL("roles"),
     CAJA("caja"),
     ACTIVIDAD("actividad"),
-
     BITACORA("bitacora"),
     NOTIFICACIONES("notificaciones"),
     ENVIAR_NOTIFICACION("notificaciones"),
     CONFIRMAR_NOTIFICACION("notificaciones"),
     MIS_EMPRENDIMIENTOS("perfil"),
     EMPRENDIMIENTO_FORM("perfil"),
-    DIRECTORIO_EMPRENDIMIENTOS("dashboard"), // 👈 NUEVA RUTA PÚBLICA
-    FAVORITOS_EMPRENDIMIENTOS("dashboard"), // 👈 NUEVA RUTA PARA FAVORITOS
-    DETALLE_EMPRENDIMIENTO("perfil"),         // 👈 NUEVO
+    DIRECTORIO_EMPRENDIMIENTOS("dashboard"),
+    FAVORITOS_EMPRENDIMIENTOS("dashboard"),
+    DETALLE_EMPRENDIMIENTO("perfil"),
     OPINIONES_EMPRENDIMIENTO("perfil"),
-
-    // 👇 NUEVAS RUTAS PARA INCIDENCIAS
     MIS_REPORTES_VECINO("mis_reportes"),
     GESTION_INCIDENCIAS_DIRECTIVA("gestion_incidencias"),
     CREAR_REPORTE("mis_reportes"),
-    CONFIGURACION("configuracion")
+    CONFIGURACION("configuracion"),
+    REPORTES("reportes")
 }
 
 @Composable
@@ -212,99 +205,59 @@ fun AppNavigation(
     val periodoViewModel = remember { PeriodoViewModel(context) }
     val periodosViewModel = remember { PeriodosViewModel(context) }
     val perfilViewModel = remember { PerfilViewModel(context) }
-  //  val emprendimientosListViewModel = remember { EmprendimientosListViewModel() }
-  //  val emprendimientoFormViewModel = remember { EmprendimientoFormViewModel() }
-    val asambleasViewModel =
-        remember { AsambleasViewModel(context.applicationContext as Application) }
+
+    val asambleasViewModel = remember { AsambleasViewModel(context.applicationContext as Application) }
     val usuarioViewModel = remember {
         UsuarioViewModel(
             UsuarioRepository(ApiClient.usuarioApi(context)),
             RolRepository(ApiClient.rolApi(context))
         )
     }
-    // 👇 Añade esta línea para observar el estado del ViewModel
     val usuarioUiState by usuarioViewModel.uiState.collectAsState()
     val cajaViewModel = remember { CajaViewModel(CajaRepository(ApiClient.cajaApi(context))) }
-    val actividadViewModel = remember {
-        ActividadViewModel(
-            context.applicationContext as Application
-        )
-    }
-
+    val actividadViewModel = remember { ActividadViewModel(context.applicationContext as Application) }
     val rolViewModel = remember { RolViewModel(RolRepository(ApiClient.rolApi(context))) }
     val chatViewModel = remember { ChatViewModel(ChatRepository(ApiClient.chatApi(context))) }
-    val notificacionViewModel =
-        remember { NotificacionViewModel(context) }
-    val fcmPreferenciaViewModel =
-        remember { FcmPreferenciaViewModel(context) }
-    val enviarNotificacionViewModel =
-        remember { EnviarNotificacionViewModel(context) }
-    val notificacionesNoLeidas by
-    notificacionViewModel.noLeidas.collectAsState()
+    val notificacionViewModel = remember { NotificacionViewModel(context) }
+    val fcmPreferenciaViewModel = remember { FcmPreferenciaViewModel(context) }
+    val enviarNotificacionViewModel = remember { EnviarNotificacionViewModel(context) }
+    val notificacionesNoLeidas by notificacionViewModel.noLeidas.collectAsState()
     val usuarioActualId by sessionManager.userId.collectAsState(initial = null)
     val usuarioPerfil by perfilViewModel.usuario.collectAsState()
     val guardandoPerfil by perfilViewModel.guardando.collectAsState()
     val subiendoFotoPerfil by perfilViewModel.subiendoFoto.collectAsState()
-    // Permisos del usuario actual
     val permisosUsuario = usuarioPerfil?.permisos ?: emptyList()
 
     val emprendimientoApi: EmprendimientoApi = remember { ApiClient.emprendimientoApi(context) }
-
     val emprendimientoRepository: EmprendimientoRepository = remember { EmprendimientoRepository(emprendimientoApi, context) }
-
     val emprendimientosListViewModel: EmprendimientosListViewModel = remember { EmprendimientosListViewModel(emprendimientoRepository) }
-
     val emprendimientoFormViewModel: EmprendimientoFormViewModel = remember { EmprendimientoFormViewModel(context.applicationContext as Application) }
     val emprendimientoViewModel = remember {
         EmprendimientoViewModel(
             EmprendimientoRepository(ApiClient.emprendimientoApi(context), context)
         )
     }
-    // 👇 AÑADE ESTAS LÍNEAS AQUÍ:
-    val incidenciasViewModel = remember {
-        com.sigefiv.app.viewmodel.IncidenciasViewModel(context.applicationContext as Application)
-    }
+
+    val incidenciasViewModel = remember { IncidenciasViewModel(context.applicationContext as Application) }
     val listaIncidenciasVecino by incidenciasViewModel.incidenciasVecino.collectAsState()
     val listaIncidenciasDirectiva by incidenciasViewModel.incidenciasDirectiva.collectAsState()
     val cargandoIncidencias by incidenciasViewModel.cargando.collectAsState()
-    val configuracionRepository = remember {
-        ConfiguracionRepository(ApiClient.configuracionApi(context))
-    }
-    val configuracionViewModel = remember {
-        ConfiguracionViewModel(configuracionRepository)
-    }
+
+    val configuracionRepository = remember { ConfiguracionRepository(ApiClient.configuracionApi(context)) }
+    val configuracionViewModel = remember { ConfiguracionViewModel(configuracionRepository) }
     val configUiState by configuracionViewModel.uiState.collectAsState()
+
     fun puede(permiso: String): Boolean {
-        return permisosUsuario.any {
-            it.trim().equals(permiso, ignoreCase = true)
-        }
+        return permisosUsuario.any { it.trim().equals(permiso, ignoreCase = true) }
     }
 
-    val puedeVerMovimientos =
-        puede("movimientos.index")
+    val puedeVerMovimientos = puede("movimientos.index")
 
-
-    var notificacionTitulo by remember {
-        mutableStateOf("")
-    }
-
-    var notificacionMensaje by remember {
-        mutableStateOf("")
-    }
-
-    var notificacionTipo by remember {
-        mutableStateOf("Aviso")
-    }
-
-    var notificacionDestinatario by remember {
-        mutableStateOf("Todos los vecinos")
-    }
-
-    var notificacionCantidad by remember {
-        mutableStateOf(0)
-    }
-
-
+    var notificacionTitulo by remember { mutableStateOf("") }
+    var notificacionMensaje by remember { mutableStateOf("") }
+    var notificacionTipo by remember { mutableStateOf("Aviso") }
+    var notificacionDestinatario by remember { mutableStateOf("Todos los vecinos") }
+    var notificacionCantidad by remember { mutableStateOf(0) }
 
     LaunchedEffect(Unit) {
         dashboardViewModel.cargarDashboard()
@@ -314,29 +267,21 @@ fun AppNavigation(
 
     val backStack = remember { mutableStateListOf(AppScreen.DASHBOARD) }
     val pantallaActual = backStack.lastOrNull() ?: AppScreen.DASHBOARD
-    var mostrarZoeModal by remember {
-        mutableStateOf(false)
-    }
-    val zoeSheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
-    )
-    val mascotaPreferencias = remember {
-        MascotaPreferencias(context)
-    }
+    var mostrarZoeModal by remember { mutableStateOf(false) }
+    val zoeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    val mascotaPreferencias = remember { MascotaPreferencias(context) }
     val mascotaEstado by MascotaControlador.estado.collectAsState()
     val eventoMascota by MascotaControlador.eventoUi.collectAsState()
-
-    val mascotaVisible by mascotaPreferencias.visible.collectAsState(
-        initial = true
-    )
-
+    val mascotaVisible by mascotaPreferencias.visible.collectAsState(initial = true)
     var mascotaX by remember { mutableStateOf(0f) }
-
     var mascotaY by remember { mutableStateOf(0f) }
     var emprendimientoIdSeleccionado by remember { mutableStateOf<Int?>(null) }
-
     val mascotaScope = rememberCoroutineScope()
+// Instancia del ViewModel para Reportes
+    val reportesViewModel = remember {
+        ReportesViewModel(ApiClient.reportesApi(context))
+    }
     LaunchedEffect(Unit) {
         mascotaPreferencias.posicion.collect { posicion ->
             mascotaX = posicion.first
@@ -353,8 +298,6 @@ fun AppNavigation(
         }
     }
 
-
-
     fun retroceder(): Boolean {
         return if (backStack.size > 1) {
             backStack.removeAt(backStack.lastIndex)
@@ -368,31 +311,23 @@ fun AppNavigation(
         retroceder()
     }
 
-
-
     var anioSeleccionado by remember { mutableStateOf(2026) }
     var periodoIdSeleccionado by remember { mutableStateOf(0) }
     var movimientoSeleccionado by remember { mutableStateOf<Movimiento?>(null) }
     var asambleaSeleccionada by remember { mutableStateOf<Asamblea?>(null) }
     var asambleaConvocatoria by remember { mutableStateOf<Asamblea?>(null) }
-    var mostrarAvisoAsamblea by remember {
-        mutableStateOf(false)
-    }
-    var mensajeAvisoAsamblea by remember {
-        mutableStateOf("No hay asambleas programadas por el momento.")
-    }
+    var mostrarAvisoAsamblea by remember { mutableStateOf(false) }
+    var mensajeAvisoAsamblea by remember { mutableStateOf("No hay asambleas programadas por el momento.") }
+
     if (mostrarAvisoAsamblea) {
         AlertDialog(
-            onDismissRequest = {
-                mostrarAvisoAsamblea = false
-            },
+            onDismissRequest = { mostrarAvisoAsamblea = false },
+            containerColor = MaterialTheme.colorScheme.surface,
             icon = {
                 Icon(
                     imageVector = Icons.Outlined.Groups,
                     contentDescription = null,
-                    tint = SeasonalColors.primary(
-                        SeasonalTheme.getSeason()
-                    ),
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(42.dp)
                 )
             },
@@ -401,7 +336,8 @@ fun AppNavigation(
                     text = "Asambleas",
                     fontWeight = FontWeight.Bold,
                     fontSize = 21.sp,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             text = {
@@ -414,120 +350,66 @@ fun AppNavigation(
             },
             confirmButton = {
                 Button(
-                    onClick = {
-                        mostrarAvisoAsamblea = false
-                    },
+                    onClick = { mostrarAvisoAsamblea = false },
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = SeasonalColors.primary(
-                            SeasonalTheme.getSeason()
-                        )
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
-                    Text(
-                        text = "Aceptar",
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(text = "Aceptar", fontWeight = FontWeight.Bold)
                 }
             }
         )
     }
+
     fun abrirAsamblea() {
-        Log.d("ASAMBLEA_DEBUG", "abrirAsamblea() EJECUTADA")
-
         if (puede("asambleas.index")) {
-
-            Log.d("ASAMBLEA_DEBUG", "TIENE PERMISO ADMIN")
-
             asambleaSeleccionada = null
             navegarA(AppScreen.ASAMBLEAS)
-
         } else {
-
-            Log.d("ASAMBLEA_DEBUG", "CONSULTANDO PROXIMA ASAMBLEA")
-
             asambleasViewModel.obtenerProximaAsamblea { asamblea ->
-
-                Log.d(
-                    "ASAMBLEA_DEBUG",
-                    "RESULTADO PROXIMA ASAMBLEA = $asamblea"
-                )
-
                 if (asamblea != null) {
-
                     asambleaConvocatoria = asamblea
                     navegarA(AppScreen.CONVOCATORIA_ASAMBLEA)
-
                 } else {
-                    Log.d(
-                        "ASAMBLEA_DEBUG",
-                        "NO HAY ASAMBLEA - SOLICITANDO MENSAJE DE ZOE"
-                    )
-
                     asambleasViewModel.obtenerAvisoSinAsamblea { mensaje ->
-
-                        mensajeAvisoAsamblea =
-                            mensaje
-                                ?: "No hay asambleas programadas por el momento."
-
+                        mensajeAvisoAsamblea = mensaje ?: "No hay asambleas programadas por el momento."
                         mostrarAvisoAsamblea = true
                     }
                 }
             }
         }
     }
-    var comprobanteParaFormulario by remember {
-        mutableStateOf<ComprobanteInterpretado?>(null)
+    fun abrirPeriodos() {
+        if (puede("periodos.index")) {
+            navegarA(AppScreen.PERIODOS)
+        }
     }
-    var comprobanteUriParaFormulario by remember {
-        mutableStateOf<Uri?>(null)
-    }
+
+    var comprobanteParaFormulario by remember { mutableStateOf<ComprobanteInterpretado?>(null) }
 
     LaunchedEffect(asambleaIdNotificacion) {
         asambleaIdNotificacion?.let { id ->
-
-            Log.d(
-                "SIGEFIV_NOTIF",
-                "NAVEGANDO A ASAMBLEA ID = $id"
-            )
-
             asambleasViewModel.obtenerAsambleaPublica(id) { asamblea ->
-
-                Log.d(
-                    "SIGEFIV_NOTIF",
-                    "ASAMBLEA PÚBLICA OBTENIDA = $asamblea"
-                )
-
                 if (asamblea != null) {
-
                     asambleaConvocatoria = asamblea
-
-                    Log.d(
-                        "SIGEFIV_NOTIF",
-                        "ABRIENDO CONVOCATORIA PÚBLICA"
-                    )
-
                     backStack.clear()
                     backStack.add(AppScreen.DASHBOARD)
                     backStack.add(AppScreen.CONVOCATORIA_ASAMBLEA)
-
                 } else {
-
-                    Log.d(
-                        "SIGEFIV_NOTIF",
-                        "NO HAY ASAMBLEA PROGRAMADA"
-                    )
-
                     mostrarAvisoAsamblea = true
                 }
             }
         }
     }
+
     LaunchedEffect(notificacionIdNotificacion) {
         notificacionIdNotificacion?.let { id ->
             notificacionViewModel.marcarComoLeida(id)
         }
     }
+
     LaunchedEffect(pantallaActual, puedeVerMovimientos) {
         if (!puedeVerMovimientos &&
             (
@@ -541,28 +423,15 @@ fun AppNavigation(
             backStack.add(AppScreen.DASHBOARD)
         }
     }
+
     LaunchedEffect(comprobanteConfirmado) {
-
         comprobanteConfirmado?.let { resultado ->
-
             comprobanteParaFormulario = resultado
-
             when (resultado.tipo) {
-
-                TipoMovimientoDetectado.INGRESO -> {
-                    navegarA(AppScreen.NUEVO_INGRESO)
-                }
-
-                TipoMovimientoDetectado.EGRESO -> {
-                    navegarA(AppScreen.NUEVO_EGRESO)
-                }
-
-                TipoMovimientoDetectado.INDETERMINADO -> {
-                    // No navegamos.
-                    // El usuario debe determinar el tipo.
-                }
+                TipoMovimientoDetectado.INGRESO -> navegarA(AppScreen.NUEVO_INGRESO)
+                TipoMovimientoDetectado.EGRESO -> navegarA(AppScreen.NUEVO_EGRESO)
+                TipoMovimientoDetectado.INDETERMINADO -> {}
             }
-
             onComprobanteProcesado()
         }
     }
@@ -591,70 +460,40 @@ fun AppNavigation(
                 onNavigate = { route ->
                     when (route) {
                         "dashboard" -> navegarA(AppScreen.DASHBOARD, limpiarPila = true)
-                        "movimientos" -> {
-                            if (puedeVerMovimientos) {
-                                navegarA(AppScreen.MOVIMIENTOS)
-                            }
+                        "movimientos" -> if (puedeVerMovimientos) navegarA(AppScreen.MOVIMIENTOS)
+                        "chat" -> if (puede("chat.index")) navegarA(AppScreen.CHAT)
+                        "asambleas" -> if (puede("asambleas.index")) {
+                            asambleaSeleccionada = null
+                            navegarA(AppScreen.ASAMBLEAS)
                         }
-
-                        "chat" -> {
-                            if (puede("chat.index")) {
-                                navegarA(AppScreen.CHAT)
-                            }
-                        }
-
-                        "asambleas" -> {
-                            if (puede("asambleas.index")) {
-                                asambleaSeleccionada = null
-                                navegarA(AppScreen.ASAMBLEAS)
-                            }
-                        }
-
-                        "periodos" -> {
-                            if (puede("periodos.index")) {
-                                navegarA(AppScreen.PERIODOS)
-                            }
-                        }
+                        "periodos" -> if (puede("periodos.index")) navegarA(AppScreen.PERIODOS)
                         "sigi" -> navegarA(AppScreen.SIGI)
                         "perfil" -> {
                             perfilViewModel.cargarPerfil()
                             navegarA(AppScreen.PERFIL)
                         }
-
                         "usuarios" -> navegarA(AppScreen.USUARIOS)
                         "roles" -> {
                             rolViewModel.cargarRoles()
                             navegarA(AppScreen.ROLES)
                         }
-
                         "caja" -> navegarA(AppScreen.CAJA)
-                        "notificaciones" -> {
-                            if (puede("notificaciones.index")) {
-                                navegarA(AppScreen.NOTIFICACIONES)
-                            }
-                        }
-                        // 👇 AÑADE ESTAS DOS RUTAS AQUÍ:
-                        "mis_reportes" -> {
-                            navegarA(AppScreen.MIS_REPORTES_VECINO)
-                        }
-                        "gestion_incidencias" -> {
-                            navegarA(AppScreen.GESTION_INCIDENCIAS_DIRECTIVA)
-                        }
-                        // ---------------------------------
-                        "bitacora" -> {
-                            if (puede("bitacora.index")) {
-                                navegarA(AppScreen.BITACORA) // O AppScreen.BITACORA si creaste una separada
-                            }
-                        }
+                        "notificaciones" -> if (puede("notificaciones.index")) navegarA(AppScreen.NOTIFICACIONES)
+                        "mis_reportes" -> navegarA(AppScreen.MIS_REPORTES_VECINO)
+                        "gestion_incidencias" -> navegarA(AppScreen.GESTION_INCIDENCIAS_DIRECTIVA)
+                        "bitacora" -> if (puede("bitacora.index")) navegarA(AppScreen.BITACORA)
                         "actividad" -> {
                             actividadViewModel.cargarActividades()
                             navegarA(AppScreen.ACTIVIDAD)
                         }
-                        "mis_reportes" -> navegarA(AppScreen.MIS_REPORTES_VECINO)
-                        "gestion_incidencias" -> navegarA(AppScreen.GESTION_INCIDENCIAS_DIRECTIVA)
                         "configuracion" -> {
                             if (puede("configuracion.index") || usuarioPerfil?.rol?.equals("administrador", true) == true) {
                                 navegarA(AppScreen.CONFIGURACION)
+                            }
+                        }
+                        "reportes" -> {
+                            if (puede("reportes.index")) {
+                                navegarA(AppScreen.REPORTES)
                             }
                         }
                     }
@@ -670,11 +509,7 @@ fun AppNavigation(
             AnimatedContent(
                 targetState = pantallaActual,
                 transitionSpec = {
-                    fadeIn(animationSpec = tween(140)) togetherWith fadeOut(
-                        animationSpec = tween(
-                            140
-                        )
-                    )
+                    fadeIn(animationSpec = tween(140)) togetherWith fadeOut(animationSpec = tween(140))
                 },
                 label = "ScreenTransition"
             ) { targetScreen ->
@@ -695,11 +530,9 @@ fun AppNavigation(
                                     navegarA(AppScreen.MOVIMIENTOS)
                                 }
                             },
-                            onAsambleasClick = {
-                                abrirAsamblea()
-                            },
+                            onAsambleasClick = { abrirAsamblea() },
                             onEmprendimientosClick = {
-                                navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS) // 👈 AHORA ABRE EL DIRECTORIO DE TODOS LOS VECINOS
+                                navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS)
                             },
                             onPeriodosClick = {
                                 if (puede("periodos.index")) {
@@ -710,9 +543,7 @@ fun AppNavigation(
                                 perfilViewModel.cargarPerfil()
                                 navegarA(AppScreen.PERFIL)
                             },
-                            onSigiClick = {
-                                mostrarZoeModal = true
-                            },
+                            onSigiClick = { mostrarZoeModal = true },
                             onOpenDrawer = { scope.launch { drawerState.open() } },
                             darkTheme = darkTheme,
                             onThemeToggle = onThemeToggle
@@ -748,37 +579,31 @@ fun AppNavigation(
                             periodoViewModel = periodoViewModel,
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
                             onAsambleasClick = { abrirAsamblea() },
-                            onPeriodosClick = {
-                                if (puede("periodos.index")) {
-                                    navegarA(AppScreen.PERIODOS)
-                                }
-                            },
+                            onEmprendimientosClick = { navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS) },
+                            onPeriodosClick = { abrirPeriodos() },
                             onMiCuentaClick = {
                                 perfilViewModel.cargarPerfil()
                                 navegarA(AppScreen.PERFIL)
                             },
-                            onNuevoMovimientoClick = { navegarA(AppScreen.NUEVO_MOVIMIENTO) },
+                            // 👇 Ahora van directo a las pantallas correspondientes
+                            onNuevoIngresoClick = { navegarA(AppScreen.NUEVO_INGRESO) },
+                            onNuevoEgresoClick = { navegarA(AppScreen.NUEVO_EGRESO) },
                             onMovimientoClick = { mov ->
                                 movimientoSeleccionado = mov
                                 navegarA(AppScreen.DETALLE_MOVIMIENTO)
                             },
                             onOpenDrawer = { scope.launch { drawerState.open() } },
                             puedeCerrarPeriodo = puede("periodos.cerrar"),
-
                             onCerrarPeriodoClick = {
                                 periodo?.let { periodoActual ->
-                                    periodoViewModel.cerrarPeriodo(periodoActual.id) { exito, mensaje ->
+                                    periodoViewModel.cerrarPeriodo(periodoActual.id) { exito, _ ->
                                         if (exito) {
-                                            // El backend crea automáticamente el siguiente período.
                                             periodoViewModel.cargarPeriodoAbierto()
-
-                                            // Actualizamos los movimientos mostrados.
                                             movimientosViewModel.cargarMovimientos()
                                         }
                                     }
                                 }
                             }
-
                         )
                     }
 
@@ -799,18 +624,10 @@ fun AppNavigation(
                                 saldoDisponiblePeriodo = periodoDetalle?.saldo_disponible,
                                 saldoCajaPeriodo = periodoDetalle?.saldo_caja,
                                 onBackClick = { retroceder() },
-                                onInicioClick = {
-                                    navegarA(AppScreen.DASHBOARD, limpiarPila = true)
-                                },
-                                onAsambleasClick = {
-                                    abrirAsamblea()
-                                },
-                                onEmprendimientosClick = {
-                                    navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS)
-                                },
-                                onPeriodosClick = {
-                                    navegarA(AppScreen.PERIODOS)
-                                },
+                                onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
+                                onAsambleasClick = { abrirAsamblea() },
+                                onEmprendimientosClick = { navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS) },
+                                onPeriodosClick = { navegarA(AppScreen.PERIODOS) },
                                 onMiCuentaClick = {
                                     perfilViewModel.cargarPerfil()
                                     navegarA(AppScreen.PERFIL)
@@ -838,16 +655,14 @@ fun AppNavigation(
                             cargandoPeriodo = cargandoPeriodo,
                             guardando = guardandoMovimiento,
                             mensaje = mensajeMovimiento,
-                            fechaInicial = comprobanteParaFormulario?.fecha?.let {
-                                convertirFechaComprobante(it)
-                            },
+                            fechaInicial = comprobanteParaFormulario?.fecha?.let { convertirFechaComprobante(it) },
                             personaInicial = comprobanteParaFormulario?.persona,
                             formaPagoInicial = comprobanteParaFormulario?.medioPago,
                             montoInicial = comprobanteParaFormulario?.monto,
                             referenciaInicial = comprobanteParaFormulario?.numeroOperacion,
                             comprobanteUri = comprobanteUri,
                             onCerrarClick = { retroceder() },
-                            onGuardar = { fecha, categoriaId, concepto, persona, formaPago, monto, referencia, observaciones, comprobanteUri ->
+                            onGuardar = { fecha, categoriaId, concepto, persona, formaPago, monto, referencia, observaciones, comprobanteUriParam ->
                                 movimientosViewModel.crearMovimiento(
                                     fecha = fecha,
                                     categoriaId = categoriaId,
@@ -857,7 +672,7 @@ fun AppNavigation(
                                     monto = monto,
                                     referencia = referencia,
                                     observaciones = observaciones,
-                                    comprobanteUri = comprobanteUri
+                                    comprobanteUri = comprobanteUriParam
                                 ) { exito ->
                                     if (exito) {
                                         dashboardViewModel.cargarDashboard()
@@ -878,16 +693,14 @@ fun AppNavigation(
                             cargandoPeriodo = cargandoPeriodo,
                             guardando = guardandoMovimiento,
                             mensaje = mensajeMovimiento,
-                            fechaInicial = comprobanteParaFormulario?.fecha?.let {
-                                convertirFechaComprobante(it)
-                            },
+                            fechaInicial = comprobanteParaFormulario?.fecha?.let { convertirFechaComprobante(it) },
                             personaInicial = comprobanteParaFormulario?.persona,
                             formaPagoInicial = comprobanteParaFormulario?.medioPago,
                             montoInicial = comprobanteParaFormulario?.monto,
                             referenciaInicial = comprobanteParaFormulario?.numeroOperacion,
                             comprobanteUri = comprobanteUri,
                             onCerrarClick = { retroceder() },
-                            onGuardar = { fecha, categoriaId, concepto, persona, formaPago, monto, referencia, observaciones, comprobanteUri ->
+                            onGuardar = { fecha, categoriaId, concepto, persona, formaPago, monto, referencia, observaciones, comprobanteUriParam ->
                                 movimientosViewModel.crearMovimiento(
                                     fecha = fecha,
                                     categoriaId = categoriaId,
@@ -897,7 +710,7 @@ fun AppNavigation(
                                     monto = monto,
                                     referencia = referencia,
                                     observaciones = observaciones,
-                                    comprobanteUri = comprobanteUri
+                                    comprobanteUri = comprobanteUriParam
                                 ) { exito ->
                                     if (exito) {
                                         dashboardViewModel.cargarDashboard()
@@ -931,24 +744,15 @@ fun AppNavigation(
                             }
                         )
                     }
-
                     AppScreen.DETALLE_ASAMBLEA -> {
                         asambleaSeleccionada?.let { asamblea ->
                             DetalleAsambleaScreen(
                                 asamblea = asamblea,
                                 onBackClick = { retroceder() },
-                                onInicioClick = {
-                                    navegarA(
-                                        AppScreen.DASHBOARD,
-                                        limpiarPila = true
-                                    )
-                                },
-                                onMovimientosClick = { navegarA(AppScreen.PERIODOS) },
+                                onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
+                                onMovimientosClick = { if (puedeVerMovimientos) navegarA(AppScreen.MOVIMIENTOS) },
                                 onAsambleasClick = { abrirAsamblea() },
-                                onPeriodosClick = {
-                                    perfilViewModel.cargarPerfil()
-                                    navegarA(AppScreen.PERFIL)
-                                },
+                                onPeriodosClick = { abrirPeriodos() },
                                 onOpenDrawer = { scope.launch { drawerState.open() } },
                                 onEditarClick = { navegarA(AppScreen.EDITAR_ASAMBLEA) }
                             )
@@ -1037,24 +841,14 @@ fun AppNavigation(
                                 periodoIdSeleccionado = periodoId
                                 navegarA(AppScreen.PERIODO_DETALLE)
                             },
-                            onInicioClick = {
-                                navegarA(AppScreen.DASHBOARD, limpiarPila = true)
-                            },
-                            onAsambleasClick = {
-                                abrirAsamblea()
-                            },
-                            onEmprendimientosClick = {
-                                navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS)
-                            },
-                            onPeriodosClick = {
-                                // Regresa a la lista general de años de períodos
-                                navegarA(AppScreen.PERIODOS)
-                            },
+                            onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
+                            onAsambleasClick = { abrirAsamblea() },
+                            onEmprendimientosClick = { navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS) },
+                            onPeriodosClick = { navegarA(AppScreen.PERIODOS) },
                             onMiCuentaClick = {
                                 perfilViewModel.cargarPerfil()
                                 navegarA(AppScreen.PERFIL)
-                            },
-
+                            }
                         )
                     }
 
@@ -1075,7 +869,7 @@ fun AppNavigation(
                                 perfilViewModel.cargarPerfil()
                                 navegarA(AppScreen.PERFIL)
                             },
-                            onOpenDrawer = { scope.launch { drawerState.open() } }
+
                         )
                     }
 
@@ -1091,9 +885,7 @@ fun AppNavigation(
                                 }
                             },
                             onMiCuentaClick = { },
-                            onMisEmprendimientosClick = {
-                                navegarA(AppScreen.MIS_EMPRENDIMIENTOS)
-                            },
+                            onMisEmprendimientosClick = { navegarA(AppScreen.MIS_EMPRENDIMIENTOS) },
                             nombre = usuarioPerfil?.name ?: "Usuario",
                             seudonimo = usuarioPerfil?.seudonimo,
                             email = usuarioPerfil?.email ?: "",
@@ -1105,8 +897,6 @@ fun AppNavigation(
                             metodoAcceso = usuarioPerfil?.metodo_acceso,
                             guardando = guardandoPerfil,
                             subiendoFoto = subiendoFotoPerfil,
-
-                            // 👇 NUEVOS PARÁMETROS PARA EL CAMBIO DE CONTRASEÑA
                             cargandoPassword = usuarioUiState.cambiandoPassword,
                             onActualizarPassword = { actual, nueva, confirmar, onExito ->
                                 usuarioViewModel.actualizarPassword(
@@ -1116,7 +906,6 @@ fun AppNavigation(
                                     onExito = onExito
                                 )
                             },
-
                             onGuardarPerfil = { seudonimo ->
                                 perfilViewModel.actualizarPerfil(
                                     seudonimo = seudonimo,
@@ -1164,7 +953,7 @@ fun AppNavigation(
                                     modifier = Modifier.fillMaxSize(),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    CircularProgressIndicator(color = Color(0xFF15803D))
+                                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                                 }
                             }
 
@@ -1177,9 +966,8 @@ fun AppNavigation(
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(
-                                            text = rolUiState.error
-                                                ?: "Error al cargar detalle del rol",
-                                            color = Color(0xFFDC2626),
+                                            text = rolUiState.error ?: "Error al cargar detalle del rol",
+                                            color = MaterialTheme.colorScheme.error,
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Medium
                                         )
@@ -1187,12 +975,11 @@ fun AppNavigation(
                                         Button(
                                             onClick = { retroceder() },
                                             colors = ButtonDefaults.buttonColors(
-                                                containerColor = Color(
-                                                    0xFF15803D
-                                                )
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary
                                             )
                                         ) {
-                                            Text("Volver a Roles", color = Color.White)
+                                            Text("Volver a Roles")
                                         }
                                     }
                                 }
@@ -1239,7 +1026,6 @@ fun AppNavigation(
                         )
                     }
 
-
                     AppScreen.CAJA -> {
                         CajaScreen(
                             viewModel = cajaViewModel,
@@ -1248,8 +1034,9 @@ fun AppNavigation(
                             darkTheme = darkTheme
                         )
                     }
+
                     AppScreen.BITACORA -> {
-                        com.sigefiv.app.screens.bitacora.BitacoraScreen(
+                        BitacoraScreen(
                             onBackClick = { retroceder() }
                         )
                     }
@@ -1257,9 +1044,7 @@ fun AppNavigation(
                     AppScreen.ACTIVIDAD -> {
                         ActividadScreen(
                             viewModel = actividadViewModel,
-                            onBack = {
-                                retroceder()
-                            }
+                            onBack = { retroceder() }
                         )
                     }
 
@@ -1269,110 +1054,47 @@ fun AppNavigation(
                             fcmPreferenciaViewModel = fcmPreferenciaViewModel,
                             rol = usuarioPerfil?.rol,
                             mascotaVisible = mascotaVisible,
-
                             onMascotaVisibleChange = { visible ->
                                 mascotaScope.launch {
                                     mascotaPreferencias.guardarVisible(visible)
                                 }
                             },
-
                             onNuevaNotificacionClick = {
                                 navegarA(AppScreen.ENVIAR_NOTIFICACION)
                             },
-
                             onNotificacionClick = { notificacion ->
-
                                 when (notificacion.tipo.lowercase()) {
                                     "asamblea" -> {
-
-                                        val asambleaId = notificacion.data
-                                            ?.get("asamblea_id")
-                                            ?.toIntOrNull()
+                                        val asambleaId = notificacion.data?.get("asamblea_id")?.toIntOrNull()
                                         if (asambleaId != null) {
-
                                             asambleasViewModel.obtenerAsambleaPublica(asambleaId) { asamblea ->
-
                                                 if (asamblea != null) {
-
                                                     asambleaConvocatoria = asamblea
-
-                                                    navegarA(
-                                                        AppScreen.CONVOCATORIA_ASAMBLEA
-                                                    )
+                                                    navegarA(AppScreen.CONVOCATORIA_ASAMBLEA)
                                                 }
                                             }
                                         }
                                     }
-
                                     "zoe" -> {
-                                        val periodoId = notificacion.data
-                                            ?.get("periodo_id")
-                                            ?.toIntOrNull()
-
+                                        val periodoId = notificacion.data?.get("periodo_id")?.toIntOrNull()
                                         if (periodoId != null) {
                                             periodoIdSeleccionado = periodoId
-
-                                            navegarA(
-                                                AppScreen.PERIODO_DETALLE
-                                            )
+                                            navegarA(AppScreen.PERIODO_DETALLE)
                                         }
                                     }
-
-                                    "ingreso" -> {
-
-                                        val movimientoId =
-                                            notificacion.data
-                                                ?.get("movimiento_id")
-                                                ?.toIntOrNull()
-
+                                    "ingreso", "egreso" -> {
+                                        val movimientoId = notificacion.data?.get("movimiento_id")?.toIntOrNull()
                                         if (movimientoId != null) {
-
-                                            movimientosViewModel.obtenerMovimientoPorId(
-                                                movimientoId
-                                            ) { movimiento ->
-
-                                                if (movimiento != null) {
-
-                                                    movimientoSeleccionado =
-                                                        movimiento
-
-
-
-                                                    navegarA(
-                                                        AppScreen.DETALLE_MOVIMIENTO
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    "egreso" -> {
-                                        val movimientoId =
-                                            notificacion.data
-                                                ?.get("movimiento_id")
-                                                ?.toIntOrNull()
-
-                                        if (movimientoId != null) {
-                                            movimientosViewModel.obtenerMovimientoPorId(
-                                                movimientoId
-                                            ) { movimiento ->
+                                            movimientosViewModel.obtenerMovimientoPorId(movimientoId) { movimiento ->
                                                 if (movimiento != null) {
                                                     movimientoSeleccionado = movimiento
-
-                                                    navegarA(
-                                                        AppScreen.DETALLE_MOVIMIENTO
-                                                    )
+                                                    navegarA(AppScreen.DETALLE_MOVIMIENTO)
                                                 }
                                             }
                                         }
-                                    }
-
-                                    else -> {
-                                        // Los demás tipos los implementaremos después.
                                     }
                                 }
                             },
-
                             onBackClick = { retroceder() }
                         )
                     }
@@ -1381,24 +1103,14 @@ fun AppNavigation(
                         EnviarNotificacionScreen(
                             viewModel = enviarNotificacionViewModel,
                             usuarioViewModel = usuarioViewModel,
-                            onBackClick = {
-                                retroceder()
-                            },
-                            onEnvioExitoso = { titulo,
-                                               mensaje,
-                                               tipo,
-                                               destinatario,
-                                               cantidad ->
-
+                            onBackClick = { retroceder() },
+                            onEnvioExitoso = { titulo, mensaje, tipo, destinatario, cantidad ->
                                 notificacionTitulo = titulo
                                 notificacionMensaje = mensaje
                                 notificacionTipo = tipo
                                 notificacionDestinatario = destinatario
                                 notificacionCantidad = cantidad
-
-                                navegarA(
-                                    AppScreen.CONFIRMAR_NOTIFICACION
-                                )
+                                navegarA(AppScreen.CONFIRMAR_NOTIFICACION)
                             }
                         )
                     }
@@ -1416,17 +1128,13 @@ fun AppNavigation(
                             },
                             onConfirmarEnvio = {
                                 enviarNotificacionViewModel.limpiarResultado()
-
-                                while (
-                                    backStack.size > 1 &&
-                                    backStack.last() != AppScreen.NOTIFICACIONES
-                                ) {
+                                while (backStack.size > 1 && backStack.last() != AppScreen.NOTIFICACIONES) {
                                     backStack.removeAt(backStack.lastIndex)
                                 }
                             }
                         )
                     }
-                    // 👇 DIRECTORIO PÚBLICO (Se abre al presionar "Negocios" en la barra inferior)
+
                     AppScreen.DIRECTORIO_EMPRENDIMIENTOS -> {
                         EmprendimientosScreen(
                             viewModel = emprendimientoViewModel,
@@ -1435,18 +1143,26 @@ fun AppNavigation(
                                 navegarA(AppScreen.DETALLE_EMPRENDIMIENTO)
                             },
                             onFavoritosClick = {
-                                navegarA(AppScreen.FAVORITOS_EMPRENDIMIENTOS) // 👈 Abre la vista de favoritos
-                            }
+                                navegarA(AppScreen.FAVORITOS_EMPRENDIMIENTOS)
+                            },
+                            onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
+                            onAsambleasClick = { abrirAsamblea() },
+                            onEmprendimientosClick = { /* Ya estás aquí */ },
+                            onPeriodosClick = { abrirPeriodos() },
+                            onMiCuentaClick = {
+                                perfilViewModel.cargarPerfil()
+                                navegarA(AppScreen.PERFIL)
+                            },
+                            onOpenDrawer = { scope.launch { drawerState.open() } }
                         )
                     }
-                    // 👇 NUEVA PANTALLA DE MIS FAVORITOS
+
                     AppScreen.FAVORITOS_EMPRENDIMIENTOS -> {
-                        // 💖 Cargamos los favoritos actualizados al entrar a la pantalla
                         LaunchedEffect(Unit) {
                             emprendimientoViewModel.cargarFavoritos()
                         }
 
-                        com.sigefiv.app.screens.emprendimiento.EmprendimientosFavoritosScreen(
+                        EmprendimientosFavoritosScreen(
                             viewModel = emprendimientoViewModel,
                             onBackClick = { retroceder() },
                             onItemClick = { id ->
@@ -1455,26 +1171,20 @@ fun AppNavigation(
                             },
                             onContactarWhatsapp = { telefono ->
                                 val mensaje = "Hola, vi tu negocio en mis favoritos de SIGEFIV y quisiera hacer una consulta."
-                                val mensajeCodificado = java.net.URLEncoder.encode(mensaje, "UTF-8")
+                                val mensajeCodificado = URLEncoder.encode(mensaje, "UTF-8")
                                 val telefonoLimpio = telefono.replace(Regex("[^0-9]"), "")
                                 val telefonoConPais = if (telefonoLimpio.length == 9) "51$telefonoLimpio" else telefonoLimpio
-
                                 val url = "https://api.whatsapp.com/send?phone=$telefonoConPais&text=$mensajeCodificado"
-                                val intent = android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse(url)
-                                )
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                 context.startActivity(intent)
                             },
                             onLlamar = { telefono ->
-                                val intent = android.content.Intent(
-                                    android.content.Intent.ACTION_DIAL,
-                                    android.net.Uri.parse("tel:$telefono")
-                                )
+                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$telefono"))
                                 context.startActivity(intent)
                             }
                         )
                     }
+
                     AppScreen.MIS_EMPRENDIMIENTOS -> {
                         LaunchedEffect(Unit) {
                             emprendimientosListViewModel.cargarMisEmprendimientos()
@@ -1494,7 +1204,7 @@ fun AppNavigation(
                                 navegarA(AppScreen.EMPRENDIMIENTO_FORM)
                             },
                             onItemClick = { id ->
-                                emprendimientoIdSeleccionado = id.toInt() // 👈 Convertimos el Long a Int aqui
+                                emprendimientoIdSeleccionado = id.toInt()
                                 navegarA(AppScreen.DETALLE_EMPRENDIMIENTO)
                             },
                             onCambiarEstadoClick = { id, nuevoEstado ->
@@ -1505,15 +1215,14 @@ fun AppNavigation(
                             }
                         )
                     }
+
                     AppScreen.EMPRENDIMIENTO_FORM -> {
                         val state by emprendimientoFormViewModel.state.collectAsState()
 
-                        // 📸 Lanzador nativo para seleccionar una imagen de la galería
-                        val imagePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-                            contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
-                        ) { uri: android.net.Uri? ->
+                        val imagePickerLauncher = rememberLauncherForActivityResult(
+                            contract = ActivityResultContracts.GetContent()
+                        ) { uri: Uri? ->
                             uri?.let { selectedUri ->
-                                // Añadimos la uri seleccionada a tu estado/ViewModel como String
                                 emprendimientoFormViewModel.onAction(
                                     EmprendimientoFormAction.AddPhoto(selectedUri.toString())
                                 )
@@ -1524,13 +1233,12 @@ fun AppNavigation(
                             state = state,
                             onAction = { action -> emprendimientoFormViewModel.onAction(action) },
                             onPickImageClick = {
-                                // 📂 Abre la galería filtrando solo imágenes
                                 imagePickerLauncher.launch("image/*")
                             },
                             onNavigateBack = { retroceder() }
                         )
                     }
-                    // 👇 Dentro de AppScreen.DETALLE_EMPRENDIMIENTO en AppNavigation.kt:
+
                     AppScreen.DETALLE_EMPRENDIMIENTO -> {
                         val listaPublica = emprendimientoViewModel.emprendimientos
                         val statePersonal by emprendimientosListViewModel.state.collectAsState()
@@ -1538,19 +1246,17 @@ fun AppNavigation(
                         val negocioPublico = listaPublica.find { it.id == emprendimientoIdSeleccionado }
                         val negocioPersonal = statePersonal.emprendimientos.find { it.id.toInt() == emprendimientoIdSeleccionado }
 
-                        // 🔍 Cargamos las opiniones cada vez que cambia el ID seleccionado
                         LaunchedEffect(emprendimientoIdSeleccionado) {
                             emprendimientoIdSeleccionado?.let {
                                 emprendimientoViewModel.cargarOpiniones(it)
                             }
                         }
 
-                        // 🌟 Obtenemos el estado actual directamente del ViewModel
                         val opinionesData = emprendimientoViewModel.opinionesState
 
                         val modeloDetalle = when {
                             negocioPublico != null -> {
-                                com.sigefiv.app.data.model.EmprendimientoModel(
+                                EmprendimientoModel(
                                     id = negocioPublico.id,
                                     nombre = negocioPublico.nombre,
                                     descripcion = negocioPublico.descripcion,
@@ -1565,7 +1271,7 @@ fun AppNavigation(
                                 )
                             }
                             negocioPersonal != null -> {
-                                com.sigefiv.app.data.model.EmprendimientoModel(
+                                EmprendimientoModel(
                                     id = negocioPersonal.id.toInt(),
                                     nombre = negocioPersonal.nombre,
                                     descripcion = negocioPersonal.description ?: "",
@@ -1583,32 +1289,25 @@ fun AppNavigation(
                         }
 
                         if (modeloDetalle != null) {
-                            com.sigefiv.app.screens.emprendimiento.DetalleEmprendimientoScreen(
+                            DetalleEmprendimientoScreen(
                                 emprendimiento = modeloDetalle,
-                                promedio = opinionesData?.promedio ?: 0.0f,     // 👈 Promedio real dinámico
-                                totalOpiniones = opinionesData?.total ?: 0,   // 👈 Total real dinámico
+                                promedio = opinionesData?.promedio ?: 0.0f,
+                                totalOpiniones = opinionesData?.total ?: 0,
                                 onBackClick = { retroceder() },
                                 onOpenOpiniones = {
                                     navegarA(AppScreen.OPINIONES_EMPRENDIMIENTO)
                                 },
                                 onContactarWhatsapp = {
                                     val mensaje = "Hola, vi tu negocio '${modeloDetalle.nombre}' en SIGEFIV y quisiera consultar más información."
-                                    val mensajeCodificado = java.net.URLEncoder.encode(mensaje, "UTF-8")
+                                    val mensajeCodificado = URLEncoder.encode(mensaje, "UTF-8")
                                     val telefonoLimpio = modeloDetalle.telefono.replace(Regex("[^0-9]"), "")
                                     val telefonoConPais = if (telefonoLimpio.length == 9) "51$telefonoLimpio" else telefonoLimpio
-
                                     val url = "https://api.whatsapp.com/send?phone=$telefonoConPais&text=$mensajeCodificado"
-                                    val intent = android.content.Intent(
-                                        android.content.Intent.ACTION_VIEW,
-                                        android.net.Uri.parse(url)
-                                    )
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                     context.startActivity(intent)
                                 },
                                 onLlamar = {
-                                    val intent = android.content.Intent(
-                                        android.content.Intent.ACTION_DIAL,
-                                        android.net.Uri.parse("tel:${modeloDetalle.telefono}")
-                                    )
+                                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${modeloDetalle.telefono}"))
                                     context.startActivity(intent)
                                 }
                             )
@@ -1618,28 +1317,26 @@ fun AppNavigation(
                             }
                         }
                     }
+
                     AppScreen.OPINIONES_EMPRENDIMIENTO -> {
                         val listaPublica = emprendimientoViewModel.emprendimientos
                         val statePersonal by emprendimientosListViewModel.state.collectAsState()
 
                         val negocioPublico = listaPublica.find { it.id == emprendimientoIdSeleccionado }
                         val negocioPersonal = statePersonal.emprendimientos.find { it.id.toInt() == emprendimientoIdSeleccionado }
-
                         val nombreNegocio = negocioPublico?.nombre ?: negocioPersonal?.nombre ?: "Emprendimiento"
 
                         val opinionesData = emprendimientoViewModel.opinionesState
                         val cargandoOps = emprendimientoViewModel.cargandoOpiniones
 
-                        // Cargar las opiniones reales al abrir la pantalla
                         LaunchedEffect(emprendimientoIdSeleccionado) {
                             emprendimientoIdSeleccionado?.let {
                                 emprendimientoViewModel.cargarOpiniones(it)
                             }
                         }
 
-                        // 👇 PEGA ESTO AQUÍ: Cálculo dinámico de la distribución por estrella
                         val opinionesList = opinionesData?.opiniones ?: emptyList()
-                        val totalOps = opinionesData?.total ?: 1 // Evitamos división por cero
+                        val totalOps = opinionesData?.total ?: 1
 
                         val distribucionReal = (5 downTo 1).associateWith { estrella ->
                             if (totalOps > 0) {
@@ -1649,73 +1346,58 @@ fun AppNavigation(
                                 0
                             }
                         }
-                        // 👆 HASTA AQUÍ
 
-                        com.sigefiv.app.screens.emprendimiento.OpinionesScreen(
+                        OpinionesScreen(
                             nombreNegocio = nombreNegocio,
                             promedioEstrellas = opinionesData?.promedio ?: 0.0f,
                             totalOpiniones = opinionesData?.total ?: 0,
-                            distribucionPorcentaje = distribucionReal, // 👈 Y pásalo aquí
+                            distribucionPorcentaje = distribucionReal,
                             opiniones = opinionesList,
                             userOpinion = opinionesData?.userOpinion,
                             cargando = cargandoOps,
                             onBackClick = { retroceder() },
                             onEnviarOpinion = { calificacion, comentario ->
                                 emprendimientoIdSeleccionado?.let { id ->
-                                    emprendimientoViewModel.enviarOpinion(id, calificacion, comentario) {
-                                        // ¡Opinión publicada con éxito!
-                                    }
+                                    emprendimientoViewModel.enviarOpinion(id, calificacion, comentario) {}
                                 }
                             }
                         )
                     }
-                    // 👇 NUEVA PANTALLA: MIS REPORTES (VECINO)
-                    // 👇 NUEVA PANTALLA: MIS REPORTES (VECINO)
+
                     AppScreen.MIS_REPORTES_VECINO -> {
                         LaunchedEffect(Unit) {
-                            // 🛡️ El backend obtiene el ID automáticamente por el token de Sanctum
                             incidenciasViewModel.cargarMisReportesParaVecino()
                         }
 
-                        com.sigefiv.app.screens.incidencias.MisReportesVecinoScreen(
+                        MisReportesVecinoScreen(
                             listaIncidencias = listaIncidenciasVecino,
                             isRefreshing = cargandoIncidencias,
-                            // 🔄 Recarga usando la nueva función limpia sin requerir pasar el ID manualmente
-                            onRefresh = {
-                                incidenciasViewModel.cargarMisReportesParaVecino()
-                            },
-                            onNuevoReporteClick = {
-                                navegarA(AppScreen.CREAR_REPORTE) // 🚀 Redirige al formulario de nuevo reporte
-                            },
+                            onRefresh = { incidenciasViewModel.cargarMisReportesParaVecino() },
+                            onNuevoReporteClick = { navegarA(AppScreen.CREAR_REPORTE) },
                             onBackClick = { retroceder() }
                         )
                     }
-                    // 👇 AÑADE ESTE BLOQUE NUEVO JUSTO AQUÍ:
+
                     AppScreen.CREAR_REPORTE -> {
                         var imagenSeleccionadaUri by remember { mutableStateOf<Uri?>(null) }
                         var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
-
-                        // 📸 Lanzador para tomar la foto con la cámara (Sin 'const')
-                        val AUTHORITY = "${context.packageName}.fileprovider"
+                        val authority = "${context.packageName}.fileprovider"
 
                         val tomarFotoLauncher = rememberLauncherForActivityResult(
                             contract = ActivityResultContracts.TakePicture()
                         ) { exito ->
                             if (exito) {
-                                tempPhotoUri?.let { uri ->
-                                    imagenSeleccionadaUri = uri
-                                }
+                                tempPhotoUri?.let { uri -> imagenSeleccionadaUri = uri }
                             }
                         }
 
-                        // 📂 Lanzador para elegir de la galería
                         val galeriaLauncher = rememberLauncherForActivityResult(
                             contract = ActivityResultContracts.GetContent()
                         ) { uri ->
                             uri?.let { imagenSeleccionadaUri = it }
                         }
 
-                        com.sigefiv.app.screens.incidencias.CrearReporteScreen(
+                        CrearReporteScreen(
                             onEnviarReporte = { titulo, categoria, mensaje, uri ->
                                 incidenciasViewModel.crearIncidencia(
                                     titulo = titulo,
@@ -1723,16 +1405,13 @@ fun AppNavigation(
                                     mensaje = mensaje,
                                     imagenUri = uri,
                                     onResultado = { exito, _ ->
-                                        if (exito) {
-                                            retroceder() // Vuelve a mis reportes y recarga
-                                        }
+                                        if (exito) retroceder()
                                     }
                                 )
                             },
                             onTomarFoto = {
-                                // Creamos un archivo temporal seguro en el caché para la cámara
                                 val archivoTemp = File(context.cacheDir, "incidencia_camara_${System.currentTimeMillis()}.jpg")
-                                val uriTemp = androidx.core.content.FileProvider.getUriForFile(context, AUTHORITY, archivoTemp)
+                                val uriTemp = FileProvider.getUriForFile(context, authority, archivoTemp)
                                 tempPhotoUri = uriTemp
                                 tomarFotoLauncher.launch(uriTemp)
                             },
@@ -1746,13 +1425,12 @@ fun AppNavigation(
                         )
                     }
 
-                    // 👇 NUEVA PANTALLA: GESTIÓN DE INCIDENCIAS (DIRECTIVA)
                     AppScreen.GESTION_INCIDENCIAS_DIRECTIVA -> {
                         LaunchedEffect(Unit) {
                             incidenciasViewModel.cargarIncidenciasDirectiva()
                         }
 
-                        com.sigefiv.app.screens.incidencias.GestionIncidenciasDirectivaScreen(
+                        GestionIncidenciasDirectivaScreen(
                             listaIncidencias = listaIncidenciasDirectiva,
                             isRefreshing = cargandoIncidencias,
                             onCambiarEstado = { idIncidencia, nuevoEstado ->
@@ -1761,6 +1439,7 @@ fun AppNavigation(
                             onBackClick = { retroceder() }
                         )
                     }
+
                     AppScreen.CONFIGURACION -> {
                         LaunchedEffect(Unit) {
                             configuracionViewModel.cargarConfiguracion()
@@ -1775,17 +1454,29 @@ fun AppNavigation(
                             onBackClick = { retroceder() }
                         )
                     }
+                    AppScreen.REPORTES -> {
+                        ReportesScreen(
+                            viewModel = reportesViewModel,
+                            darkTheme = darkTheme,
+                            onOpenDrawer = { scope.launch { drawerState.open() } },
+
+                            onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
+                            onAsambleasClick = { abrirAsamblea() },
+                            onEmprendimientosClick = { navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS) },
+                            onPeriodosClick = { abrirPeriodos() },
+                            onMiCuentaClick = {
+                                perfilViewModel.cargarPerfil()
+                                navegarA(AppScreen.PERFIL)
+                            }
+                        )
+                    }
                 }
             }
+
             // ============================================================
             // MASCOTA GLOBAL DE ZOE
-            // Visible en todas las pantallas de SIGEFIV
             // ============================================================
-
-            BoxWithConstraints(
-                modifier = Modifier.fillMaxSize()
-            ) {
-
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val mascotaSize = 78.dp
                 val margen = 12.dp
                 val density = androidx.compose.ui.platform.LocalDensity.current
@@ -1797,14 +1488,9 @@ fun AppNavigation(
                 val limiteSuperior = with(density) {
                     -(maxHeight - mascotaSize - margen * 2).toPx()
                 }
+
                 if (mascotaVisible) {
-
-                    // --------------------------------------------------------
-                    // NUBE DE EVENTO
-                    // --------------------------------------------------------
-
                     if (eventoMascota != null) {
-
                         MascotaBurbujaEvento(
                             evento = eventoMascota,
                             visible = true,
@@ -1814,16 +1500,8 @@ fun AppNavigation(
                                 .zIndex(21f)
                                 .offset {
                                     IntOffset(
-                                        mascotaX
-                                            .coerceIn(limiteIzquierdo, 0f)
-                                            .roundToInt(),
-
-                                        (
-                                                mascotaY -
-                                                        with(density) {
-                                                            mascotaSize.toPx()
-                                                        }
-                                                )
+                                        mascotaX.coerceIn(limiteIzquierdo, 0f).roundToInt(),
+                                        (mascotaY - with(density) { mascotaSize.toPx() })
                                             .coerceIn(limiteSuperior, 0f)
                                             .roundToInt()
                                     )
@@ -1831,82 +1509,53 @@ fun AppNavigation(
                         )
                     }
 
-                    // --------------------------------------------------------
-                    // ZOE
-                    // --------------------------------------------------------
-
                     MascotaSigefiv(
                         estado = mascotaEstado,
-
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(margen)
                             .zIndex(20f)
                             .offset {
                                 IntOffset(
-                                    mascotaX
-                                        .coerceIn(limiteIzquierdo, 0f)
-                                        .roundToInt(),
-
-                                    mascotaY
-                                        .coerceIn(limiteSuperior, 0f)
-                                        .roundToInt()
+                                    mascotaX.coerceIn(limiteIzquierdo, 0f).roundToInt(),
+                                    mascotaY.coerceIn(limiteSuperior, 0f).roundToInt()
                                 )
                             },
-
                         onDrag = { dx, dy ->
-
-                            mascotaX = (mascotaX + dx)
-                                .coerceIn(limiteIzquierdo, 0f)
-
-                            mascotaY = (mascotaY + dy)
-                                .coerceIn(limiteSuperior, 0f)
+                            mascotaX = (mascotaX + dx).coerceIn(limiteIzquierdo, 0f)
+                            mascotaY = (mascotaY + dy).coerceIn(limiteSuperior, 0f)
                         },
-
                         onDragEnd = {
-
                             mascotaScope.launch {
-
-                                mascotaPreferencias.guardarPosicion(
-                                    mascotaX,
-                                    mascotaY
-                                )
+                                mascotaPreferencias.guardarPosicion(mascotaX, mascotaY)
                             }
                         },
-
-                        onClick = {
-                            mostrarZoeModal = true
-                        }
+                        onClick = { mostrarZoeModal = true }
                     )
                 }
             }
         }
 
-// MODAL DE ZOE INTELIGENTE
+        // ============================================================
+        // MODAL DE ZOE INTELIGENTE
+        // ============================================================
         if (mostrarZoeModal) {
-
             ModalBottomSheet(
                 onDismissRequest = { mostrarZoeModal = false },
                 sheetState = zoeSheetState,
                 sheetGesturesEnabled = false,
-                containerColor = MaterialTheme.colorScheme.background,
-                shape = RoundedCornerShape(
-                    topStart = 20.dp,
-                    topEnd = 20.dp
-                ),
+                containerColor = Color.Transparent, // 👈 Cambiar a Transparent
+                tonalElevation = 0.dp,              // 👈 Sin elevación opaca de fondo
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 dragHandle = null
-            ) {
-
+            )  {
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(0.95f)
                 ) {
-
                     SigiScreen(
-                        onBackClick = {
-                            mostrarZoeModal = false
-                        },
+                        onBackClick = { mostrarZoeModal = false },
                         onOpenDrawer = {}
                     )
 
@@ -1923,7 +1572,6 @@ fun AppNavigation(
                     }
 
                     if (mascotaVisible) {
-
                         if (eventoMascota != null) {
                             MascotaBurbujaEvento(
                                 evento = eventoMascota,
@@ -1934,22 +1582,15 @@ fun AppNavigation(
                                     .zIndex(11f)
                                     .offset {
                                         IntOffset(
-                                            x = mascotaX
-                                                .coerceIn(limiteIzquierdo, 0f)
-                                                .roundToInt(),
-
-                                            y = (
-                                                    mascotaY -
-                                                            with(density) {
-                                                                mascotaSize.toPx()
-                                                            }
-                                                    )
+                                            x = mascotaX.coerceIn(limiteIzquierdo, 0f).roundToInt(),
+                                            y = (mascotaY - with(density) { mascotaSize.toPx() })
                                                 .coerceIn(limiteSuperior, 0f)
                                                 .roundToInt()
                                         )
                                     }
                             )
                         }
+
                         MascotaSigefiv(
                             estado = mascotaEstado,
                             modifier = Modifier
@@ -1958,53 +1599,32 @@ fun AppNavigation(
                                 .zIndex(10f)
                                 .offset {
                                     IntOffset(
-                                        mascotaX
-                                            .coerceIn(limiteIzquierdo, 0f)
-                                            .roundToInt(),
-
-                                        mascotaY
-                                            .coerceIn(limiteSuperior, 0f)
-                                            .roundToInt()
+                                        mascotaX.coerceIn(limiteIzquierdo, 0f).roundToInt(),
+                                        mascotaY.coerceIn(limiteSuperior, 0f).roundToInt()
                                     )
                                 },
                             onDrag = { dx, dy ->
-                                mascotaX = (mascotaX + dx)
-                                    .coerceIn(limiteIzquierdo, 0f)
-
-                                mascotaY = (mascotaY + dy)
-                                    .coerceIn(limiteSuperior, 0f)
+                                mascotaX = (mascotaX + dx).coerceIn(limiteIzquierdo, 0f)
+                                mascotaY = (mascotaY + dy).coerceIn(limiteSuperior, 0f)
                             },
                             onDragEnd = {
                                 mascotaScope.launch {
-                                    mascotaPreferencias.guardarPosicion(
-                                        mascotaX,
-                                        mascotaY
-                                    )
+                                    mascotaPreferencias.guardarPosicion(mascotaX, mascotaY)
                                 }
                             }
                         )
                     }
-
-                    // Cierra if (mascotaVisible)
                 }
             }
-
         }
     }
 }
-private fun convertirFechaComprobante(
-    fecha: String
-): String? {
 
+private fun convertirFechaComprobante(fecha: String): String? {
     val partes = fecha.split("/")
-
-    if (partes.size != 3) {
-        return null
-    }
-
+    if (partes.size != 3) return null
     val dia = partes[0]
     val mes = partes[1]
     val anio = partes[2]
-
     return "$anio-$mes-$dia"
 }

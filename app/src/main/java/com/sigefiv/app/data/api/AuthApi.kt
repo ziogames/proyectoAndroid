@@ -57,6 +57,11 @@ interface AuthApi {
         @Body request: GoogleLoginRequest
     ): LoginResponse
 
+    @POST("auth/facebook")
+    suspend fun loginConFacebook(
+        @Body request: Map<String, String> // O el mismo DTO que uses para loginConGoogle
+    ): LoginResponse
+
     @GET("user")
     suspend fun user(): LoginResponse
 

@@ -119,63 +119,78 @@ fun TarjetaMovimientoInteligente(
     val iconoMovimiento = if (esEgreso) Icons.Outlined.ArrowDownward else Icons.Outlined.ArrowUpward
 
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(10.dp),
         color = c.fondoTarjeta,
         border = BorderStroke(1.dp, c.bordeTarjeta),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 9.dp, vertical = 7.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
-            Icon(
-                imageVector = iconoMovimiento,
-                contentDescription = null,
-                tint = colorMovimiento,
-                modifier = Modifier.size(17.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = iconoMovimiento,
+                        contentDescription = null,
+                        tint = colorMovimiento,
+                        modifier = Modifier.size(17.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    if (concepto.isNotBlank()) {
+                        Text(
+                            text = concepto,
+                            color = c.textoPrincipal,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 17.sp,
+                            maxLines = Int.MAX_VALUE,
+                            overflow = TextOverflow.Clip
+                        )
+                    }
+                }
 
-            Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                if (concepto.isNotBlank()) {
+                if (monto.isNotBlank()) {
                     Text(
-                        text = concepto,
-                        color = c.textoPrincipal,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        text = monto,
+                        color = colorMovimiento,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
                         maxLines = 1
                     )
                 }
-
-                Text(
-                    text = buildString {
-                        append(fecha)
-                        if (tipo.isNotBlank()) {
-                            append(" · ")
-                            append(tipo.replaceFirstChar { it.uppercase() })
-                        }
-                        if (categoria.isNotBlank() && categoria != "Sin categoría") {
-                            append(" · ")
-                            append(categoria)
-                        }
-                    },
-                    color = c.textoSecundario,
-                    fontSize = 10.sp,
-                    maxLines = 1
-                )
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            if (monto.isNotBlank()) {
-                Text(
-                    text = monto,
-                    color = colorMovimiento,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Text(
+                text = buildString {
+                    append(fecha)
+                    if (tipo.isNotBlank()) {
+                        append(" · ")
+                        append(tipo.replaceFirstChar { it.uppercase() })
+                    }
+                    if (categoria.isNotBlank() && categoria != "Sin categoría") {
+                        append(" · ")
+                        append(categoria)
+                    }
+                },
+                color = c.textoSecundario,
+                fontSize = 11.sp,
+                lineHeight = 15.sp,
+                maxLines = Int.MAX_VALUE,
+                overflow = TextOverflow.Clip
+            )
         }
     }
 }
@@ -191,20 +206,18 @@ fun TarjetaArchivoMensaje(archivo: ChatArchivoPayload) {
 
     Column(modifier = Modifier.fillMaxWidth()) {
         if (esImagenOVid && !urlCorregida.isNullOrBlank()) {
-            // Diseño profesional limpio para Fotos y Videos
             AsyncImage(
                 model = urlCorregida,
                 contentDescription = archivo.nombre ?: "Archivo adjunto",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 300.dp) // Limita la altura para no romper el chat
+                    .heightIn(max = 300.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(LocalContentColor.current.copy(alpha = 0.1f))
                     .clickable { mostrarImagenAmpliada = true },
                 contentScale = ContentScale.Crop
             )
 
-            // Leyenda justo debajo de la imagen, adopta el color del tema automáticamente
             if (!archivo.texto.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
@@ -215,7 +228,6 @@ fun TarjetaArchivoMensaje(archivo: ChatArchivoPayload) {
                 )
             }
         } else {
-            // Diseño para documentos que no son imágenes (ej. PDFs, Word, sin URL válida)
             if (!archivo.texto.isNullOrBlank()) {
                 Text(
                     text = archivo.texto,
@@ -265,7 +277,6 @@ fun TarjetaArchivoMensaje(archivo: ChatArchivoPayload) {
         }
     }
 
-    // Modal de imagen ampliada a pantalla completa
     if (mostrarImagenAmpliada && !urlCorregida.isNullOrBlank()) {
         Dialog(onDismissRequest = { mostrarImagenAmpliada = false }) {
             Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
@@ -316,13 +327,41 @@ fun TarjetaTotalInteligente(totalSuma: Double?, lineaOriginal: String) {
         border = BorderStroke(1.dp, c.bordeTarjeta),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
-            Text(text = "Total", color = c.textoPrincipal, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            Text(text = montoTextoExtraido, color = colorTotal, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Total",
+                    color = c.textoPrincipal,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = montoTextoExtraido,
+                    color = colorTotal,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+            }
+            if (lineaOriginal.isNotBlank() && !lineaOriginal.equals("Total", ignoreCase = true)) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = lineaOriginal,
+                    color = c.textoSecundario,
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp,
+                    maxLines = Int.MAX_VALUE,
+                    overflow = TextOverflow.Clip
+                )
+            }
         }
     }
 }

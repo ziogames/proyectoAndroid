@@ -3,6 +3,9 @@ package com.sigefiv.app.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.facebook.login.LoginManager
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.auth.FacebookAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.sigefiv.app.FcmTokenManager
@@ -16,7 +19,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.google.android.gms.tasks.Tasks
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -364,6 +366,184 @@ class LoginViewModel(
 
     /*
     |--------------------------------------------------------------------------
+    | INICIO DE SESIÓN CON FACEBOOK + FIREBASE
+    |--------------------------------------------------------------------------
+    |
+    | Flujo:
+    |
+    | Facebook Access Token
+    |       ↓
+    | Firebase Authentication
+    |       ↓
+    | Firebase ID Token
+    |       ↓
+    | Laravel (/api/auth/facebook)
+    |
+    |--------------------------------------------------------------------------
+    */
+    fun iniciarSesionConFacebook(
+        accessToken: String
+    ) {
+        if (accessToken.isBlank()) {
+            _mensaje.value = "No se pudo obtener la identificación de Facebook."
+            return
+        }
+
+        viewModelScope.launch {
+            _cargando.value = true
+            _mensaje.value = null
+            _loginCorrecto.value = false
+
+            try {
+                /*
+                - 1. Convertimos el Facebook Access Token en credencial Firebase.
+                */
+                val credential = FacebookAuthProvider.getCredential(accessToken)
+
+                /*
+                - 2. Iniciamos sesión en Firebase.
+                */
+                withContext(Dispatchers.IO) {
+                    Tasks.await(
+                        firebaseAuth.signInWithCredential(credential)
+                    )
+                }
+
+                /*
+                - 3. Obtenemos el usuario directamente desde FirebaseAuth.
+                */
+                val firebaseUser = firebaseAuth.currentUser
+
+                if (firebaseUser == null) {
+                    _mensaje.value =
+                        "Firebase autenticó la cuenta de Facebook pero no devolvió el usuario."
+                    return@launch
+                }
+
+                println(
+                    "SIGEFIV FIREBASE FB UID: ${firebaseUser.uid}"
+                )
+
+                println(
+                    "SIGEFIV FIREBASE FB EMAIL: ${firebaseUser.email}"
+                )
+
+                /*
+                - 4. Solicitamos el Firebase ID Token actualizado.
+                */
+                val firebaseTokenResult = withContext(Dispatchers.IO) {
+                    Tasks.await(
+                        firebaseUser.getIdToken(true)
+                    )
+                }
+
+                val firebaseIdToken = firebaseTokenResult.token
+
+                println(
+                    "SIGEFIV FIREBASE FB TOKEN RESULT: " +
+                            "presente=${!firebaseIdToken.isNullOrBlank()} " +
+                            "longitud=${firebaseIdToken?.length ?: 0}"
+                )
+
+                if (firebaseIdToken.isNullOrBlank()) {
+                    _mensaje.value =
+                        "Firebase autenticó la cuenta, pero no pudo generar el token de sesión."
+                    return@launch
+                }
+
+                /*
+                - 5. Enviamos el Firebase ID Token a Laravel.
+                */
+                println(
+                    "SIGEFIV AUTH: enviando Firebase ID Token (Facebook) a Laravel"
+                )
+
+                val respuesta = authRepository.loginConFacebook(
+                    idToken = firebaseIdToken
+                )
+
+                /*
+                - 6. Laravel devuelve el token Sanctum.
+                */
+                if (respuesta.success) {
+
+                    val tokenRecibido = respuesta.token
+                    val usuario = respuesta.usuario
+
+                    if (!tokenRecibido.isNullOrBlank() && usuario != null) {
+
+                        _token.value = tokenRecibido
+                        _bienvenidaVista.value = usuario.bienvenidaVista
+
+                        sessionManager.guardarSesion(
+                            userId = usuario.id,
+                            token = tokenRecibido,
+                            email = usuario.email,
+                            nombre = usuario.name,
+                            seudonimo = usuario.seudonimo,
+                            rol = usuario.rol,
+                            bienvenidaVista = usuario.bienvenidaVista,
+                            permisos = usuario.permisos
+                        )
+
+                        FcmTokenManager.registrarToken(appContext)
+
+                        _loginCorrecto.value = true
+
+                    } else {
+
+                        _mensaje.value =
+                            "El servidor no devolvió todos los datos necesarios."
+                    }
+
+                } else {
+
+                    _mensaje.value = respuesta.message
+                }
+
+            } catch (e: HttpException) {
+
+                when (e.code()) {
+
+                    401 -> _mensaje.value =
+                        "No se pudo autenticar la cuenta de Facebook."
+
+                    403 -> _mensaje.value =
+                        "Tu cuenta de SIGEFIV está bloqueada."
+
+                    422 -> _mensaje.value =
+                        "Tu cuenta de Facebook no tiene un correo electrónico asociado."
+
+                    else -> _mensaje.value =
+                        "Error al autenticar con Facebook (${e.code()})."
+                }
+
+            } catch (e: IOException) {
+
+                _mensaje.value =
+                    "Sin conexión con el servidor. Revisa tu internet."
+
+            } catch (e: Exception) {
+
+                e.printStackTrace()
+
+                _mensaje.value =
+                    "No fue posible autenticar la cuenta de Facebook con Firebase."
+
+                println(
+                    "SIGEFIV FIREBASE FB EXCEPTION: " +
+                            "${e.javaClass.simpleName}: ${e.message}"
+                )
+
+            } finally {
+
+                _cargando.value = false
+            }
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | MARCAR BIENVENIDA VISTA
     |--------------------------------------------------------------------------
     */
@@ -399,9 +579,10 @@ class LoginViewModel(
                 }
 
                 /*
-                - Cerramos también la sesión de Firebase.
+                - Cerramos también la sesión de Firebase y Facebook.
                 */
                 firebaseAuth.signOut()
+                LoginManager.getInstance().logOut()
 
             } finally {
                 sessionManager.cerrarSesion()

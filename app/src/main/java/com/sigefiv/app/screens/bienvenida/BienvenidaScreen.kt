@@ -1,407 +1,426 @@
 package com.sigefiv.app.screens.bienvenida
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.HomeWork
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
-
-private val AzulSubtitulo = Color(0xFF1D4ED8)
-private val FondoPantalla = Color(0xFFF0F6FE)
-private val FondoTarjeta = Color(0xFFFFFFFF)
-private val TextoOscuro = Color(0xFF0F172A)
-private val TextoGris = Color(0xFF475569)
-private val TextoMuted = Color(0xFF64748B)
-private val GrisBorde = Color(0xFFE2E8F0)
-private val VerdeTransparencia = Color(0xFF16A34A)
-private val VerdeBgTransparencia = Color(0xFFDCFCE7)
-private val AzulBurbujaSigi = Color(0xFFEFF6FF)
 
 @Composable
 fun BienvenidaScreen(
     onComenzarClick: () -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(FondoPantalla)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 20.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Contenedor blanco tipo tarjeta central
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 1. HEADER HERO BANNER
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
+                shape = RoundedCornerShape(26.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Logo y Marca
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = colorPrincipal.copy(alpha = 0.12f),
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.HomeWork,
-                                    contentDescription = null,
-                                    tint = colorPrincipal,
-                                    modifier = Modifier.size(20.dp)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF063A2B),
+                                    Color(0xFF145E45)
                                 )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "SIGEFIV",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Black,
-                            color = TextoOscuro,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Título y Subtítulo
-                    Text(
-                        text = "¡Bienvenido a SIGEFIV!",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = TextoOscuro,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = "El sistema de gestión financiera de tu junta vecinal",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AzulSubtitulo,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = "SIGEFIV es una plataforma creada para facilitar la gestión, organización y transparencia de la información de nuestra junta vecinal. Aquí podrás consultar información financiera, movimientos, recibos, períodos, asambleas y otros datos de interés para los vecinos.",
-                        fontSize = 12.5.sp,
-                        lineHeight = 18.sp,
-                        color = TextoGris,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(26.dp))
-
-                    // Encabezado de sección
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "¿Qué puedes hacer en SIGEFIV?",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextoOscuro
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .width(40.dp)
-                                .height(3.dp)
-                                .clip(CircleShape)
-                                .background(colorPrincipal)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Tarjetas en lista de 2 columnas o apiladas
-                    ItemCaracteristica(
-                        icono = Icons.Default.Savings,
-                        colorIcono = Color(0xFFF59E0B),
-                        colorFondoIcono = Color(0xFFFEF3C7),
-                        titulo = "Ingresos y egresos",
-                        descripcion = "Registra y consulta los movimientos económicos de la junta vecinal."
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    ItemCaracteristica(
-                        icono = Icons.Default.ReceiptLong,
-                        colorIcono = Color(0xFF0284C7),
-                        colorFondoIcono = Color(0xFFE0F2FE),
-                        titulo = "Recibos y comprobantes",
-                        descripcion = "Mantén identificados y organizados los movimientos y sus comprobantes."
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    ItemCaracteristica(
-                        icono = Icons.Default.BarChart,
-                        colorIcono = Color(0xFF8B5CF6),
-                        colorFondoIcono = Color(0xFFEDE9FE),
-                        titulo = "Resúmenes financieros",
-                        descripcion = "Consulta ingresos, egresos, saldo anterior, disponible y saldo de caja."
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    ItemCaracteristica(
-                        icono = Icons.Default.CalendarMonth,
-                        colorIcono = Color(0xFF3B82F6),
-                        colorFondoIcono = Color(0xFFDBEAFE),
-                        titulo = "Gestión de períodos",
-                        descripcion = "Organiza la información por meses y períodos manteniendo la continuidad."
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    ItemCaracteristica(
-                        icono = Icons.Default.Apartment,
-                        colorIcono = Color(0xFFEA580C),
-                        colorFondoIcono = Color(0xFFFFEDD5),
-                        titulo = "Predios y propietarios",
-                        descripcion = "Administra la información relacionada con los vecinos y sus predios."
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    ItemCaracteristica(
-                        icono = Icons.Default.Groups,
-                        colorIcono = Color(0xFF4F46E5),
-                        colorFondoIcono = Color(0xFFEEF2FF),
-                        titulo = "Asambleas y citaciones",
-                        descripcion = "Gestiona información relacionada con las asambleas de vecinos."
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    ItemCaracteristica(
-                        icono = Icons.Default.SmartToy,
-                        colorIcono = Color(0xFFEC4899),
-                        colorFondoIcono = Color(0xFFFCE7F3),
-                        titulo = "ZOE, asistente inteligente",
-                        descripcion = "Realiza consultas sobre la información del sistema utilizando lenguaje natural."
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    ItemCaracteristica(
-                        icono = Icons.Default.LockPerson,
-                        colorIcono = Color(0xFF10B981),
-                        colorFondoIcono = Color(0xFFD1FAE5),
-                        titulo = "Acceso seguro",
-                        descripcion = "Cada usuario accede a las funciones e información que le corresponden."
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Tarjeta destacada de SIGI
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("🤖", fontSize = 20.sp)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Conoce a ZOE",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextoOscuro
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Nuestro asistente inteligente entiende el lenguaje natural y te ayuda a obtener información rápida.",
-                                fontSize = 12.sp,
-                                color = TextoGris
                             )
-                            Spacer(modifier = Modifier.height(12.dp))
+                        )
+                        .padding(24.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(Color.White.copy(alpha = 0.08f), Color.Transparent),
+                                    radius = 350f
+                                )
+                            )
+                    )
 
-                            // Preguntas de ejemplo
-                            listOf(
-                                "¿Cuánto ingresó en enero?",
-                                "¿Cuánto se gastó este mes?",
-                                "¿Cuál es el saldo de caja?",
-                                "Muéstrame los ingresos de febrero."
-                            ).forEach { pregunta ->
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = AzulBurbujaSigi,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 3.dp)
-                                ) {
-                                    Text(
-                                        text = "💬 $pregunta",
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = AzulSubtitulo,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color.White.copy(alpha = 0.18f),
+                                modifier = Modifier.size(42.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.HomeWork,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(22.dp)
                                     )
                                 }
                             }
+
+                            Column {
+                                Text(
+                                    text = "SIGEFIV",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White,
+                                    letterSpacing = 0.8.sp
+                                )
+                                Text(
+                                    text = "Gestión Vecinal Inteligente",
+                                    fontSize = 12.sp,
+                                    color = Color.White.copy(alpha = 0.75f),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                    // Banner de Transparencia
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(VerdeBgTransparencia, RoundedCornerShape(12.dp))
-                            .border(1.dp, VerdeTransparencia.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .background(VerdeTransparencia, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "SIGEFIV promueve la transparencia",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextoOscuro
-                            )
-                            Text(
-                                text = "La organización y la participación de todos los vecinos.",
-                                fontSize = 11.sp,
-                                color = TextoGris
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Botón de acción principal
-                    Button(
-                        onClick = onComenzarClick,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = colorPrincipal),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                    ) {
                         Text(
-                            text = "Comenzar a usar SIGEFIV",
-                            fontSize = 15.sp,
+                            text = "Transparencia y control financiero en tu comunidad",
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = Color.White,
+                            lineHeight = 28.sp
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Consulta cuentas claras, ingresos, comprobantes y asambleas oficiales desde un único panel seguro.",
+                            fontSize = 13.sp,
+                            color = Color.White.copy(alpha = 0.82f),
+                            lineHeight = 19.sp
                         )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // 2. TÍTULO DE SECCIÓN
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Servicios de la plataforma",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "Todo lo que necesitas como vecino y residente",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 3. PILARES CLAVE
+            PilarServicioCard(
+                icono = Icons.Default.AccountBalance,
+                titulo = "Control financiero y balances",
+                descripcion = "Supervisión detallada de ingresos, egresos del período y saldo en caja actualizado en tiempo real.",
+                primaryColor = primaryColor
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            PilarServicioCard(
+                icono = Icons.Default.ReceiptLong,
+                titulo = "Recibos y sustento digital",
+                descripcion = "Acceso a la trazabilidad y comprobantes de cada aportación y cuota ordinaria de mantenimiento.",
+                primaryColor = primaryColor
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            PilarServicioCard(
+                icono = Icons.Default.Groups,
+                titulo = "Asambleas y citaciones",
+                descripcion = "Notificaciones oficiales de citaciones vecinales, órdenes del día y acuerdos tomados por la directiva.",
+                primaryColor = primaryColor
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            PilarServicioCard(
+                icono = Icons.Default.Security,
+                titulo = "Acceso seguro y verificado",
+                descripcion = "Información protegida mediante credenciales únicas según tu lote, predio y rol en la junta vecinal.",
+                primaryColor = primaryColor
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 4. TARJETA DESTACADA: ASISTENTE ZOE
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = CircleShape,
+                            color = primaryColor.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f)),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.SmartToy,
+                                    contentDescription = "ZOE",
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column {
+                            Text(
+                                text = "ZOE Asistente Comunal",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Consultas en lenguaje natural",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Pregúntale directamente a ZOE sobre los gastos del mes o saldo disponible sin buscar manualmente entre listas.",
+                        fontSize = 12.5.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 17.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    listOf(
+                        "\"@zoe ¿Cuál es el saldo en caja?\"",
+                        "\"@zoe ¿Qué se acordó en la última asamblea?\""
+                    ).forEach { consulta ->
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = consulta,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = primaryColor,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // 5. BANNER DE TRANSPARENCIA Y COMPROMISO VECINAL
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = primaryColor.copy(alpha = 0.08f),
+                border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.2f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = primaryColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Compromiso de Gestión Abierta",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Garantizamos cuentas verificadas y accesibles para todos los propietarios.",
+                            fontSize = 11.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // 6. BOTÓN PRINCIPAL DE ENTRADA (Orden correcto de modificadores)
+            Button(
+                onClick = onComenzarClick,
+                shape = RoundedCornerShape(16.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryColor,
+                    contentColor = Color.White
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .heightIn(min = 54.dp)
+            ) {
+                Text(
+                    text = "Ingresar a SIGEFIV",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
+/*
+|--------------------------------------------------------------------------
+| TARJETA MODULAR DE SERVICIO (Consistente y Adaptativa)
+|--------------------------------------------------------------------------
+*/
+
 @Composable
-private fun ItemCaracteristica(
+private fun PilarServicioCard(
     icono: ImageVector,
-    colorIcono: Color,
-    colorFondoIcono: Color,
     titulo: String,
-    descripcion: String
+    descripcion: String,
+    primaryColor: Color
 ) {
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = FondoTarjeta,
-        border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde),
-        modifier = Modifier.fillMaxWidth()
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .background(colorFondoIcono, RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = primaryColor.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.22f)),
+                modifier = Modifier.size(42.dp)
             ) {
-                Icon(
-                    imageVector = icono,
-                    contentDescription = null,
-                    tint = colorIcono,
-                    modifier = Modifier.size(20.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icono,
+                        contentDescription = null,
+                        tint = primaryColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = titulo,
-                    fontSize = 13.5.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextoOscuro
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = descripcion,
                     fontSize = 11.5.sp,
-                    color = TextoMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 16.sp
                 )
             }

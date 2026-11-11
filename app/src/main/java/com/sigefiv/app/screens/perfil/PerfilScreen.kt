@@ -1,6 +1,9 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.sigefiv.app.screens.perfil
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -13,7 +16,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,16 +46,16 @@ import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -77,38 +79,32 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sigefiv.app.ServidorConfig
-import com.sigefiv.app.ui.components.AppBottomBar
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.net.URL
+import androidx.core.content.ContextCompat
 import com.canhub.cropper.CropImageContract
 import com.canhub.cropper.CropImageContractOptions
 import com.canhub.cropper.CropImageOptions
 import com.canhub.cropper.CropImageView
+import com.sigefiv.app.ServidorConfig
+import com.sigefiv.app.ui.components.AppBottomBar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.URL
 
 /*
 |--------------------------------------------------------------------------
-| COLORES CORPORATIVOS SIGEFIV
+| COLORES SEMÁNTICOS Y DE ACENTO
 |--------------------------------------------------------------------------
 */
 
-private val VerdeSuave = Color(0xFFDCFCE7)
-private val Blanco = Color(0xFFFFFFFF)
-
-private val FondoIconoVerde = Color(0xFFDCFCE7)
-private val FondoIconoAzul = Color(0xFFDBEAFE)
-private val FondoIconoNaranja = Color(0xFFFFEDD5)
-private val FondoIconoMorado = Color(0xFFF3E8FF)
-
-private val IconoVerde = Color(0xFF15803D)
-private val IconoAzul = Color(0xFF2563EB)
-private val IconoNaranja = Color(0xFFEA580C)
-private val IconoMorado = Color(0xFF9333EA)
+private val VerdeSemantico = Color(0xFF16A34A)
+private val AzulSemantico = Color(0xFF2563EB)
+private val NaranjaSemantico = Color(0xFFD97706)
+private val MoradoSemantico = Color(0xFF7C3AED)
+private val FacebookBlue = Color(0xFF1877F2)
+private val GoogleRed = Color(0xFFEA4335)
 
 @Composable
 fun PerfilScreen(
@@ -139,13 +135,13 @@ fun PerfilScreen(
     guardando: Boolean = false,
     subiendoFoto: Boolean = false
 ) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     var modoEdicion by remember { mutableStateOf(false) }
     var seudonimoEditado by remember(seudonimo) { mutableStateOf(seudonimo ?: "") }
     var fotoSeleccionada by remember { mutableStateOf<Uri?>(null) }
+
+    val context = LocalContext.current
 
     val selectorYCortadorFoto = rememberLauncherForActivityResult(
         contract = CropImageContract()
@@ -158,8 +154,36 @@ fun PerfilScreen(
         }
     }
 
+    fun lanzarSelectorFoto(incluirCamara: Boolean) {
+        val opciones = CropImageContractOptions(
+            uri = null,
+            cropImageOptions = CropImageOptions(
+                imageSourceIncludeCamera = incluirCamara,
+                imageSourceIncludeGallery = true,
+                cropShape = CropImageView.CropShape.OVAL,
+                fixAspectRatio = true,
+                aspectRatioX = 1,
+                aspectRatioY = 1,
+                guidelines = CropImageView.Guidelines.ON,
+                activityTitle = "Ajustar foto",
+                toolbarColor = android.graphics.Color.DKGRAY,
+                activityMenuIconColor = android.graphics.Color.WHITE,
+                activityMenuTextColor = android.graphics.Color.WHITE,
+                backgroundColor = android.graphics.Color.argb(200, 0, 0, 0)
+            )
+        )
+        selectorYCortadorFoto.launch(opciones)
+    }
+
+    val permisoCamaraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        lanzarSelectorFoto(incluirCamara = concedido)
+    }
+
     var mostrarDialogoPassword by remember { mutableStateOf(false) }
     var mostrarAvisoGoogle by remember { mutableStateOf(false) }
+    var mostrarAvisoFacebook by remember { mutableStateOf(false) }
     var passwordActual by remember { mutableStateOf("") }
     var nuevaPassword by remember { mutableStateOf("") }
     var confirmarPassword by remember { mutableStateOf("") }
@@ -177,6 +201,7 @@ fun PerfilScreen(
     val rolMostrar = rol?.takeIf { it.isNotBlank() } ?: "Consulta"
     val metodoMostrar = metodoAcceso?.takeIf { it.isNotBlank() } ?: "Correo y contraseña"
     val esGoogle = metodoMostrar.equals("Google", ignoreCase = true)
+    val esFacebook = metodoMostrar.equals("Facebook", ignoreCase = true)
     val inicialNombre = nombre.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "U"
 
     Scaffold(
@@ -187,60 +212,70 @@ fun PerfilScreen(
                     Column {
                         Text(
                             text = "Mi Cuenta",
-                            color = Blanco,
-                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontWeight = FontWeight.ExtraBold,
                             fontSize = 19.sp
                         )
                         Text(
                             text = "Información de tu cuenta SIGEFIV",
-                            color = Blanco.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Regresar",
-                            tint = Blanco
-                        )
+                    Surface(
+                        onClick = onBackClick,
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .size(38.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Regresar",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 },
                 actions = {
-                    if (!modoEdicion) {
-                        IconButton(
-                            onClick = {
+                    Surface(
+                        onClick = {
+                            if (!modoEdicion) {
                                 seudonimoEditado = seudonimo ?: ""
                                 fotoSeleccionada = null
                                 modoEdicion = true
                                 onEditClick()
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Edit,
-                                contentDescription = "Editar Perfil",
-                                tint = Blanco
-                            )
-                        }
-                    } else {
-                        IconButton(
-                            onClick = {
+                            } else {
                                 modoEdicion = false
                                 fotoSeleccionada = null
                                 seudonimoEditado = seudonimo ?: ""
                             }
-                        ) {
+                        },
+                        shape = CircleShape,
+                        color = primaryColor.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f)),
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .size(38.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
                             Icon(
-                                imageVector = Icons.Outlined.Close,
-                                contentDescription = "Cancelar edición",
-                                tint = Blanco
+                                imageVector = if (!modoEdicion) Icons.Outlined.Edit else Icons.Outlined.Close,
+                                contentDescription = if (!modoEdicion) "Editar perfil" else "Cancelar",
+                                tint = primaryColor,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorPrincipal
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         },
@@ -261,45 +296,54 @@ fun PerfilScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             /*
             |--------------------------------------------------------------------------
-            | TARJETA PRINCIPAL DE PERFIL (Estilo Telegram / WhatsApp)
+            | TARJETA PRINCIPAL DE PERFIL (Estilo Tarjeta de Identidad Moderna)
             |--------------------------------------------------------------------------
             */
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(colorPrincipal, colorPrincipal.copy(alpha = 0.9f))
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(75.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        primaryColor.copy(alpha = 0.22f),
+                                        primaryColor.copy(alpha = 0.03f)
+                                    )
+                                )
                             )
-                        )
-                        .padding(18.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Top
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // CONTENEDOR DEL AVATAR
-                        Box(modifier = Modifier.padding(top = 2.dp)) {
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // Avatar destacado
+                        Box {
                             Surface(
-                                modifier = Modifier.size(86.dp),
+                                modifier = Modifier.size(88.dp),
                                 shape = CircleShape,
-                                color = Color.Transparent,
-                                border = BorderStroke(3.dp, Blanco.copy(alpha = 0.95f)),
-                                shadowElevation = 4.dp
+                                color = primaryColor.copy(alpha = 0.15f),
+                                border = BorderStroke(2.dp, primaryColor.copy(alpha = 0.35f))
                             ) {
                                 Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color(0xFF14532D)),
+                                    modifier = Modifier.fillMaxSize(),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     when {
@@ -322,185 +366,199 @@ fun PerfilScreen(
                                         else -> {
                                             Text(
                                                 text = inicialNombre,
-                                                color = Blanco,
-                                                fontSize = 36.sp,
-                                                fontWeight = FontWeight.Bold
+                                                color = primaryColor,
+                                                fontSize = 32.sp,
+                                                fontWeight = FontWeight.ExtraBold
                                             )
                                         }
                                     }
                                 }
                             }
 
+                            // Indicador en línea
                             Box(
                                 modifier = Modifier
-                                    .size(22.dp)
-                                    .clip(CircleShape)
-                                    .background(Blanco)
-                                    .padding(3.dp)
                                     .align(Alignment.BottomEnd)
+                                    .size(16.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(2.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clip(CircleShape)
-                                        .background(Color(0xFF22C55E))
+                                        .background(VerdeSemantico)
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                        // DETALLES DEL USUARIO
-                        Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = nombre,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+
+                        if (!seudonimo.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = nombre,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Blanco,
-                                maxLines = 2
+                                text = "@$seudonimo",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = primaryColor,
+                                textAlign = TextAlign.Center
                             )
+                        }
 
-                            if (!seudonimo.isNullOrBlank()) {
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "@$seudonimo",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Blanco.copy(alpha = 0.9f)
-                                )
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = email,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Badges informativos
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = primaryColor.copy(alpha = 0.12f),
+                                border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Security,
+                                        contentDescription = null,
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                    Text(
+                                        text = rolMostrar,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = primaryColor
+                                    )
+                                }
                             }
 
-                            Spacer(modifier = Modifier.height(2.dp))
-
-                            Text(
-                                text = email,
-                                fontSize = 12.sp,
-                                color = Blanco.copy(alpha = 0.85f),
-                                maxLines = 1
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            // BOTONES Y BADGES
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(20.dp),
-                                    color = Blanco.copy(alpha = 0.95f)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Security,
-                                            contentDescription = null,
-                                            tint = colorPrincipal,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = rolMostrar,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = colorPrincipal
-                                        )
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = when {
+                                    esFacebook -> FacebookBlue.copy(alpha = 0.10f)
+                                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                },
+                                border = BorderStroke(
+                                    1.dp,
+                                    when {
+                                        esFacebook -> FacebookBlue.copy(alpha = 0.30f)
+                                        else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                                    }
+                                ),
+                                modifier = Modifier.clickable {
+                                    when {
+                                        esGoogle -> mostrarAvisoGoogle = true
+                                        esFacebook -> mostrarAvisoFacebook = true
+                                        else -> mostrarDialogoPassword = true
                                     }
                                 }
-
-                                Surface(
-                                    shape = RoundedCornerShape(20.dp),
-                                    color = Blanco,
-                                    shadowElevation = 1.dp,
-                                    modifier = Modifier.clickable {
-                                        if (esGoogle) {
-                                            mostrarAvisoGoogle = true
-                                        } else {
-                                            mostrarDialogoPassword = true
-                                        }
-                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        if (esGoogle) {
+                                    when {
+                                        esGoogle -> {
                                             Text(
                                                 text = "G",
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFFEA4335)
+                                                color = GoogleRed
                                             )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                        } else {
+                                        }
+                                        esFacebook -> {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(15.dp)
+                                                    .clip(CircleShape)
+                                                    .background(FacebookBlue),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "f",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = Color.White
+                                                )
+                                            }
+                                        }
+                                        else -> {
                                             Icon(
                                                 imageVector = Icons.Outlined.Key,
                                                 contentDescription = null,
-                                                tint = colorPrincipal,
-                                                modifier = Modifier.size(13.dp)
+                                                tint = primaryColor,
+                                                modifier = Modifier.size(14.dp)
                                             )
-                                            Spacer(modifier = Modifier.width(4.dp))
                                         }
-                                        Text(
-                                            text = if (esGoogle) "Google" else "Clave",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1
-                                        )
                                     }
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                    Text(
+                                        text = when {
+                                            esGoogle -> "Google Auth"
+                                            esFacebook -> "Facebook Auth"
+                                            else -> "Cambiar Clave"
+                                        },
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (esFacebook) FacebookBlue else MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(7.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF4ADE80))
-                                )
-                                Spacer(modifier = Modifier.width(5.dp))
-                                Text(
-                                    text = "USUARIO ACTIVO",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.5.sp,
-                                    color = Blanco.copy(alpha = 0.95f)
-                                )
                             }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
-
+            /*
+            |--------------------------------------------------------------------------
+            | MODO EDICIÓN FORMULARIO
+            |--------------------------------------------------------------------------
+            */
             if (modoEdicion) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.3f)),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(18.dp)) {
                         Text(
                             text = "Editar perfil",
-                            fontSize = 17.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Personaliza cómo apareces públicamente en SIGEFIV.",
+                            text = "Actualiza tu seudónimo y fotografía pública.",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
                         OutlinedTextField(
                             value = seudonimoEditado,
@@ -510,57 +568,51 @@ fun PerfilScreen(
                             placeholder = { Text("Ejemplo: Freddy") },
                             singleLine = true,
                             leadingIcon = {
-                                Icon(imageVector = Icons.Outlined.Person, contentDescription = null)
-                            }
+                                Icon(imageVector = Icons.Outlined.Person, contentDescription = null, tint = primaryColor)
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = primaryColor,
+                                focusedLabelColor = primaryColor,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                            )
                         )
 
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "Será el nombre que verán los vecinos en las áreas públicas.",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
                         Button(
                             onClick = {
-                                val opciones = CropImageContractOptions(
-                                    uri = null,
-                                    cropImageOptions = CropImageOptions(
-                                        cropShape = CropImageView.CropShape.OVAL,
-                                        fixAspectRatio = true,
-                                        aspectRatioX = 1,
-                                        aspectRatioY = 1,
-                                        guidelines = CropImageView.Guidelines.ON,
-                                        activityTitle = "Ajustar foto",
-                                        toolbarColor = android.graphics.Color.DKGRAY,
-                                        activityMenuIconColor = android.graphics.Color.WHITE, // 👈 Fuerza el check blanco
-                                        activityMenuTextColor = android.graphics.Color.WHITE,
-                                        backgroundColor = android.graphics.Color.argb(200, 0, 0, 0)
-                                    )
-                                )
-                                selectorYCortadorFoto.launch(opciones)
+                                val tienePermisoCamara = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.CAMERA
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                if (tienePermisoCamara) {
+                                    lanzarSelectorFoto(incluirCamara = true)
+                                } else {
+                                    permisoCamaraLauncher.launch(Manifest.permission.CAMERA)
+                                }
                             },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = colorPrincipal)
+                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
                         ) {
                             Icon(imageVector = Icons.Outlined.PhotoCamera, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = if (fotoSeleccionada != null) "Cambiar foto" else "Seleccionar foto")
+                            Text(text = if (fotoSeleccionada != null) "Cambiar foto seleccionada" else "Seleccionar nueva foto")
                         }
 
                         if (fotoSeleccionada != null) {
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Nueva foto seleccionada",
+                                text = "✓ Foto lista para actualizar",
                                 fontSize = 12.sp,
-                                color = colorPrincipal,
-                                fontWeight = FontWeight.SemiBold
+                                color = VerdeSemantico,
+                                fontWeight = FontWeight.Bold
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -575,13 +627,11 @@ fun PerfilScreen(
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFE2E8F0),
-                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                 ),
                                 enabled = !guardando && !subiendoFoto
                             ) {
-                                Icon(imageVector = Icons.Outlined.Close, contentDescription = null)
-                                Spacer(modifier = Modifier.width(5.dp))
                                 Text("Cancelar")
                             }
 
@@ -596,23 +646,21 @@ fun PerfilScreen(
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = colorPrincipal),
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                                 enabled = !guardando && !subiendoFoto
                             ) {
-                                if (guardando || subiendoFoto) {
-                                    Text(text = "Guardando...")
-                                } else {
-                                    Icon(imageVector = Icons.Outlined.Check, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(5.dp))
-                                    Text(text = "Guardar")
-                                }
+                                Text(if (guardando || subiendoFoto) "Guardando..." else "Guardar")
                             }
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(18.dp))
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | SECCIÓN 1: INFORMACIÓN PERSONAL
+            |--------------------------------------------------------------------------
+            */
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -620,75 +668,80 @@ fun PerfilScreen(
             ) {
                 PerfilSeccionTitulo(
                     icon = Icons.Outlined.Person,
-                    iconBg = VerdeSuave,
-                    iconTint = colorPrincipal,
+                    iconBg = primaryColor.copy(alpha = 0.12f),
+                    iconTint = primaryColor,
                     titulo = "Información personal",
                     subtitulo = "Datos registrados en SIGEFIV"
                 )
 
                 if (!modoEdicion) {
-                    Button(
+                    Surface(
                         onClick = {
                             seudonimoEditado = seudonimo ?: ""
                             fotoSeleccionada = null
                             modoEdicion = true
                             onEditClick()
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = VerdeSuave),
                         shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                        color = primaryColor.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Edit,
-                            contentDescription = null,
-                            tint = colorPrincipal,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Editar",
-                            color = colorPrincipal,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Edit,
+                                contentDescription = null,
+                                tint = primaryColor,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Editar",
+                                color = primaryColor,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
             ) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                    PerfilDato(icon = Icons.Outlined.Person, iconBg = VerdeSuave, iconTint = colorPrincipal, titulo = "Nombre completo", valor = nombre)
+                    PerfilDato(icon = Icons.Outlined.Person, iconBg = primaryColor.copy(alpha = 0.12f), iconTint = primaryColor, titulo = "Nombre completo", valor = nombre)
                     PerfilSeparador()
-                    PerfilDato(icon = Icons.Outlined.Person, iconBg = VerdeSuave, iconTint = colorPrincipal, titulo = "Seudónimo", valor = seudonimo?.takeIf { it.isNotBlank() }?.let { "@$it" } ?: "No establecido")
+                    PerfilDato(icon = Icons.Outlined.Person, iconBg = primaryColor.copy(alpha = 0.12f), iconTint = primaryColor, titulo = "Seudónimo", valor = seudonimo?.takeIf { it.isNotBlank() }?.let { "@$it" } ?: "No establecido")
                     PerfilSeparador()
-                    PerfilDato(icon = Icons.Outlined.Email, iconBg = FondoIconoAzul, iconTint = IconoAzul, titulo = "Correo electrónico", valor = email)
+                    PerfilDato(icon = Icons.Outlined.Email, iconBg = AzulSemantico.copy(alpha = 0.12f), iconTint = AzulSemantico, titulo = "Correo electrónico", valor = email)
                     PerfilSeparador()
-                    PerfilDato(icon = Icons.Outlined.Phone, iconBg = FondoIconoVerde, iconTint = IconoVerde, titulo = "Teléfono", valor = telefonoMostrar)
+                    PerfilDato(icon = Icons.Outlined.Phone, iconBg = VerdeSemantico.copy(alpha = 0.12f), iconTint = VerdeSemantico, titulo = "Teléfono", valor = telefonoMostrar)
                     PerfilSeparador()
-                    PerfilDato(icon = Icons.Outlined.Badge, iconBg = FondoIconoNaranja, iconTint = IconoNaranja, titulo = "DNI", valor = dniMostrar)
+                    PerfilDato(icon = Icons.Outlined.Badge, iconBg = NaranjaSemantico.copy(alpha = 0.12f), iconTint = NaranjaSemantico, titulo = "DNI", valor = dniMostrar)
                     PerfilSeparador()
-                    PerfilDato(icon = Icons.Outlined.Home, iconBg = FondoIconoMorado, iconTint = IconoMorado, titulo = "Dirección", valor = direccionMostrar)
+                    PerfilDato(icon = Icons.Outlined.Home, iconBg = MoradoSemantico.copy(alpha = 0.12f), iconTint = MoradoSemantico, titulo = "Dirección", valor = direccionMostrar)
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
-
+            /*
+            |--------------------------------------------------------------------------
+            | SECCIÓN 2: MI EMPRENDIMIENTO
+            |--------------------------------------------------------------------------
+            */
             PerfilSeccionTitulo(
                 icon = Icons.Outlined.Storefront,
-                iconBg = FondoIconoMorado,
-                iconTint = IconoMorado,
+                iconBg = MoradoSemantico.copy(alpha = 0.12f),
+                iconTint = MoradoSemantico,
                 titulo = "Mi Emprendimiento",
                 subtitulo = "Promociona tus servicios a la comunidad"
             )
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             Card(
                 modifier = Modifier
@@ -696,7 +749,8 @@ fun PerfilScreen(
                     .clickable(onClick = onMisEmprendimientosClick),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -706,8 +760,8 @@ fun PerfilScreen(
                 ) {
                     PerfilIcono(
                         icon = Icons.Outlined.Storefront,
-                        bg = FondoIconoMorado,
-                        tint = IconoMorado
+                        bg = MoradoSemantico.copy(alpha = 0.12f),
+                        tint = MoradoSemantico
                     )
 
                     Spacer(modifier = Modifier.width(14.dp))
@@ -735,23 +789,25 @@ fun PerfilScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
-
+            /*
+            |--------------------------------------------------------------------------
+            | SECCIÓN 3: SEGURIDAD DE LA CUENTA
+            |--------------------------------------------------------------------------
+            */
             PerfilSeccionTitulo(
                 icon = Icons.Outlined.Lock,
-                iconBg = VerdeSuave,
-                iconTint = colorPrincipal,
+                iconBg = primaryColor.copy(alpha = 0.12f),
+                iconTint = primaryColor,
                 titulo = "Seguridad de la cuenta",
-                subtitulo = "Información de acceso y seguridad"
+                subtitulo = "Información de acceso y credenciales"
             )
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
             ) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                     Row(
@@ -760,23 +816,24 @@ fun PerfilScreen(
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        PerfilIcono(icon = Icons.Outlined.Security, bg = VerdeSuave, tint = colorPrincipal)
+                        PerfilIcono(icon = Icons.Outlined.Security, bg = primaryColor.copy(alpha = 0.12f), tint = primaryColor)
                         Spacer(modifier = Modifier.width(14.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(text = "Estado de la cuenta", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(text = "Cuenta SIGEFIV activa", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colorPrincipal)
+                            Text(text = "Estado de la cuenta", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(text = "Cuenta SIGEFIV activa", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = primaryColor)
                         }
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = VerdeSuave
+                            color = VerdeSemantico.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, VerdeSemantico.copy(alpha = 0.25f))
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(imageVector = Icons.Outlined.CheckCircle, contentDescription = null, modifier = Modifier.size(15.dp), tint = colorPrincipal)
+                                Icon(imageVector = Icons.Outlined.CheckCircle, contentDescription = null, modifier = Modifier.size(14.dp), tint = VerdeSemantico)
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = "Activa", color = colorPrincipal, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(text = "Activa", color = VerdeSemantico, fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -786,14 +843,30 @@ fun PerfilScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable {
+                                when {
+                                    esGoogle -> mostrarAvisoGoogle = true
+                                    esFacebook -> mostrarAvisoFacebook = true
+                                    else -> mostrarDialogoPassword = true
+                                }
+                            }
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        PerfilIcono(icon = Icons.Outlined.Lock, bg = FondoIconoAzul, tint = IconoAzul)
+                        PerfilIcono(icon = Icons.Outlined.Lock, bg = AzulSemantico.copy(alpha = 0.12f), tint = AzulSemantico)
                         Spacer(modifier = Modifier.width(14.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(text = "Contraseña", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(text = if (esGoogle) "Gestionada por Google" else "Protegida", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text(text = "Contraseña", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                text = when {
+                                    esGoogle -> "Gestionada por Google"
+                                    esFacebook -> "Gestionada por Facebook"
+                                    else -> "Protegida"
+                                },
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -811,41 +884,87 @@ fun PerfilScreen(
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        PerfilIcono(icon = Icons.Outlined.Key, bg = FondoIconoNaranja, tint = IconoNaranja)
+                        PerfilIcono(icon = Icons.Outlined.Key, bg = NaranjaSemantico.copy(alpha = 0.12f), tint = NaranjaSemantico)
                         Spacer(modifier = Modifier.width(14.dp))
                         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                            if (esGoogle) {
-                                Text(text = "G", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEA4335))
-                                Spacer(modifier = Modifier.width(6.dp))
-                            }
                             Column {
-                                Text(text = "Método de acceso", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(text = if (esGoogle) "Cuenta Google" else "Correo y contraseña", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                Text(text = "Método de acceso", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    text = when {
+                                        esGoogle -> "Cuenta Google"
+                                        esFacebook -> "Cuenta Facebook"
+                                        else -> "Correo y contraseña"
+                                    },
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         }
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = VerdeSuave
+                            color = if (esFacebook) FacebookBlue.copy(alpha = 0.12f) else primaryColor.copy(alpha = 0.12f),
+                            border = BorderStroke(
+                                1.dp,
+                                if (esFacebook) FacebookBlue.copy(alpha = 0.30f) else primaryColor.copy(alpha = 0.25f)
+                            )
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(text = if (esGoogle) "Google" else "Correo", color = colorPrincipal, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = colorPrincipal, modifier = Modifier.size(16.dp))
+                                if (esFacebook) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .clip(CircleShape)
+                                            .background(FacebookBlue),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "f",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = Color.White
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                } else if (esGoogle) {
+                                    Text(
+                                        text = "G",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = GoogleRed
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                }
+                                Text(
+                                    text = when {
+                                        esGoogle -> "Google"
+                                        esFacebook -> "Facebook"
+                                        else -> "Correo"
+                                    },
+                                    color = if (esFacebook) FacebookBlue else primaryColor,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
-
+            /*
+            |--------------------------------------------------------------------------
+            | SECCIÓN 4: SOBRE SIGEFIV
+            |--------------------------------------------------------------------------
+            */
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = VerdeSuave.copy(alpha = 0.5f))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -853,22 +972,22 @@ fun PerfilScreen(
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    PerfilIcono(icon = Icons.Outlined.Info, bg = colorPrincipal, tint = Blanco)
+                    PerfilIcono(icon = Icons.Outlined.Info, bg = primaryColor.copy(alpha = 0.15f), tint = primaryColor)
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(text = "Sobre SIGEFIV", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Text(text = "SIGEFIV", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         Text(text = "Sistema de Gestión Financiera", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(text = "Grupo Residencial 21", fontSize = 12.sp, color = colorPrincipal, fontWeight = FontWeight.Medium)
+                        Text(text = "Grupo Residencial 21", fontSize = 11.5.sp, color = primaryColor, fontWeight = FontWeight.SemiBold)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text(text = "Versión 1.0.0", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = "Versión 1.0.0", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(modifier = Modifier.height(2.dp))
-                        Text(text = "Juntos por una mejor gestión", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = "Gestión transparente", fontSize = 10.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
@@ -878,7 +997,7 @@ fun PerfilScreen(
     |--------------------------------------------------------------------------
     */
     if (mostrarDialogoPassword) {
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = {
                 if (!cargandoPassword) {
                     mostrarDialogoPassword = false
@@ -888,8 +1007,9 @@ fun PerfilScreen(
                     errorPassword = null
                 }
             },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
-                Text(text = "Cambiar contraseña", fontWeight = FontWeight.Bold)
+                Text(text = "Cambiar contraseña", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
             },
             text = {
                 Column(
@@ -899,7 +1019,7 @@ fun PerfilScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "Introduce tu contraseña actual y la nueva clave.",
+                        text = "Introduce tu contraseña actual y la nueva clave de acceso.",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -909,6 +1029,7 @@ fun PerfilScreen(
                         onValueChange = { passwordActual = it },
                         label = { Text("Contraseña actual") },
                         singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -917,6 +1038,7 @@ fun PerfilScreen(
                         onValueChange = { nuevaPassword = it },
                         label = { Text("Nueva contraseña") },
                         singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -940,6 +1062,7 @@ fun PerfilScreen(
                         onValueChange = { confirmarPassword = it },
                         label = { Text("Confirmar nueva contraseña") },
                         singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -972,7 +1095,8 @@ fun PerfilScreen(
                             confirmarPassword = ""
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = colorPrincipal),
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                    shape = RoundedCornerShape(12.dp),
                     enabled = !cargandoPassword
                 ) {
                     Text(if (cargandoPassword) "Actualizando..." else "Actualizar")
@@ -997,25 +1121,57 @@ fun PerfilScreen(
 
     /*
     |--------------------------------------------------------------------------
-    | DIÁLOGO AVISO CUANDO ES CUENTA GOOGLE
+    | DIÁLOGO AVISO GOOGLE
     |--------------------------------------------------------------------------
     */
     if (mostrarAvisoGoogle) {
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = { mostrarAvisoGoogle = false },
-            title = { Text(text = "Acceso con Google", fontWeight = FontWeight.Bold) },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text(text = "Acceso con Google", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 Text(
                     text = "Tu cuenta está vinculada directamente con Google. No es necesario gestionar una contraseña local en SIGEFIV.",
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             confirmButton = {
                 Button(
                     onClick = { mostrarAvisoGoogle = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = colorPrincipal)
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Entendido")
+                }
+            }
+        )
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DIÁLOGO AVISO FACEBOOK
+    |--------------------------------------------------------------------------
+    */
+    if (mostrarAvisoFacebook) {
+        AlertDialog(
+            onDismissRequest = { mostrarAvisoFacebook = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text(text = "Acceso con Facebook", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+            text = {
+                Text(
+                    text = "Tu cuenta está vinculada directamente con Facebook. No es necesario gestionar una contraseña local en SIGEFIV.",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { mostrarAvisoFacebook = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = FacebookBlue),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Entendido", color = Color.White)
                 }
             }
         )
@@ -1059,8 +1215,8 @@ private fun PerfilSeccionTitulo(icon: ImageVector, iconBg: Color, iconTint: Colo
         PerfilIcono(icon = icon, bg = iconBg, tint = iconTint)
         Spacer(modifier = Modifier.width(12.dp))
         Column {
-            Text(text = titulo, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            Text(text = subtitulo, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text = titulo, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(text = subtitulo, fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -1070,7 +1226,7 @@ private fun PerfilDato(icon: ImageVector, iconBg: Color, iconTint: Color, titulo
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 10.dp),
+            .padding(vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         PerfilIcono(icon = icon, bg = iconBg, tint = iconTint)
@@ -1078,27 +1234,27 @@ private fun PerfilDato(icon: ImageVector, iconBg: Color, iconTint: Color, titulo
         Column(modifier = Modifier.weight(1f)) {
             Text(text = titulo, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(2.dp))
-            Text(text = valor, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(text = valor, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
 
 @Composable
 private fun PerfilIcono(icon: ImageVector, bg: Color, tint: Color) {
-    Box(
-        modifier = Modifier
-            .size(38.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(bg),
-        contentAlignment = Alignment.Center
+    Surface(
+        modifier = Modifier.size(36.dp),
+        shape = RoundedCornerShape(10.dp),
+        color = bg
     ) {
-        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = tint)
+        Box(contentAlignment = Alignment.Center) {
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = tint)
+        }
     }
 }
 
 @Composable
 private fun PerfilSeparador() {
-    HorizontalDivider(modifier = Modifier.padding(start = 52.dp), color = MaterialTheme.colorScheme.outlineVariant)
+    HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
 }
 
 @Composable
@@ -1153,13 +1309,13 @@ private fun ItemValidacionRequisito(texto: String, cumplido: Boolean) {
         Icon(
             imageVector = if (cumplido) Icons.Outlined.CheckCircle else Icons.Outlined.Check,
             contentDescription = null,
-            tint = if (cumplido) Color(0xFF15803D) else Color(0xFF94A3B8),
+            tint = if (cumplido) Color(0xFF16A34A) else Color(0xFF94A3B8),
             modifier = Modifier.size(15.dp)
         )
         Text(
             text = texto,
             fontSize = 11.sp,
-            color = if (cumplido) Color(0xFF15803D) else Color(0xFF64748B),
+            color = if (cumplido) Color(0xFF16A34A) else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = if (cumplido) FontWeight.SemiBold else FontWeight.Normal
         )
     }

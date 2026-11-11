@@ -1,21 +1,28 @@
 package com.sigefiv.app.viewmodel
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
+import com.sigefiv.app.ServidorConfig
+import com.sigefiv.app.data.api.OpinionRequest
+import com.sigefiv.app.data.api.OpinionesDataResponse
 import com.sigefiv.app.data.model.EmprendimientoModel
 import com.sigefiv.app.data.repository.EmprendimientoRepository
-import android.util.Log
-import com.sigefiv.app.data.api.OpinionesDataResponse
-import com.sigefiv.app.data.api.OpinionRequest
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import java.text.Normalizer
 
 class EmprendimientoViewModel(
-    private val repository: EmprendimientoRepository // 👈 Inyectamos el repositorio que conecta con la API
+    private val repository: EmprendimientoRepository
 ) : ViewModel() {
 
+    // Lista maestra intacta con todos los negocios cargados desde la API
+    private var todosLosEmprendimientos: List<EmprendimientoModel> = emptyList()
+
+    // Lista filtrada que observa EmprendimientosScreen
     var emprendimientos by mutableStateOf<List<EmprendimientoModel>>(emptyList())
         private set
 
@@ -24,16 +31,12 @@ class EmprendimientoViewModel(
 
     var searchQuery by mutableStateOf("")
         private set
-    // 🌟 Nueva variable para recordar el chip seleccionado
+
     var categoriaSeleccionada by mutableStateOf("Todos")
         private set
 
-    // 🌐 URL base para el almacenamiento público en Laravel (Emulador Android por defecto)
-    //private val baseUrl = "http://10.0.2.2:8080/storage/"
-    // En tu EmprendimientoViewModel.kt:
-
-    // O si prefieres usar el objeto de configuración directamente de forma dinámica:
-    private val baseUrl = com.sigefiv.app.ServidorConfig.API_BASE_URL.replace("/api/", "/storage/")
+    private val baseUrl = ServidorConfig.API_BASE_URL.replace("/api/", "/storage/")
+    private var cargaJob: Job? = null
 
     init {
         cargarEmprendimientosPublicos()
@@ -41,22 +44,14 @@ class EmprendimientoViewModel(
 
     fun cargarEmprendimientosPublicos(categoria: String? = null) {
         categoriaSeleccionada = categoria ?: "Todos"
-        viewModelScope.launch {
+        cargaJob?.cancel()
+        cargaJob = viewModelScope.launch {
             isLoading = true
             try {
                 val categoriaParam = if (categoria == "Todos") null else categoria
                 val resultado = repository.obtenerEmprendimientosPublicos(categoriaParam)
 
-// 🔍 AÑADE ESTE LOG PARA INSPECCIONAR QUÉ LLEGA DESDE LA API
-                resultado.forEach { item ->
-                    Log.d("DEBUG_FOTOS", "Negocio: ${item.name} | Fotos encontradas: ${item.photos?.size ?: 0}")
-                    item.photos?.forEach { foto ->
-                        Log.d("DEBUG_FOTOS", " -> Path en DTO: ${foto.path}")
-                    }
-                }
-
-                emprendimientos = resultado.map { item ->
-                    // Mapeamos las fotos para asegurar que tengan la URL completa del servidor
+                val mapeados = resultado.map { item ->
                     val fotosMapeadas = item.photos?.map { foto ->
                         val rutaFinal = if (foto.path.startsWith("http")) foto.path else baseUrl + foto.path
                         foto.copy(path = rutaFinal)
@@ -67,19 +62,24 @@ class EmprendimientoViewModel(
                         nombre = item.name,
                         descripcion = item.description ?: "",
                         categoria = item.categoria ?: "Servicios",
+                        palabrasClave = item.keywords,
                         telefono = item.phone,
                         showWhatsapp = item.showWhatsapp,
                         modalidad = item.modality,
                         zonaAtencion = item.attentionZone,
                         horario = item.schedule,
                         esFavorito = item.esFavorito ?: false,
-                        photos = fotosMapeadas, // 👈 Fotos con URL completa listas para Coil
-                        // 👇 AGREGA ESTAS DOS LÍNEAS AQUÍ:
+                        photos = fotosMapeadas,
                         promedioEstrellas = item.promedioCalificacion ?: 0.0f,
                         totalOpiniones = item.totalOpiniones ?: 0
                     )
                 }
-                Log.d("API_EMPRENDIMIENTOS", "Total cargados: ${emprendimientos.size}")
+
+                // Guardamos la lista completa en memoria y aplicamos el filtro actual
+                todosLosEmprendimientos = mapeados
+                aplicarFiltroLocal(searchQuery)
+
+                Log.d("API_EMPRENDIMIENTOS", "Total cargados: ${todosLosEmprendimientos.size}")
             } catch (e: Exception) {
                 Log.e("API_EMPRENDIMIENTOS", "Error al cargar: ${e.message}", e)
             } finally {
@@ -90,25 +90,36 @@ class EmprendimientoViewModel(
 
     fun buscarEmprendimientos(query: String) {
         searchQuery = query
-        viewModelScope.launch {
-            if (query.length >= 2) {
-                val filtrados = emprendimientos.filter {
-                    it.nombre.contains(query, ignoreCase = true) ||
-                            it.descripcion.contains(query, ignoreCase = true) ||
-                            it.categoria.contains(query, ignoreCase = true)
-                }
-                emprendimientos = filtrados
-            } else if (query.isEmpty()) {
-                cargarEmprendimientosPublicos(if (categoriaSeleccionada == "Todos") null else categoriaSeleccionada)
-            }
+        aplicarFiltroLocal(query)
+    }
+
+    private fun aplicarFiltroLocal(query: String) {
+        val termino = normalizarTexto(query)
+
+        if (termino.isEmpty()) {
+            emprendimientos = todosLosEmprendimientos
+            return
         }
+
+        // Filtra siempre desde todosLosEmprendimientos para que al borrar letras vuelvan a aparecer
+        emprendimientos = todosLosEmprendimientos.filter { negocio ->
+            normalizarTexto(negocio.nombre).contains(termino) ||
+                    normalizarTexto(negocio.descripcion).contains(termino) ||
+                    normalizarTexto(negocio.palabrasClave ?: "").contains(termino) ||
+                    normalizarTexto(negocio.categoria).contains(termino) ||
+                    normalizarTexto(negocio.zonaAtencion ?: "").contains(termino)
+        }
+    }
+
+    private fun normalizarTexto(texto: String): String {
+        return Normalizer.normalize(texto.trim().lowercase(), Normalizer.Form.NFD)
+            .replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
     }
 
     // Lista específica para la pantalla de favoritos
     var emprendimientosFavoritos by mutableStateOf<List<EmprendimientoModel>>(emptyList())
         private set
 
-    // Alternar favorito y persistir en backend
     fun toggleFavorito(id: Int) {
         viewModelScope.launch {
             try {
@@ -117,27 +128,26 @@ class EmprendimientoViewModel(
                     val body = response.body()
                     val nuevoEstado = body?.esFavorito ?: false
 
-                    // Actualizamos la lista pública local
+                    todosLosEmprendimientos = todosLosEmprendimientos.map { negocio ->
+                        if (negocio.id == id) negocio.copy(esFavorito = nuevoEstado) else negocio
+                    }
                     emprendimientos = emprendimientos.map { negocio ->
                         if (negocio.id == id) negocio.copy(esFavorito = nuevoEstado) else negocio
                     }
 
-                    // Actualizamos también la lista de favoritos si estamos en ella
                     cargarFavoritos()
                 }
             } catch (e: Exception) {
-                // Manejar error de red
+                Log.e("API_EMPRENDIMIENTOS", "Error en favorito: ${e.message}", e)
             }
         }
     }
 
-    // Cargar la lista de favoritos desde la API protegida de Laravel
     fun cargarFavoritos() {
         viewModelScope.launch {
             try {
                 val resultado = repository.getMisFavoritos()
                 emprendimientosFavoritos = resultado.emprendimientos.map { dto ->
-                    // Mapeamos las fotos para los favoritos también
                     val fotosMapeadas = dto.photos?.map { foto ->
                         val rutaFinal = if (foto.path.startsWith("http")) foto.path else baseUrl + foto.path
                         foto.copy(path = rutaFinal)
@@ -148,6 +158,7 @@ class EmprendimientoViewModel(
                         nombre = dto.name,
                         descripcion = dto.description ?: "",
                         categoria = dto.categoria ?: "Servicios",
+                        palabrasClave = dto.keywords,
                         telefono = dto.phone,
                         showWhatsapp = dto.showWhatsapp,
                         modalidad = dto.modality,
@@ -155,7 +166,6 @@ class EmprendimientoViewModel(
                         horario = dto.schedule,
                         esFavorito = true,
                         photos = fotosMapeadas,
-                        // 👈 Fotos mapeadas en favoritos
                         promedioEstrellas = dto.promedioCalificacion ?: 0.0f,
                         totalOpiniones = dto.totalOpiniones ?: 0
                     )
@@ -167,7 +177,7 @@ class EmprendimientoViewModel(
     }
 
     // ====================================================================
-    // ⭐ GESTIÓN DE OPINIONES Y CALIFICACIONES (NUEVO)
+    // ⭐ GESTIÓN DE OPINIONES Y CALIFICACIONES
     // ====================================================================
     var opinionesState by mutableStateOf<OpinionesDataResponse?>(null)
         private set
@@ -179,7 +189,7 @@ class EmprendimientoViewModel(
         viewModelScope.launch {
             cargandoOpiniones = true
             try {
-                val response = repository.getOpiniones(emprendimientoId) // 👈 Directo al repositorio
+                val response = repository.getOpiniones(emprendimientoId)
                 if (response.isSuccessful) {
                     val body = response.body()
                     Log.d("DEBUG_OPINIONES", "Promedio: ${body?.promedio} | Total: ${body?.total}")
@@ -200,7 +210,7 @@ class EmprendimientoViewModel(
                     calificacion = calificacion,
                     comentario = comentario.ifBlank { null }
                 )
-                val response = repository.enviarOpinion(emprendimientoId, request) // 👈 Directo al repositorio
+                val response = repository.enviarOpinion(emprendimientoId, request)
                 if (response.isSuccessful) {
                     cargarOpiniones(emprendimientoId)
                     onExito()

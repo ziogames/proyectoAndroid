@@ -1,33 +1,41 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.sigefiv.app.screens.emprendimiento
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.sigefiv.app.data.model.EmprendimientoModel
 import com.sigefiv.app.viewmodel.EmprendimientoViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val ColorWhatsApp = Color(0xFF10B981)
+private val ColorEstrella = Color(0xFFF59E0B)
+
 @Composable
 fun EmprendimientosFavoritosScreen(
     viewModel: EmprendimientoViewModel,
@@ -36,33 +44,44 @@ fun EmprendimientosFavoritosScreen(
     onContactarWhatsapp: (String) -> Unit,
     onLlamar: (String) -> Unit
 ) {
-    // Cargamos los favoritos reales de la base de datos al abrir la pantalla
     LaunchedEffect(Unit) {
         viewModel.cargarFavoritos()
     }
-    val primaryColor = MaterialTheme.colorScheme.primary
 
-    // Filtramos solo los emprendimientos que tienen esFavorito == true
+    val primaryColor = MaterialTheme.colorScheme.primary
     val favoritos = viewModel.emprendimientos.filter { it.esFavorito }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Mis favoritos", color = Color.White) },
+                title = {
+                    Column {
+                        Text(
+                            text = "Mis favoritos",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Negocios guardados para acceso rápido",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Regresar", tint = Color.White)
+                        Icon(
+                            imageVector = Icons.Outlined.ArrowBack,
+                            contentDescription = "Regresar",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 },
-                actions = {
-                    IconButton(onClick = { /* Opciones */ }) {
-                        Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White)
-                    }
-                    IconButton(onClick = { /* Menú */ }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = null, tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = primaryColor)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
     ) { paddingValues ->
@@ -70,31 +89,60 @@ fun EmprendimientosFavoritosScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFFF8F9FA))
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            // Cabecera informativa estilo diseño de referencia
-            Column(
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Cabecera descriptiva tipo banner
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 1.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             ) {
-                Text(
-                    text = "Tus emprendimientos favoritos",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = Color(0xFF111827)
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Aquí tienes los negocios que has marcado como favoritos para acceder fácilmente.",
-                    fontSize = 13.sp,
-                    color = Color(0xFF6B7280),
-                    lineHeight = 18.sp
-                )
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.12f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Emprendimientos guardados",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "${favoritos.size} negocios en tu lista preferida",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
             }
 
+            Spacer(modifier = Modifier.height(6.dp))
+
             if (favoritos.isEmpty()) {
-                // Estado vacío si no hay favoritos
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -103,38 +151,40 @@ fun EmprendimientosFavoritosScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            imageVector = Icons.Default.FavoriteBorder,
+                            imageVector = Icons.Outlined.FavoriteBorder,
                             contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = Color(0xFF9CA3AF)
+                            modifier = Modifier.size(54.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "Aún no tienes favoritos",
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
-                            color = Color(0xFF4B5563)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Toca el ícono de corazón en cualquier negocio para agregarlo aquí.",
+                            text = "Toca el ícono de corazón en cualquier negocio del catálogo para guardarlo aquí.",
                             fontSize = 13.sp,
-                            color = Color(0xFF6B7280),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 18.sp
                         )
                     }
                 }
             } else {
-                // Lista vertical de favoritos
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
-                    items(favoritos) { negocio ->
+                    items(favoritos, key = { it.id }) { negocio ->
                         FavoritoCard(
                             negocio = negocio,
+                            primaryColor = primaryColor,
                             onClick = { onItemClick(negocio.id) },
                             onFavoritoClick = { viewModel.toggleFavorito(negocio.id) },
                             onWhatsappClick = { onContactarWhatsapp(negocio.telefono) },
@@ -150,17 +200,22 @@ fun EmprendimientosFavoritosScreen(
 @Composable
 fun FavoritoCard(
     negocio: EmprendimientoModel,
+    primaryColor: Color,
     onClick: () -> Unit,
     onFavoritoClick: () -> Unit,
     onWhatsappClick: () -> Unit,
     onLlamarClick: () -> Unit
 ) {
-    Card(
+    val context = LocalContext.current
+    val primeraFoto = negocio.photos?.firstOrNull()?.path
+
+    Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
     ) {
         Row(
             modifier = Modifier
@@ -168,13 +223,36 @@ fun FavoritoCard(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Miniatura de imagen cuadrada a la izquierda
+            // Miniatura con imagen o placeholder
             Box(
                 modifier = Modifier
-                    .size(65.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFE5E7EB))
-            )
+                    .size(68.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!primeraFoto.isNullOrEmpty()) {
+                    val painter = rememberAsyncImagePainter(
+                        model = ImageRequest.Builder(context)
+                            .data(primeraFoto)
+                            .crossfade(true)
+                            .build()
+                    )
+                    Image(
+                        painter = painter,
+                        contentDescription = negocio.nombre,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Outlined.Storefront,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.width(12.dp))
 
@@ -184,84 +262,108 @@ fun FavoritoCard(
                     text = negocio.nombre,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
-                    color = Color(0xFF111827),
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
 
                 Spacer(modifier = Modifier.height(2.dp))
 
-                Text(
-                    text = negocio.categoria,
-                    fontSize = 12.sp,
-                    color = Color(0xFF047857),
-                    fontWeight = FontWeight.Medium
-                )
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = primaryColor.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = negocio.categoria,
+                        fontSize = 11.sp,
+                        color = primaryColor,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Estrellas y opiniones
+                // Estrellas y opiniones dinámicas
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFC107), modifier = Modifier.size(14.dp))
+                    Icon(
+                        imageVector = Icons.Filled.Star,
+                        contentDescription = null,
+                        tint = ColorEstrella,
+                        modifier = Modifier.size(13.dp)
+                    )
                     Spacer(modifier = Modifier.width(3.dp))
-                    Text(text = "4.8", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1F2937))
-                    Text(text = " (32)", fontSize = 11.sp, color = Color(0xFF9CA3AF))
+                    Text(
+                        text = "${negocio.promedioEstrellas}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = " (${negocio.totalOpiniones})",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Acciones de la derecha (WhatsApp, Llamar y Corazón)
+            // Acciones laterales: Quitar favorito + Contactos directos
             Column(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Corazón en rojo porque es favorito
                 IconButton(
                     onClick = onFavoritoClick,
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Favorite,
+                        imageVector = Icons.Filled.Favorite,
                         contentDescription = "Quitar favorito",
-                        tint = Color.Red,
+                        tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(20.dp)
                     )
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Botones rápidos de contacto (WhatsApp y Llamar en miniatura)
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
+                    // Botón WhatsApp
+                    Surface(
                         onClick = onWhatsappClick,
-                        modifier = Modifier
-                            .size(30.dp)
-                            .background(Color(0xFFE8F5E9), CircleShape)
+                        shape = CircleShape,
+                        color = ColorWhatsApp.copy(alpha = 0.14f),
+                        modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(
-                            Icons.Outlined.Chat,
-                            contentDescription = "WhatsApp",
-                            tint = Color(0xFF2E7D32),
-                            modifier = Modifier.size(15.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.Chat,
+                                contentDescription = "WhatsApp",
+                                tint = ColorWhatsApp,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
 
-                    IconButton(
+                    // Botón Llamar
+                    Surface(
                         onClick = onLlamarClick,
-                        modifier = Modifier
-                            .size(30.dp)
-                            .background(Color(0xFFE3F2FD), CircleShape)
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(
-                            Icons.Default.Call,
-                            contentDescription = "Llamar",
-                            tint = Color(0xFF1976D2),
-                            modifier = Modifier.size(15.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.Call,
+                                contentDescription = "Llamar",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
             }

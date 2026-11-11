@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.sigefiv.app.screens.chat
 
 import android.Manifest
@@ -24,7 +26,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -33,15 +34,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -50,9 +50,6 @@ import com.sigefiv.app.data.model.ChatMessage
 import com.sigefiv.app.screens.chat.components.ChatEmptyState
 import com.sigefiv.app.screens.chat.components.ChatInputArea
 import com.sigefiv.app.screens.chat.components.ChatMessageItem
-import com.sigefiv.app.screens.chat.components.colorPrincipal
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
 import com.sigefiv.app.viewmodel.ChatViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -72,6 +69,12 @@ private data class AccionRapidaZoe(
 
 private enum class FiltroChat {
     TODOS, SOLO_ZOE, MULTIMEDIA
+}
+
+private fun esMensajeDeZoe(msg: ChatMessage): Boolean {
+    val nombreAutor = msg.usuario?.name?.lowercase() ?: ""
+    val contenido = msg.mensaje?.trim() ?: ""
+    return nombreAutor.contains("zoe") || contenido.startsWith("🤖")
 }
 
 private fun obtenerEtiquetaFecha(fechaStr: String?): String {
@@ -118,7 +121,6 @@ private fun crearMediaRecorder(context: Context): MediaRecorder {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatVecinalScreen(
     viewModel: ChatViewModel,
@@ -156,30 +158,74 @@ fun ChatVecinalScreen(
     var archivoSeleccionadoUri by remember { mutableStateOf<Uri?>(null) }
     var seHizoScrollInicial by remember { mutableStateOf(false) }
 
-    // 🎙️ Estados para notas de voz
+    // Control dinámico seguro de ZOE redactando
+    var esperandoRespuestaZoe by remember { mutableStateOf(false) }
+    var conteoRespuestasZoeBase by remember { mutableIntStateOf(-1) }
+
+    // Estados para notas de voz
     var grabadorAudio by remember { mutableStateOf<MediaRecorder?>(null) }
     var rutaAudioActual by remember { mutableStateOf<String?>(null) }
     var audioGrabadoUri by remember { mutableStateOf<Uri?>(null) }
     var estaGrabandoAudio by remember { mutableStateOf(false) }
 
-    val primaryColor = SeasonalColors.primary(SeasonalTheme.getSeason())
+    val primaryColor = MaterialTheme.colorScheme.primary
 
-    // ✏️ Cargar texto al activar modo edición
     LaunchedEffect(uiState.mensajeEnEdicion) {
         uiState.mensajeEnEdicion?.let { msg ->
             textoInput = msg.mensaje ?: ""
         }
     }
 
+    val conteoActualRespuestasZoe = remember(uiState.mensajes) {
+        uiState.mensajes.count { esMensajeDeZoe(it) }
+    }
+
+    // Apagar la animación de ZOE únicamente cuando llegue una respuesta NUEVA de ZOE
+    LaunchedEffect(conteoActualRespuestasZoe) {
+        if (esperandoRespuestaZoe && conteoRespuestasZoeBase != -1 && conteoActualRespuestasZoe > conteoRespuestasZoeBase) {
+            esperandoRespuestaZoe = false
+            conteoRespuestasZoeBase = -1
+        }
+    }
+
+    // Límite de seguridad: apagar tras 35 segundos si n8n no responde
+    LaunchedEffect(esperandoRespuestaZoe) {
+        if (esperandoRespuestaZoe) {
+            delay(35_000)
+            esperandoRespuestaZoe = false
+            conteoRespuestasZoeBase = -1
+        }
+    }
+
+    // Detectar también si el último mensaje en pantalla es una consulta a @zoe en curso
+    val ultimoMensajeEsPreguntaZoe = remember(uiState.mensajes, uiState.enviando) {
+        val ultimo = uiState.mensajes.lastOrNull()
+        ultimo != null &&
+                !esMensajeDeZoe(ultimo) &&
+                ultimo.mensaje?.contains("@zoe", ignoreCase = true) == true &&
+                uiState.enviando
+    }
+
+    val zoeEstaEscribiendo = remember(
+        uiState.usuariosEscribiendo,
+        esperandoRespuestaZoe,
+        ultimoMensajeEsPreguntaZoe
+    ) {
+        val enLista = uiState.usuariosEscribiendo.any {
+            it.name?.contains("zoe", ignoreCase = true) == true
+        }
+        enLista || esperandoRespuestaZoe || ultimoMensajeEsPreguntaZoe
+    }
+
     val accionesRapidas = remember(primaryColor) {
         listOf(
             AccionRapidaZoe("Movimientos", "@zoe ¿Cuáles fueron los movimientos?", Icons.Outlined.ReceiptLong, Color(0xFF1E88E5)),
-            AccionRapidaZoe("Saldo en caja", "@zoe ¿Cuál es el saldo en caja?", Icons.Outlined.AccountBalanceWallet, Color(0xFF43A047)),
+            AccionRapidaZoe("Saldo en caja", "@zoe ¿Cuál es el saldo en caja?", Icons.Outlined.AccountBalanceWallet, Color(0xFF16A34A)),
             AccionRapidaZoe("Ingresos", "@zoe ¿Cuáles fueron los ingresos?", Icons.Outlined.TrendingUp, Color(0xFF00897B)),
-            AccionRapidaZoe("Egresos", "@zoe ¿Cuáles fueron los egresos?", Icons.Outlined.TrendingDown, Color(0xFFE53935)),
+            AccionRapidaZoe("Egresos", "@zoe ¿Cuáles fueron los egresos?", Icons.Outlined.TrendingDown, Color(0xFFDC2626)),
             AccionRapidaZoe("Emergencias", "@zoe Números de emergencia", Icons.Outlined.Emergency, Color(0xFFD81B60)),
-            AccionRapidaZoe("Directiva", "@zoe ¿Quiénes conforman la junta directiva?", Icons.Outlined.Badge, Color(0xFF5E35B1)),
-            AccionRapidaZoe("Negocios", "@zoe ¿Qué emprendimientos hay en la comunidad?", Icons.Outlined.Storefront, Color(0xFFFB8C00))
+            AccionRapidaZoe("Directiva", "@zoe ¿Quiénes conforman la junta directiva?", Icons.Outlined.Badge, Color(0xFF7C3AED)),
+            AccionRapidaZoe("Negocios", "@zoe ¿Qué emprendimientos hay en la comunidad?", Icons.Outlined.Storefront, Color(0xFFEA580C))
         )
     }
 
@@ -189,7 +235,6 @@ fun ChatVecinalScreen(
         uri?.let { archivoSeleccionadoUri = it }
     }
 
-    // Funciones de grabación
     fun iniciarGrabacion() {
         try {
             val dir = context.cacheDir ?: context.filesDir
@@ -309,9 +354,9 @@ fun ChatVecinalScreen(
             val primerNoLeido = uiState.primerNoLeidoId
             val indiceDestino = if (primerNoLeido != null && uiState.mensajesNoLeidos > 0) {
                 val idx = mensajesVisibles.indexOfFirst { it.id == primerNoLeido }
-                if (idx != -1) idx + 1 else mensajesVisibles.size
+                if (idx != -1) idx + 1 else mensajesVisibles.size + 1
             } else {
-                mensajesVisibles.size
+                mensajesVisibles.size + 1
             }
 
             listState.scrollToItem(indiceDestino)
@@ -319,15 +364,18 @@ fun ChatVecinalScreen(
         }
     }
 
-    // Scroll automático al recibir mensajes nuevos
-    LaunchedEffect(uiState.mensajes.size) {
+    // Scroll automático al recibir mensajes nuevos o cuando ZOE empieza a redactar
+    LaunchedEffect(uiState.mensajes.size, zoeEstaEscribiendo) {
         if (seHizoScrollInicial && uiState.mensajes.isNotEmpty() && filtroActual == FiltroChat.TODOS && textoBusqueda.isBlank()) {
             val ultimoVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
             val totalItems = listState.layoutInfo.totalItemsCount
 
-            if (ultimoVisible >= totalItems - 5) {
-                delay(80)
-                listState.animateScrollToItem(mensajesVisibles.size)
+            if (zoeEstaEscribiendo || ultimoVisible >= totalItems - 6) {
+                delay(100)
+                val nuevoTotal = listState.layoutInfo.totalItemsCount
+                if (nuevoTotal > 0) {
+                    listState.animateScrollToItem(nuevoTotal - 1)
+                }
             }
         }
     }
@@ -337,7 +385,8 @@ fun ChatVecinalScreen(
         if (uiState.mensajesNoLeidos > 0 && uiState.mensajes.isNotEmpty()) {
             snapshotFlow {
                 val ultimoVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-                ultimoVisible >= listState.layoutInfo.totalItemsCount - 2
+                val totalItems = listState.layoutInfo.totalItemsCount
+                ultimoVisible >= totalItems - 2
             }
                 .distinctUntilChanged()
                 .collect { llegoAlFinal ->
@@ -348,7 +397,6 @@ fun ChatVecinalScreen(
         }
     }
 
-    // Control del marcador de no leídos
     LaunchedEffect(uiState.primerNoLeidoId, uiState.mensajesNoLeidos) {
         val primerNoLeido = uiState.primerNoLeidoId
         val conteoActual = uiState.mensajesNoLeidos
@@ -396,11 +444,12 @@ fun ChatVecinalScreen(
     if (!uiState.advertenciaModeracion.isNullOrBlank()) {
         AlertDialog(
             onDismissRequest = { viewModel.limpiarAdvertencia() },
+            containerColor = MaterialTheme.colorScheme.surface,
             icon = {
                 Icon(
                     imageVector = Icons.Outlined.WarningAmber,
                     contentDescription = null,
-                    tint = Color(0xFFF57C00),
+                    tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(36.dp)
                 )
             },
@@ -408,7 +457,7 @@ fun ChatVecinalScreen(
                 Text(
                     text = "Advertencia de Convivencia ZOE",
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFF57C00),
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 17.sp
                 )
             },
@@ -416,26 +465,28 @@ fun ChatVecinalScreen(
                 Text(
                     text = uiState.advertenciaModeracion ?: "",
                     fontSize = 14.sp,
-                    lineHeight = 20.sp
+                    lineHeight = 20.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             confirmButton = {
                 Button(
                     onClick = { viewModel.limpiarAdvertencia() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF57C00))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Entendido", color = Color.White)
+                    Text("Entendido", color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         )
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(4.dp)
+                    .background(MaterialTheme.colorScheme.surface)
             ) {
                 TopAppBar(
                     title = {
@@ -443,26 +494,20 @@ fun ChatVecinalScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        Brush.linearGradient(
-                                            colors = listOf(
-                                                Color.White.copy(alpha = 0.3f),
-                                                Color.White.copy(alpha = 0.1f)
-                                            )
-                                        )
-                                    ),
-                                contentAlignment = Alignment.Center
+                            Surface(
+                                shape = CircleShape,
+                                color = primaryColor.copy(alpha = 0.12f),
+                                border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f)),
+                                modifier = Modifier.size(42.dp)
                             ) {
-                                Icon(
-                                    Icons.Outlined.Forum,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(22.dp)
-                                )
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Outlined.Forum,
+                                        contentDescription = null,
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.width(10.dp))
@@ -470,7 +515,7 @@ fun ChatVecinalScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Grupo Residencial 21",
-                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 16.sp,
                                     maxLines = 1,
@@ -484,13 +529,13 @@ fun ChatVecinalScreen(
                                                 .size(8.dp)
                                                 .scale(pulseScale)
                                                 .clip(CircleShape)
-                                                .background(Color(0xFF69F0AE).copy(alpha = 0.4f))
+                                                .background(Color(0xFF16A34A).copy(alpha = 0.4f))
                                         )
                                         Box(
                                             modifier = Modifier
                                                 .size(7.dp)
                                                 .clip(CircleShape)
-                                                .background(Color(0xFF00E676))
+                                                .background(Color(0xFF16A34A))
                                         )
                                     }
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -501,7 +546,7 @@ fun ChatVecinalScreen(
                                     }
                                     Text(
                                         text = textoConectados,
-                                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 11.sp,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -515,11 +560,13 @@ fun ChatVecinalScreen(
                             Icon(
                                 Icons.Outlined.ArrowBack,
                                 contentDescription = "Regresar",
-                                tint = MaterialTheme.colorScheme.onPrimary
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = primaryColor),
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
                     actions = {
                         IconButton(onClick = {
                             mostrarBuscador = !mostrarBuscador
@@ -528,15 +575,15 @@ fun ChatVecinalScreen(
                             Icon(
                                 imageVector = if (mostrarBuscador) Icons.Outlined.Close else Icons.Outlined.Search,
                                 contentDescription = "Buscar",
-                                tint = MaterialTheme.colorScheme.onPrimary
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
                         Surface(
                             onClick = { mostrarAyudaZoe = true },
                             shape = RoundedCornerShape(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.35f)),
+                            color = primaryColor.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f)),
                             modifier = Modifier.padding(end = 4.dp)
                         ) {
                             Row(
@@ -546,13 +593,13 @@ fun ChatVecinalScreen(
                                 Icon(
                                     Icons.Filled.SmartToy,
                                     contentDescription = "ZOE IA",
-                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    tint = primaryColor,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Text(
                                     text = "ZOE IA",
-                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    color = primaryColor,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.ExtraBold
                                 )
@@ -564,7 +611,7 @@ fun ChatVecinalScreen(
                                 Icon(
                                     Icons.Outlined.MoreVert,
                                     contentDescription = "Opciones",
-                                    tint = MaterialTheme.colorScheme.onPrimary
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             DropdownMenu(
@@ -592,8 +639,9 @@ fun ChatVecinalScreen(
                                     onClick = {
                                         mostrarMenuChat = false
                                         coroutineScope.launch {
-                                            if (mensajesVisibles.isNotEmpty()) {
-                                                listState.animateScrollToItem(mensajesVisibles.size)
+                                            val total = listState.layoutInfo.totalItemsCount
+                                            if (total > 0) {
+                                                listState.animateScrollToItem(total - 1)
                                             }
                                         }
                                     }
@@ -604,8 +652,8 @@ fun ChatVecinalScreen(
                 )
 
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    tonalElevation = 2.dp
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 1.dp
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         AnimatedVisibility(visible = mostrarBuscador) {
@@ -623,6 +671,12 @@ fun ChatVecinalScreen(
                                 },
                                 singleLine = true,
                                 shape = RoundedCornerShape(14.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                                    focusedBorderColor = primaryColor,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                ),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -658,6 +712,11 @@ fun ChatVecinalScreen(
                                 onClick = { filtroActual = FiltroChat.MULTIMEDIA }
                             )
                         }
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                            thickness = 0.8.dp
+                        )
                     }
                 }
             }
@@ -665,11 +724,10 @@ fun ChatVecinalScreen(
         bottomBar = {
             Surface(
                 color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 3.dp,
-                shadowElevation = 8.dp
+                tonalElevation = 2.dp,
+                border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // Modo edición
                     AnimatedVisibility(visible = uiState.mensajeEnEdicion != null) {
                         Surface(
                             color = primaryColor.copy(alpha = 0.12f),
@@ -701,7 +759,8 @@ fun ChatVecinalScreen(
                                         text = uiState.mensajeEnEdicion?.mensaje ?: "",
                                         fontSize = 11.sp,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                                 IconButton(
@@ -717,15 +776,10 @@ fun ChatVecinalScreen(
                         }
                     }
 
-                    // Acciones rápidas ZOE
                     AnimatedVisibility(
                         visible = mostrarChipsZoe && archivoSeleccionadoUri == null && audioGrabadoUri == null && !estaGrabandoAudio && uiState.mensajeEnEdicion == null
                     ) {
                         Column {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                thickness = 0.5.dp
-                            )
                             LazyRow(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -739,7 +793,7 @@ fun ChatVecinalScreen(
                                         onClick = { mostrarAyudaZoe = true },
                                         shape = RoundedCornerShape(16.dp),
                                         color = primaryColor.copy(alpha = 0.12f),
-                                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.3f))
+                                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
                                     ) {
                                         Row(
                                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -766,10 +820,10 @@ fun ChatVecinalScreen(
                                     Surface(
                                         onClick = { textoInput = accion.comando },
                                         shape = RoundedCornerShape(16.dp),
-                                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                         border = BorderStroke(
                                             width = 0.8.dp,
-                                            color = accion.colorAccento.copy(alpha = 0.35f)
+                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                         )
                                     ) {
                                         Row(
@@ -796,7 +850,6 @@ fun ChatVecinalScreen(
                         }
                     }
 
-                    // 🔴 Barra de grabación activa
                     AnimatedVisibility(visible = estaGrabandoAudio) {
                         Surface(
                             color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
@@ -849,7 +902,6 @@ fun ChatVecinalScreen(
                         }
                     }
 
-                    // 🎙️ Previsualización de nota de voz lista para enviar
                     AnimatedVisibility(visible = audioGrabadoUri != null && !estaGrabandoAudio) {
                         Surface(
                             color = primaryColor.copy(alpha = 0.12f),
@@ -901,10 +953,9 @@ fun ChatVecinalScreen(
                         }
                     }
 
-                    // Previsualización de archivo de imagen
                     AnimatedVisibility(visible = archivoSeleccionadoUri != null) {
                         Surface(
-                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
                             border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.3f)),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -935,12 +986,12 @@ fun ChatVecinalScreen(
                                         text = "Fotografía o evidencia adjunta",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = "Si es un reporte para la directiva, describe el incidente abajo",
                                         fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                                 IconButton(onClick = { archivoSeleccionadoUri = null }) {
@@ -950,13 +1001,14 @@ fun ChatVecinalScreen(
                         }
                     }
 
-                    // Único componente de entrada y botón de acción (Micrófono <-> Enviar)
                     ChatInputArea(
                         texto = textoInput,
                         enviando = uiState.enviando,
                         esBloqueoPermanente = uiState.esBloqueoPermanente,
                         mensajeRespondido = uiState.mensajeRespondido,
-                        usuariosEscribiendo = uiState.usuariosEscribiendo.filter { it.id != usuarioActualId },
+                        usuariosEscribiendo = uiState.usuariosEscribiendo.filter {
+                            it.id != usuarioActualId && it.name?.contains("zoe", ignoreCase = true) != true
+                        },
                         estaGrabandoAudio = estaGrabandoAudio,
                         audioListoParaEnviar = audioGrabadoUri != null,
                         onTextoChange = {
@@ -977,7 +1029,15 @@ fun ChatVecinalScreen(
                                         textoInput = ""
                                     }
                                     textoInput.isNotBlank() -> {
-                                        viewModel.enviarMensaje(textoInput)
+                                        val textoAEnviar = textoInput.trim()
+                                        val esPreguntaZoe = textoAEnviar.contains("@zoe", ignoreCase = true)
+
+                                        if (esPreguntaZoe) {
+                                            conteoRespuestasZoeBase = uiState.mensajes.count { esMensajeDeZoe(it) }
+                                            esperandoRespuestaZoe = true
+                                        }
+
+                                        viewModel.enviarMensaje(textoAEnviar)
                                         textoInput = ""
                                         viewModel.actualizarEscribiendo(false)
                                     }
@@ -1010,9 +1070,9 @@ fun ChatVecinalScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            ChatWallpaperBackground(colorPatron = primaryColor.copy(alpha = 0.055f))
+            ChatWallpaperBackground(colorPatron = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
 
             when {
                 uiState.cargando -> {
@@ -1020,7 +1080,7 @@ fun ChatVecinalScreen(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        CircularProgressIndicator(color = colorPrincipal())
+                        CircularProgressIndicator(color = primaryColor)
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
                             text = "Sincronizando mensajes vecinales...",
@@ -1047,14 +1107,15 @@ fun ChatVecinalScreen(
                             Text(
                                 text = "No se encontraron mensajes con ese filtro",
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 15.sp
+                                fontSize = 15.sp,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             TextButton(onClick = {
                                 textoBusqueda = ""
                                 filtroActual = FiltroChat.TODOS
                             }) {
-                                Text("Restablecer vista completa")
+                                Text("Restablecer vista completa", color = primaryColor)
                             }
                         }
                     } else {
@@ -1077,8 +1138,8 @@ fun ChatVecinalScreen(
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(14.dp),
-                                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.75f),
-                                    border = BorderStroke(0.5.dp, primaryColor.copy(alpha = 0.25f))
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                    border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -1094,7 +1155,7 @@ fun ChatVecinalScreen(
                                         Text(
                                             text = "Canal oficial del Grupo Residencial 21. Menciona a @zoe para consultas automáticas.",
                                             fontSize = 11.sp,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
@@ -1117,8 +1178,8 @@ fun ChatVecinalScreen(
                                 ) {
                                     Surface(
                                         shape = RoundedCornerShape(16.dp),
-                                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                        shadowElevation = 1.dp,
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                        shadowElevation = 0.5.dp,
                                         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                     ) {
                                         Text(
@@ -1147,8 +1208,8 @@ fun ChatVecinalScreen(
 
                                     Surface(
                                         shape = RoundedCornerShape(20.dp),
-                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                        shadowElevation = 2.dp,
+                                        color = primaryColor.copy(alpha = 0.12f),
+                                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f)),
                                         modifier = Modifier.padding(horizontal = 10.dp)
                                     ) {
                                         Row(
@@ -1159,12 +1220,12 @@ fun ChatVecinalScreen(
                                             Icon(
                                                 imageVector = Icons.Outlined.MarkChatUnread,
                                                 contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
+                                                tint = primaryColor,
                                                 modifier = Modifier.size(15.dp)
                                             )
                                             Text(
                                                 text = "Mensajes nuevos",
-                                                color = MaterialTheme.colorScheme.primary,
+                                                color = primaryColor,
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -1201,7 +1262,16 @@ fun ChatVecinalScreen(
                             )
                         }
 
-                        item { Spacer(modifier = Modifier.height(35.dp)) }
+                        // Indicador animado de ZOE redactando en onda
+                        if (zoeEstaEscribiendo) {
+                            item(key = "indicador_zoe_escribiendo") {
+                                ZoeTypingBubble(primaryColor = primaryColor)
+                            }
+                        }
+
+                        item(key = "spacer_inferior_chat") {
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
                     }
                 }
             }
@@ -1217,15 +1287,16 @@ fun ChatVecinalScreen(
                 SmallFloatingActionButton(
                     onClick = {
                         coroutineScope.launch {
-                            if (mensajesVisibles.isNotEmpty()) {
-                                listState.animateScrollToItem(mensajesVisibles.size)
+                            val total = listState.layoutInfo.totalItemsCount
+                            if (total > 0) {
+                                listState.animateScrollToItem(total - 1)
                             }
                         }
                     },
                     shape = CircleShape,
                     containerColor = MaterialTheme.colorScheme.surface,
                     contentColor = primaryColor,
-                    elevation = FloatingActionButtonDefaults.elevation(6.dp)
+                    elevation = FloatingActionButtonDefaults.elevation(4.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.KeyboardDoubleArrowDown,
@@ -1253,13 +1324,14 @@ fun ChatVecinalScreen(
                                 val idx = mensajesVisibles.indexOfFirst { it.id == idDestino }
                                 if (idx >= 0) {
                                     listState.animateScrollToItem(idx + 1)
-                                } else if (mensajesVisibles.isNotEmpty()) {
-                                    listState.animateScrollToItem(mensajesVisibles.size)
+                                } else {
+                                    val total = listState.layoutInfo.totalItemsCount
+                                    if (total > 0) listState.animateScrollToItem(total - 1)
                                 }
                             }
                         },
                     color = primaryColor,
-                    shadowElevation = 8.dp
+                    shadowElevation = 4.dp
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
@@ -1286,8 +1358,7 @@ fun ChatVecinalScreen(
                 Card(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(12.dp)
-                        .shadow(6.dp, RoundedCornerShape(12.dp)),
+                        .padding(12.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -1324,8 +1395,8 @@ fun ChatVecinalScreen(
                     Surface(
                         shape = RoundedCornerShape(24.dp),
                         color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 8.dp,
-                        shadowElevation = 14.dp,
+                        tonalElevation = 6.dp,
+                        shadowElevation = 8.dp,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                         modifier = Modifier.fillMaxWidth(0.92f)
                     ) {
@@ -1353,7 +1424,10 @@ fun ChatVecinalScreen(
                                 }
                             }
 
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                            )
 
                             Row(
                                 modifier = Modifier
@@ -1368,10 +1442,14 @@ fun ChatVecinalScreen(
                             ) {
                                 Icon(Icons.Outlined.Reply, contentDescription = null, tint = primaryColor)
                                 Spacer(modifier = Modifier.width(14.dp))
-                                Text("Responder", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                Text(
+                                    text = "Responder",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
 
-                            // Solo permitir editar si es propio y NO es un archivo ni nota de voz
                             val esMultimedia = msgSeleccionado.obtenerArchivoAdjunto() != null
 
                             if (esPropio && !esMultimedia) {
@@ -1388,7 +1466,12 @@ fun ChatVecinalScreen(
                                 ) {
                                     Icon(Icons.Outlined.Edit, contentDescription = null, tint = primaryColor)
                                     Spacer(modifier = Modifier.width(14.dp))
-                                    Text("Editar mensaje", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                    Text(
+                                        text = "Editar mensaje",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
                             }
 
@@ -1437,7 +1520,7 @@ fun ChatVecinalScreen(
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(primaryColor.copy(alpha = 0.15f)),
+                                    .background(primaryColor.copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -1452,7 +1535,8 @@ fun ChatVecinalScreen(
                                 Text(
                                     text = "Centro de Comandos ZOE",
                                     fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "Toca cualquier consulta para usarla en el chat",
@@ -1462,7 +1546,10 @@ fun ChatVecinalScreen(
                             }
                         }
 
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        )
 
                         accionesRapidas.forEach { item ->
                             Surface(
@@ -1471,8 +1558,8 @@ fun ChatVecinalScreen(
                                     mostrarAyudaZoe = false
                                 },
                                 shape = RoundedCornerShape(14.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
@@ -1483,7 +1570,7 @@ fun ChatVecinalScreen(
                                         modifier = Modifier
                                             .size(34.dp)
                                             .clip(CircleShape)
-                                            .background(item.colorAccento.copy(alpha = 0.15f)),
+                                            .background(item.colorAccento.copy(alpha = 0.12f)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
@@ -1498,7 +1585,8 @@ fun ChatVecinalScreen(
                                         Text(
                                             text = item.etiqueta,
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = item.comando,
@@ -1522,6 +1610,120 @@ fun ChatVecinalScreen(
     }
 }
 
+/*
+|--------------------------------------------------------------------------
+| BURBUJA DE CHAT: ZOE REDACTANDO EN ONDA
+|--------------------------------------------------------------------------
+*/
+
+@Composable
+private fun ZoeTypingBubble(
+    primaryColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(primaryColor.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.SmartToy,
+                contentDescription = "ZOE redactando",
+                tint = primaryColor,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Surface(
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomEnd = 16.dp,
+                bottomStart = 4.dp
+            ),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
+            border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.35f)),
+            tonalElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "ZOE redactando",
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = primaryColor
+                )
+                TypingWaveIndicator(
+                    dotColor = primaryColor,
+                    dotSize = 6.dp,
+                    travelDistance = 4.dp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TypingWaveIndicator(
+    modifier: Modifier = Modifier,
+    dotColor: Color = MaterialTheme.colorScheme.primary,
+    dotSize: Dp = 6.dp,
+    travelDistance: Dp = 4.dp
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "typing_wave_anim")
+    val dotDelays = listOf(0, 160, 320)
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        dotDelays.forEachIndexed { index, delay ->
+            val fraction by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = keyframes {
+                        durationMillis = 1000
+                        0.0f at delay using FastOutSlowInEasing
+                        0.5f at delay + 200 using FastOutSlowInEasing
+                        0.0f at delay + 400 using FastOutSlowInEasing
+                    },
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "dot_fraction_$index"
+            )
+
+            val desplazamientoY = -travelDistance.value * fraction
+            val opacidad = 0.35f + (fraction * 0.65f)
+
+            Box(
+                modifier = Modifier
+                    .size(dotSize)
+                    .offset(y = desplazamientoY.dp)
+                    .background(
+                        color = dotColor.copy(alpha = opacidad),
+                        shape = CircleShape
+                    )
+            )
+        }
+    }
+}
+
 @Composable
 private fun FiltroChipItem(
     texto: String,
@@ -1533,8 +1735,8 @@ private fun FiltroChipItem(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
-        color = if (seleccionado) primaryColor else MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = if (seleccionado) null else BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+        color = if (seleccionado) primaryColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = if (seleccionado) null else BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -1543,7 +1745,7 @@ private fun FiltroChipItem(
             Icon(
                 imageVector = icono,
                 contentDescription = null,
-                tint = if (seleccionado) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (seleccionado) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(14.dp)
             )
             Spacer(modifier = Modifier.width(5.dp))
@@ -1551,7 +1753,7 @@ private fun FiltroChipItem(
                 text = texto,
                 fontSize = 11.sp,
                 fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Medium,
-                color = if (seleccionado) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (seleccionado) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -1561,7 +1763,7 @@ private fun FiltroChipItem(
 private fun ChatWallpaperBackground(colorPatron: Color) {
     Canvas(modifier = Modifier.fillMaxSize()) {
         val paso = 38.dp.toPx()
-        val radioPunto = 1.6.dp.toPx()
+        val radioPunto = 1.4.dp.toPx()
         val cols = (size.width / paso).toInt() + 1
         val rows = (size.height / paso).toInt() + 1
 

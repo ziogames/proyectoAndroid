@@ -16,7 +16,7 @@ import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +25,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,8 +44,14 @@ fun TarjetaEmprendimientoItem(
 ) {
     val context = LocalContext.current
 
-    val colorFondoTarjeta = if (temaOscuro) Color(0xFF1E242B) else Color.White
-    val colorBorde = if (temaOscuro) Color.White.copy(alpha = 0.09f) else Color(0xFFE2E8F0)
+    // Detectamos el tema real desde MaterialTheme.colorScheme para evitar desajustes con el parámetro temaOscuro
+    val esTemaOscuroReal = temaOscuro || MaterialTheme.colorScheme.surface.luminance() < 0.5f
+
+    val colorFondoTarjeta = if (esTemaOscuroReal) Color(0xFF1E242B) else Color.White
+    val colorBorde = if (esTemaOscuroReal) Color.White.copy(alpha = 0.12f) else Color(0xFFE2E8F0)
+    val colorCajaInfo = if (esTemaOscuroReal) Color(0xFF28303A) else Color(0xFFF1F5F9)
+    val colorTextoPrincipal = if (esTemaOscuroReal) Color(0xFFF8FAFC) else Color(0xFF0F172A)
+    val colorTextoSecundario = if (esTemaOscuroReal) Color(0xFFCBD5E1) else Color(0xFF475569)
 
     // Lectura flexible según venga de ChatUIComponent.Emprendimiento o del modelo de ZOE
     val nombreNegocio: String
@@ -59,11 +67,12 @@ fun TarjetaEmprendimientoItem(
         nombreNegocio = emprendimiento.nombre.ifBlank { "Emprendimiento Vecinal" }
         rubroEtiqueta = emprendimiento.categoria.takeIf { it.isNotBlank() }
         descripcionNegocio = emprendimiento.descripcion.takeIf { it.isNotBlank() }
-        urlOriginal = emprendimiento.imagenUrl // ✅ Lee la URL de la imagen
-        zonaAtencion = emprendimiento.zona       // ✅ Lee la zona
-        horarioAtencion = emprendimiento.horario // ✅ Lee el horario
+        urlOriginal = emprendimiento.imagenUrl
+        zonaAtencion = emprendimiento.zona
+        horarioAtencion = emprendimiento.horario
         telefonoLimpio = emprendimiento.contacto.trim()
-        mostrarWhatsapp = telefonoLimpio.isNotEmpty()
+        val flagWhatsapp = leerPropiedadBooleana(emprendimiento, "showWhatsapp", "show_whatsapp") ?: true
+        mostrarWhatsapp = telefonoLimpio.isNotEmpty() && flagWhatsapp
     } else {
         nombreNegocio = leerPropiedadTexto(emprendimiento, "nombre", "name")
             ?: "Emprendimiento Vecinal"
@@ -74,10 +83,12 @@ fun TarjetaEmprendimientoItem(
         zonaAtencion = leerPropiedadTexto(emprendimiento, "zona_atencion", "attention_zone")
         horarioAtencion = leerPropiedadTexto(emprendimiento, "horario", "schedule")
         telefonoLimpio = leerPropiedadTexto(emprendimiento, "telefono", "phone").orEmpty().trim()
-        mostrarWhatsapp = leerPropiedadBooleana(emprendimiento, "show_whatsapp") ?: true
+        val flagWhatsapp = leerPropiedadBooleana(emprendimiento, "show_whatsapp", "showWhatsapp") ?: true
+        mostrarWhatsapp = telefonoLimpio.isNotEmpty() && flagWhatsapp
     }
 
     val fotoUrl = ServidorConfig.resolverUrlImagen(urlOriginal)
+    var falloCargaImagen by remember(fotoUrl) { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -87,24 +98,22 @@ fun TarjetaEmprendimientoItem(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // 1. 📸 FOTO PRINCIPAL DEL NEGOCIO
-            if (!fotoUrl.isNullOrBlank()) {
+            // 1. 📸 FOTO PRINCIPAL DEL NEGOCIO (con respaldo si falla o no hay foto)
+            if (!fotoUrl.isNullOrBlank() && !falloCargaImagen) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(150.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(colorCajaInfo)
                 ) {
                     AsyncImage(
                         model = fotoUrl,
                         contentDescription = "Foto de $nombreNegocio",
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        contentScale = ContentScale.Crop,
                         onError = { estado ->
+                            falloCargaImagen = true
                             android.util.Log.e("ZOE_COIL", "Error cargando foto [$fotoUrl]: ${estado.result.throwable.message}")
-                        },
-                        onSuccess = {
-                            android.util.Log.d("ZOE_COIL", "Foto cargada exitosamente: $fotoUrl")
                         }
                     )
 
@@ -114,7 +123,7 @@ fun TarjetaEmprendimientoItem(
                                 .align(Alignment.TopStart)
                                 .padding(10.dp),
                             shape = RoundedCornerShape(8.dp),
-                            color = Color.Black.copy(alpha = 0.65f)
+                            color = Color.Black.copy(alpha = 0.70f)
                         ) {
                             Text(
                                 text = rubroEtiqueta.uppercase(),
@@ -136,7 +145,7 @@ fun TarjetaEmprendimientoItem(
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                if (fotoUrl.isNullOrBlank()) {
+                if (fotoUrl.isNullOrBlank() || falloCargaImagen) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -145,7 +154,7 @@ fun TarjetaEmprendimientoItem(
                             modifier = Modifier
                                 .size(42.dp)
                                 .background(
-                                    colorPrincipal.copy(alpha = 0.12f),
+                                    colorPrincipal.copy(alpha = 0.15f),
                                     RoundedCornerShape(12.dp)
                                 ),
                             contentAlignment = Alignment.Center
@@ -163,7 +172,7 @@ fun TarjetaEmprendimientoItem(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = nombreNegocio,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = colorTextoPrincipal,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
@@ -176,7 +185,7 @@ fun TarjetaEmprendimientoItem(
                                     text = rubroEtiqueta.uppercase(),
                                     color = colorPrincipal,
                                     fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Bold,
                                     letterSpacing = 0.5.sp
                                 )
                             }
@@ -185,7 +194,7 @@ fun TarjetaEmprendimientoItem(
                 } else {
                     Text(
                         text = nombreNegocio,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = colorTextoPrincipal,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -196,7 +205,7 @@ fun TarjetaEmprendimientoItem(
                 if (!descripcionNegocio.isNullOrBlank()) {
                     Text(
                         text = descripcionNegocio,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                        color = colorTextoSecundario,
                         fontSize = 13.sp,
                         lineHeight = 18.sp
                     )
@@ -210,7 +219,7 @@ fun TarjetaEmprendimientoItem(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                color = colorCajaInfo,
                                 shape = RoundedCornerShape(10.dp)
                             )
                             .padding(horizontal = 10.dp, vertical = 8.dp),
@@ -227,7 +236,7 @@ fun TarjetaEmprendimientoItem(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "Zona: $zonaAtencion",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = colorTextoSecundario,
                                     fontSize = 12.sp
                                 )
                             }
@@ -244,7 +253,7 @@ fun TarjetaEmprendimientoItem(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "Horario: $horarioAtencion",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = colorTextoSecundario,
                                     fontSize = 12.sp
                                 )
                             }
@@ -266,8 +275,8 @@ fun TarjetaEmprendimientoItem(
                                 .clip(RoundedCornerShape(12.dp))
                                 .clickable { llamarVecino(context, telefonoLimpio) },
                             shape = RoundedCornerShape(12.dp),
-                            color = colorPrincipal.copy(alpha = 0.10f),
-                            border = BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.25f))
+                            color = colorPrincipal.copy(alpha = 0.14f),
+                            border = BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.30f))
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
@@ -290,12 +299,12 @@ fun TarjetaEmprendimientoItem(
                                 Column {
                                     Text(
                                         text = "Contactar al vecino",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = colorTextoSecundario,
                                         fontSize = 10.sp
                                     )
                                     Text(
                                         text = formatearTelefonoPeru(telefonoLimpio),
-                                        color = MaterialTheme.colorScheme.onSurface,
+                                        color = colorTextoPrincipal,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -336,13 +345,15 @@ private fun leerPropiedadTexto(objeto: Any, vararg nombres: String): String? {
     return null
 }
 
-private fun leerPropiedadBooleana(objeto: Any, nombre: String): Boolean? {
-    return try {
-        val field = objeto.javaClass.getDeclaredField(nombre).apply { isAccessible = true }
-        field.get(objeto) as? Boolean
-    } catch (_: Exception) {
-        null
+private fun leerPropiedadBooleana(objeto: Any, vararg nombres: String): Boolean? {
+    for (nombre in nombres) {
+        try {
+            val field = objeto.javaClass.getDeclaredField(nombre).apply { isAccessible = true }
+            val valor = field.get(objeto)
+            if (valor is Boolean) return valor
+        } catch (_: Exception) {}
     }
+    return null
 }
 
 private fun leerPrimeraFotoUrl(objeto: Any, vararg nombresListas: String): String? {
@@ -351,7 +362,7 @@ private fun leerPrimeraFotoUrl(objeto: Any, vararg nombresListas: String): Strin
             val field = objeto.javaClass.getDeclaredField(nombre).apply { isAccessible = true }
             val lista = field.get(objeto) as? Iterable<*>
             val primerItem = lista?.firstOrNull() ?: continue
-            val url = leerPropiedadTexto(primerItem, "url")
+            val url = leerPropiedadTexto(primerItem, "url", "path")
             if (!url.isNullOrBlank()) return url
         } catch (_: Exception) {}
     }
@@ -430,16 +441,22 @@ private fun formatearTelefonoPeru(telefono: String): String {
 }
 
 private fun llamarVecino(context: Context, telefono: String) {
-    val numero = telefono.filter { it.isDigit() || it == '+' }
-    if (numero.isBlank()) return
-    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$numero"))
-    context.startActivity(intent)
+    try {
+        val numero = telefono.filter { it.isDigit() || it == '+' }
+        if (numero.isBlank()) return
+        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$numero"))
+        context.startActivity(intent)
+    } catch (_: Exception) {}
 }
 
 private fun abrirWhatsApp(context: Context, telefono: String) {
-    val numero = telefono.filter { it.isDigit() }
-    if (numero.isBlank()) return
-    val numeroPeru = if (numero.startsWith("51")) numero else "51$numero"
-    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$numeroPeru"))
-    context.startActivity(intent)
+    try {
+        val numero = telefono.filter { it.isDigit() }
+        if (numero.isBlank()) return
+        val numeroPeru = if (numero.startsWith("51")) numero else "51$numero"
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$numeroPeru"))
+        context.startActivity(intent)
+    } catch (_: Exception) {
+        llamarVecino(context, telefono)
+    }
 }

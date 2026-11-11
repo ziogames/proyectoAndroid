@@ -4,9 +4,6 @@ package com.sigefiv.app.screens.asambleas
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,12 +29,8 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.FormatListNumbered
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Place
@@ -55,7 +47,6 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -86,17 +77,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Asamblea
 import com.sigefiv.app.data.model.CrearAsambleaRequest
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-
-private val FondoSuperficie = Color(0xFFF8FAFC)
-private val Blanco = Color.White
-private val GrisBorde = Color(0xFFE2E8F0)
-private val TextoOscuro = Color(0xFF0F172A)
-private val TextoSecundario = Color(0xFF64748B)
 
 @Composable
 fun CrearAsambleaScreen(
@@ -106,7 +89,7 @@ fun CrearAsambleaScreen(
     onGuardar: (CrearAsambleaRequest) -> Unit,
     asamblea: Asamblea? = null
 ) {
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
+    val primaryColor = MaterialTheme.colorScheme.primary
     val calendario = remember { Calendar.getInstance() }
     val snackbarHostState = remember { SnackbarHostState() }
     val modoEdicion = asamblea != null
@@ -160,7 +143,7 @@ fun CrearAsambleaScreen(
     }
 
     Scaffold(
-        containerColor = FondoSuperficie,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
@@ -168,32 +151,49 @@ fun CrearAsambleaScreen(
                     Column {
                         Text(
                             text = if (modoEdicion) "Editar asamblea" else "Nueva asamblea",
-                            color = Blanco,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.ExtraBold
                         )
                         Text(
                             text = if (modoEdicion) "Modificar convocatoria" else "Convocatoria vecinal",
-                            color = Blanco.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick, enabled = !creando) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Volver", tint = Blanco)
+                    Surface(
+                        onClick = onBackClick,
+                        enabled = !creando,
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .size(38.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = colorPrincipal)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         },
         bottomBar = {
-            // Barra inferior fija con sombra y botones siempre al alcance
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Blanco,
-                shadowElevation = 12.dp,
-                border = BorderStroke(1.dp, GrisBorde)
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 8.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             ) {
                 Row(
                     modifier = Modifier
@@ -208,11 +208,15 @@ fun CrearAsambleaScreen(
                         enabled = !creando,
                         modifier = Modifier
                             .weight(1f)
-                            .height(50.dp),
+                            .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, GrisBorde)
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
-                        Text("Cancelar", color = TextoSecundario, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "Cancelar",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
 
                     Button(
@@ -257,16 +261,26 @@ fun CrearAsambleaScreen(
                         enabled = !creando,
                         modifier = Modifier
                             .weight(1.3f)
-                            .height(50.dp),
+                            .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = colorPrincipal)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = primaryColor,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     ) {
                         if (creando) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Blanco, strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
                         } else {
                             Icon(Icons.Outlined.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text(if (modoEdicion) "Guardar cambios" else "Guardar borrador", fontWeight = FontWeight.Bold)
+                            Text(
+                                text = if (modoEdicion) "Guardar cambios" else "Guardar borrador",
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
@@ -282,7 +296,11 @@ fun CrearAsambleaScreen(
         ) {
             // SECCIÓN 1: DATOS CLAVE
             item {
-                TarjetaContenedor(titulo = "Información de convocatoria", icono = Icons.Outlined.NotificationsActive, colorPrincipal = colorPrincipal) {
+                TarjetaContenedor(
+                    titulo = "Información de convocatoria",
+                    icono = Icons.Outlined.NotificationsActive,
+                    colorPrincipal = primaryColor
+                ) {
                     CampoDesplegable(
                         label = "Tipo de asamblea",
                         valor = tipo,
@@ -290,7 +308,7 @@ fun CrearAsambleaScreen(
                         expandido = mostrarTipoMenu,
                         onExpandChange = { mostrarTipoMenu = it },
                         onSeleccionar = { tipo = it; mostrarTipoMenu = false },
-                        colorPrincipal = colorPrincipal
+                        colorPrincipal = primaryColor
                     )
 
                     Spacer(Modifier.height(10.dp))
@@ -301,7 +319,7 @@ fun CrearAsambleaScreen(
                         onValorChange = { titulo = it },
                         obligatorio = true,
                         placeholder = "Ej. Aprobación del presupuesto comunal",
-                        colorPrincipal = colorPrincipal
+                        colorPrincipal = primaryColor
                     )
 
                     Spacer(Modifier.height(10.dp))
@@ -312,15 +330,19 @@ fun CrearAsambleaScreen(
                         onValorChange = { convoca = it },
                         obligatorio = true,
                         placeholder = "Ej. Junta Directiva Central",
-                        colorPrincipal = colorPrincipal
+                        colorPrincipal = primaryColor
                     )
 
                     Spacer(Modifier.height(12.dp))
 
-                    Text("Nivel de importancia", fontSize = 12.sp, color = TextoSecundario, fontWeight = FontWeight.Medium)
+                    Text(
+                        "Nivel de importancia",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
                     Spacer(Modifier.height(6.dp))
 
-                    // Selector interactivo con chips de importancia
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -328,22 +350,30 @@ fun CrearAsambleaScreen(
                         listOf("normal" to "Normal", "importante" to "Importante", "urgente" to "Urgente").forEach { (clave, nombre) ->
                             val seleccionado = importancia == clave
                             val colorChip = when (clave) {
-                                "urgente" -> Color(0xFFEF4444)
-                                "importante" -> Color(0xFFF59E0B)
-                                else -> colorPrincipal
+                                "urgente" -> Color(0xFFDC2626)
+                                "importante" -> Color(0xFFD97706)
+                                else -> primaryColor
                             }
 
                             FilterChip(
                                 selected = seleccionado,
                                 onClick = { importancia = clave },
-                                label = { Text(nombre, fontSize = 12.sp, fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Normal) },
+                                label = {
+                                    Text(
+                                        text = nombre,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
                                 shape = RoundedCornerShape(20.dp),
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = colorChip.copy(alpha = 0.15f),
-                                    selectedLabelColor = colorChip
+                                    selectedLabelColor = colorChip,
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                                 ),
                                 border = FilterChipDefaults.filterChipBorder(
-                                    borderColor = if (seleccionado) colorChip else GrisBorde,
+                                    borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                                     selectedBorderColor = colorChip,
                                     borderWidth = if (seleccionado) 1.5.dp else 1.dp,
                                     enabled = true,
@@ -355,14 +385,21 @@ fun CrearAsambleaScreen(
                 }
             }
 
-            // SECCIÓN 2: FECHA Y CITACIONES COMPACTAS
+            // SECCIÓN 2: FECHA Y CITACIONES
             item {
-                TarjetaContenedor(titulo = "Fecha y horarios", icono = Icons.Outlined.CalendarToday, colorPrincipal = colorPrincipal) {
-                    CampoFecha(fecha = fecha, onSeleccionar = { fecha = it }, colorPrincipal = colorPrincipal)
+                TarjetaContenedor(
+                    titulo = "Fecha y horarios",
+                    icono = Icons.Outlined.CalendarToday,
+                    colorPrincipal = primaryColor
+                ) {
+                    CampoFecha(
+                        fecha = fecha,
+                        onSeleccionar = { fecha = it },
+                        colorPrincipal = primaryColor
+                    )
 
                     Spacer(Modifier.height(12.dp))
 
-                    // Horas en fila compacta para no saturar verticalmente
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -372,14 +409,14 @@ fun CrearAsambleaScreen(
                             valor = primeraCitacion,
                             onSeleccionar = { primeraCitacion = it },
                             modifier = Modifier.weight(1f),
-                            colorPrincipal = colorPrincipal
+                            colorPrincipal = primaryColor
                         )
                         CampoHoraCompacta(
                             label = "2da Citación",
                             valor = segundaCitacion,
                             onSeleccionar = { segundaCitacion = it },
                             modifier = Modifier.weight(1f),
-                            colorPrincipal = colorPrincipal
+                            colorPrincipal = primaryColor
                         )
                     }
 
@@ -390,43 +427,80 @@ fun CrearAsambleaScreen(
                         valor = hora,
                         onSeleccionar = { hora = it },
                         modifier = Modifier.fillMaxWidth(),
-                        colorPrincipal = colorPrincipal
+                        colorPrincipal = primaryColor
                     )
                 }
             }
 
             // SECCIÓN 3: UBICACIÓN Y LUGAR
             item {
-                TarjetaContenedor(titulo = "Lugar y coordenadas vecinales", icono = Icons.Outlined.Place, colorPrincipal = colorPrincipal) {
+                TarjetaContenedor(
+                    titulo = "Lugar y coordenadas vecinales",
+                    icono = Icons.Outlined.Place,
+                    colorPrincipal = primaryColor
+                ) {
                     CampoTexto(
                         label = "Lugar de encuentro",
                         valor = lugar,
                         onValorChange = { lugar = it },
                         obligatorio = true,
                         placeholder = "Ej. Local Comunal / Cancha deportiva",
-                        leadingIcon = { Icon(Icons.Outlined.LocationOn, contentDescription = null, tint = colorPrincipal) },
-                        colorPrincipal = colorPrincipal
+                        leadingIcon = {
+                            Icon(Icons.Outlined.LocationOn, contentDescription = null, tint = primaryColor)
+                        },
+                        colorPrincipal = primaryColor
                     )
 
                     Spacer(Modifier.height(12.dp))
 
-                    // Grid compacto de coordenadas vecinales (2x2 limpio)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        CampoTexto(label = "Sector", valor = sector, onValorChange = { sector = it }, modifier = Modifier.weight(1f), colorPrincipal = colorPrincipal)
-                        CampoTexto(label = "Grupo", valor = grupo, onValorChange = { grupo = it }, modifier = Modifier.weight(1f), colorPrincipal = colorPrincipal)
+                        CampoTexto(
+                            label = "Sector",
+                            valor = sector,
+                            onValorChange = { sector = it },
+                            modifier = Modifier.weight(1f),
+                            colorPrincipal = primaryColor
+                        )
+                        CampoTexto(
+                            label = "Grupo",
+                            valor = grupo,
+                            onValorChange = { grupo = it },
+                            modifier = Modifier.weight(1f),
+                            colorPrincipal = primaryColor
+                        )
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        CampoTexto(label = "Manzana", valor = manzana, onValorChange = { manzana = it }, modifier = Modifier.weight(1f), colorPrincipal = colorPrincipal)
-                        CampoTexto(label = "Lote", valor = lote, onValorChange = { lote = it }, modifier = Modifier.weight(1f), colorPrincipal = colorPrincipal)
+                        CampoTexto(
+                            label = "Manzana",
+                            valor = manzana,
+                            onValorChange = { manzana = it },
+                            modifier = Modifier.weight(1f),
+                            colorPrincipal = primaryColor
+                        )
+                        CampoTexto(
+                            label = "Lote",
+                            valor = lote,
+                            onValorChange = { lote = it },
+                            modifier = Modifier.weight(1f),
+                            colorPrincipal = primaryColor
+                        )
                     }
                 }
             }
 
             // SECCIÓN 4: AGENDA DE PUNTOS
             item {
-                TarjetaContenedor(titulo = "Puntos de agenda", icono = Icons.Outlined.FormatListNumbered, colorPrincipal = colorPrincipal) {
-                    Text("Detalla los temas que se discutirán con los vecinos.", fontSize = 12.sp, color = TextoSecundario)
+                TarjetaContenedor(
+                    titulo = "Puntos de agenda",
+                    icono = Icons.Outlined.FormatListNumbered,
+                    colorPrincipal = primaryColor
+                ) {
+                    Text(
+                        "Detalla los temas que se discutirán con los vecinos.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Spacer(Modifier.height(10.dp))
 
                     agenda.forEachIndexed { index, punto ->
@@ -436,18 +510,20 @@ fun CrearAsambleaScreen(
                                 .padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .background(colorPrincipal.copy(alpha = 0.12f), CircleShape),
-                                contentAlignment = Alignment.Center
+                            Surface(
+                                modifier = Modifier.size(28.dp),
+                                shape = CircleShape,
+                                color = primaryColor.copy(alpha = 0.12f),
+                                border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
                             ) {
-                                Text(
-                                    text = "${index + 1}",
-                                    color = colorPrincipal,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = "${index + 1}",
+                                        color = primaryColor,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
 
                             Spacer(Modifier.width(8.dp))
@@ -456,18 +532,33 @@ fun CrearAsambleaScreen(
                                 value = punto,
                                 onValueChange = { agenda[index] = it },
                                 modifier = Modifier.weight(1f),
-                                placeholder = { Text("Tema o moción ${index + 1}...") },
+                                placeholder = {
+                                    Text(
+                                        "Tema o moción ${index + 1}...",
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                },
                                 singleLine = true,
                                 shape = RoundedCornerShape(10.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = colorPrincipal,
-                                    unfocusedBorderColor = GrisBorde
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedBorderColor = primaryColor,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
                                 )
                             )
 
                             if (agenda.size > 1) {
-                                IconButton(onClick = { agenda.removeAt(index) }, modifier = Modifier.size(36.dp)) {
-                                    Icon(Icons.Outlined.DeleteOutline, contentDescription = "Eliminar", tint = Color(0xFFEF4444))
+                                IconButton(
+                                    onClick = { agenda.removeAt(index) },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.DeleteOutline,
+                                        contentDescription = "Eliminar",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
                                 }
                             }
                         }
@@ -481,8 +572,8 @@ fun CrearAsambleaScreen(
                             .fillMaxWidth()
                             .height(44.dp),
                         shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.4f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colorPrincipal)
+                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.35f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)
                     ) {
                         Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
@@ -493,7 +584,11 @@ fun CrearAsambleaScreen(
 
             // SECCIÓN 5: DESCRIPCIÓN Y PLANTILLA
             item {
-                TarjetaContenedor(titulo = "Detalle y diseño", icono = Icons.Outlined.Style, colorPrincipal = colorPrincipal) {
+                TarjetaContenedor(
+                    titulo = "Detalle y diseño",
+                    icono = Icons.Outlined.Style,
+                    colorPrincipal = primaryColor
+                ) {
                     CampoTexto(
                         label = "Descripción o notas adicionales",
                         valor = descripcion,
@@ -501,7 +596,7 @@ fun CrearAsambleaScreen(
                         singleLine = false,
                         minLines = 3,
                         placeholder = "Agrega instrucciones sobre puntualidad, material necesario, etc.",
-                        colorPrincipal = colorPrincipal
+                        colorPrincipal = primaryColor
                     )
 
                     Spacer(Modifier.height(12.dp))
@@ -511,13 +606,12 @@ fun CrearAsambleaScreen(
                         expandido = mostrarPlantillaMenu,
                         onExpandChange = { mostrarPlantillaMenu = it },
                         onSeleccionar = { plantilla = it; mostrarPlantillaMenu = false },
-                        colorPrincipal = colorPrincipal
+                        colorPrincipal = primaryColor
                     )
                 }
             }
 
-            // Espaciador final para que el último elemento no quede oculto detrás de la barra fija
-            item { Spacer(Modifier.height(20.dp)) }
+            item { Spacer(Modifier.height(24.dp)) }
         }
     }
 }
@@ -537,23 +631,30 @@ private fun TarjetaContenedor(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Blanco),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        border = BorderStroke(1.dp, GrisBorde)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(colorPrincipal.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    modifier = Modifier.size(34.dp),
+                    shape = RoundedCornerShape(9.dp),
+                    color = colorPrincipal.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.25f))
                 ) {
-                    Icon(icono, contentDescription = null, tint = colorPrincipal, modifier = Modifier.size(18.dp))
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(icono, contentDescription = null, tint = colorPrincipal, modifier = Modifier.size(18.dp))
+                    }
                 }
                 Spacer(Modifier.width(10.dp))
-                Text(text = titulo, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextoOscuro)
+                Text(
+                    text = titulo,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
             Spacer(Modifier.height(14.dp))
             content()
@@ -579,15 +680,19 @@ private fun CampoTexto(
         onValueChange = onValorChange,
         modifier = modifier.fillMaxWidth(),
         label = { Text(if (obligatorio) "$label *" else label) },
-        placeholder = placeholder?.let { { Text(it, color = Color.Gray, fontSize = 13.sp) } },
+        placeholder = placeholder?.let {
+            { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), fontSize = 13.sp) }
+        },
         singleLine = singleLine,
         minLines = minLines,
         leadingIcon = leadingIcon,
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
             focusedBorderColor = colorPrincipal,
             focusedLabelColor = colorPrincipal,
-            unfocusedBorderColor = GrisBorde
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
         )
     )
 }
@@ -619,18 +724,32 @@ private fun CampoFecha(
                 ).show()
             },
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, GrisBorde),
-        color = Blanco
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Outlined.CalendarToday, contentDescription = null, tint = colorPrincipal, modifier = Modifier.size(20.dp))
+            Icon(
+                Icons.Outlined.CalendarToday,
+                contentDescription = null,
+                tint = colorPrincipal,
+                modifier = Modifier.size(20.dp)
+            )
             Spacer(Modifier.width(12.dp))
             Column {
-                Text("Fecha programada *", fontSize = 11.sp, color = TextoSecundario)
-                Text(formatearFechaVisible(fecha), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextoOscuro)
+                Text(
+                    "Fecha programada *",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    formatearFechaVisible(fecha),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     }
@@ -646,9 +765,8 @@ private fun CampoHoraCompacta(
 ) {
     val context = LocalContext.current
 
-    // Tomar la hora guardada o iniciar por defecto a las 5:00 PM (17:00)
     val partes = valor.split(":")
-    val horaInicial = partes.getOrNull(0)?.toIntOrNull() ?: 17 // 👈 17 = 5:00 PM
+    val horaInicial = partes.getOrNull(0)?.toIntOrNull() ?: 17
     val minutoInicial = partes.getOrNull(1)?.toIntOrNull() ?: 0
 
     Surface(
@@ -658,17 +776,16 @@ private fun CampoHoraCompacta(
                 TimePickerDialog(
                     context,
                     { _, h, m ->
-                        // Guarda internamente en 24h ("17:00") para que PostgreSQL no falle
                         onSeleccionar(String.format(Locale.getDefault(), "%02d:%02d", h, m))
                     },
                     horaInicial,
                     minutoInicial,
-                    false // 👈 'false' activa el reloj de 12 horas con botones AM / PM
+                    false
                 ).show()
             },
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, GrisBorde),
-        color = Blanco
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -682,13 +799,17 @@ private fun CampoHoraCompacta(
             )
             Spacer(Modifier.width(8.dp))
             Column {
-                Text(label, fontSize = 10.sp, color = TextoSecundario, maxLines = 1)
-                // Se formatea visualmente a 12 horas con AM/PM (Ej: 05:00 PM)
+                Text(
+                    label,
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
                 Text(
                     text = if (valor.isBlank()) "--:--" else formatearHora12(valor),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextoOscuro
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -717,15 +838,27 @@ private fun CampoDesplegable(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandido) },
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 focusedBorderColor = colorPrincipal,
                 focusedLabelColor = colorPrincipal,
-                unfocusedBorderColor = GrisBorde
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
             )
         )
-        ExposedDropdownMenu(expanded = expandido, onDismissRequest = { onExpandChange(false) }) {
+        ExposedDropdownMenu(
+            expanded = expandido,
+            onDismissRequest = { onExpandChange(false) },
+            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+        ) {
             opciones.forEach { opcion ->
                 DropdownMenuItem(
-                    text = { Text(opcion, fontSize = 14.sp) },
+                    text = {
+                        Text(
+                            text = opcion,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    },
                     onClick = { onSeleccionar(opcion) }
                 )
             }
@@ -754,15 +887,26 @@ private fun CampoPlantilla(
             leadingIcon = { Icon(Icons.Outlined.Style, contentDescription = null, tint = colorPrincipal) },
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 focusedBorderColor = colorPrincipal,
                 focusedLabelColor = colorPrincipal,
-                unfocusedBorderColor = GrisBorde
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
             )
         )
-        ExposedDropdownMenu(expanded = expandido, onDismissRequest = { onExpandChange(false) }) {
+        ExposedDropdownMenu(
+            expanded = expandido,
+            onDismissRequest = { onExpandChange(false) },
+            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+        ) {
             (1..7).forEach { numero ->
                 DropdownMenuItem(
-                    text = { Text("Plantilla $numero") },
+                    text = {
+                        Text(
+                            text = "Plantilla $numero",
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    },
                     onClick = { onSeleccionar(numero) }
                 )
             }
@@ -813,6 +957,7 @@ private fun formatearFechaVisible(fecha: String): String {
         fecha
     }
 }
+
 private fun formatearHora12(hora24: String): String {
     return try {
         val limpia = hora24.substringBefore(".").substringBefore("Z").trim()

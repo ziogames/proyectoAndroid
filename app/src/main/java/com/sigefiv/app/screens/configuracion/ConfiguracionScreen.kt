@@ -1,7 +1,8 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.sigefiv.app.screens.configuracion
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,7 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Apartment
@@ -31,7 +32,6 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.HomeWork
-import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Place
@@ -40,8 +40,6 @@ import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -49,12 +47,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -67,21 +68,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Configuracion
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfiguracionScreen(
     configuracionInicial: Configuracion = Configuracion(),
@@ -89,8 +83,7 @@ fun ConfiguracionScreen(
     onGuardarConfiguracion: (Configuracion) -> Unit = {},
     onBackClick: () -> Unit = {}
 ) {
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
-    val colors = MaterialTheme.colorScheme
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     var tabSeleccionado by remember { mutableIntStateOf(0) }
     val tabs = listOf("General", "Directiva", "Finanzas", "Seguridad")
@@ -115,7 +108,6 @@ fun ConfiguracionScreen(
     var intentosLogin by remember { mutableStateOf(configuracionInicial.intentos_login.toString()) }
     var tiempoSesion by remember { mutableStateOf(configuracionInicial.tiempo_sesion.toString()) }
 
-    // Sincronización automática de estados al llegar la respuesta del servidor
     LaunchedEffect(configuracionInicial) {
         organizacion = configuracionInicial.organizacion ?: ""
         ruc = configuracionInicial.ruc ?: ""
@@ -138,7 +130,7 @@ fun ConfiguracionScreen(
     }
 
     Scaffold(
-        containerColor = colors.background,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
@@ -147,25 +139,27 @@ fun ConfiguracionScreen(
                             text = "Configuración del Sistema",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
-                            color = colors.onPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Ajustes globales y directiva",
                             fontSize = 12.sp,
-                            color = colors.onPrimary.copy(alpha = 0.85f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = "Regresar",
-                            tint = colors.onPrimary
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = colorPrincipal)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
     ) { paddingValues ->
@@ -177,18 +171,35 @@ fun ConfiguracionScreen(
             // TABS DE NAVEGACIÓN
             TabRow(
                 selectedTabIndex = tabSeleccionado,
-                containerColor = colors.surface,
-                contentColor = colorPrincipal
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = primaryColor,
+                indicator = { tabPositions ->
+                    if (tabSeleccionado < tabPositions.size) {
+                        TabRowDefaults.SecondaryIndicator(
+                            modifier = Modifier.tabIndicatorOffset(tabPositions[tabSeleccionado]),
+                            color = primaryColor,
+                            height = 3.dp
+                        )
+                    }
+                },
+                divider = {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        thickness = 0.8.dp
+                    )
+                }
             ) {
                 tabs.forEachIndexed { index, titulo ->
+                    val seleccionado = tabSeleccionado == index
                     Tab(
-                        selected = tabSeleccionado == index,
+                        selected = seleccionado,
                         onClick = { tabSeleccionado = index },
                         text = {
                             Text(
                                 text = titulo,
                                 fontSize = 13.sp,
-                                fontWeight = if (tabSeleccionado == index) FontWeight.Bold else FontWeight.Medium
+                                fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Medium,
+                                color = if (seleccionado) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     )
@@ -200,13 +211,13 @@ fun ConfiguracionScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 // TARJETA HERO DE CABECERA
                 CardHeroConfiguracion(
                     nombreOrg = organizacion.ifBlank { "Comunidad Vecinal" },
                     subtitulo = "Parámetros de la base de datos activa",
-                    colorPrincipal = colorPrincipal
+                    primaryColor = primaryColor
                 )
 
                 when (tabSeleccionado) {
@@ -216,47 +227,44 @@ fun ConfiguracionScreen(
                             titulo = "DATOS INSTITUCIONALES",
                             subtitulo = "Información oficial de la residencial",
                             icono = Icons.Outlined.HomeWork,
-                            colorPrincipal = colorPrincipal
+                            primaryColor = primaryColor
                         ) {
-                            OutlinedTextField(
-                                value = organizacion,
+                            CampoConfiguracion(
+                                valor = organizacion,
                                 onValueChange = { organizacion = it },
-                                label = { Text("Organización / Residencial") },
-                                leadingIcon = { Icon(Icons.Outlined.Apartment, null, tint = colorPrincipal) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp)
+                                etiqueta = "Organización / Residencial",
+                                icono = Icons.Outlined.Apartment,
+                                primaryColor = primaryColor
                             )
-                            OutlinedTextField(
-                                value = ruc,
+                            CampoConfiguracion(
+                                valor = ruc,
                                 onValueChange = { ruc = it },
-                                label = { Text("RUC o Registro") },
-                                leadingIcon = { Icon(Icons.Outlined.Badge, null, tint = colorPrincipal) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp)
+                                etiqueta = "RUC o Registro institucional",
+                                icono = Icons.Outlined.Badge,
+                                primaryColor = primaryColor
                             )
-                            OutlinedTextField(
-                                value = direccion,
+                            CampoConfiguracion(
+                                valor = direccion,
                                 onValueChange = { direccion = it },
-                                label = { Text("Dirección / Ubicación") },
-                                leadingIcon = { Icon(Icons.Outlined.Place, null, tint = colorPrincipal) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp)
+                                etiqueta = "Dirección / Ubicación",
+                                icono = Icons.Outlined.Place,
+                                primaryColor = primaryColor
                             )
-                            OutlinedTextField(
-                                value = telefono,
+                            CampoConfiguracion(
+                                valor = telefono,
                                 onValueChange = { telefono = it },
-                                label = { Text("Teléfono de Contacto") },
-                                leadingIcon = { Icon(Icons.Outlined.Phone, null, tint = colorPrincipal) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp)
+                                etiqueta = "Teléfono de contacto",
+                                icono = Icons.Outlined.Phone,
+                                primaryColor = primaryColor,
+                                keyboardType = KeyboardType.Phone
                             )
-                            OutlinedTextField(
-                                value = correo,
+                            CampoConfiguracion(
+                                valor = correo,
                                 onValueChange = { correo = it },
-                                label = { Text("Correo Electrónico") },
-                                leadingIcon = { Icon(Icons.Outlined.Email, null, tint = colorPrincipal) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp)
+                                etiqueta = "Correo electrónico institucional",
+                                icono = Icons.Outlined.Email,
+                                primaryColor = primaryColor,
+                                keyboardType = KeyboardType.Email
                             )
                         }
                     }
@@ -267,31 +275,28 @@ fun ConfiguracionScreen(
                             titulo = "MIEMBROS DE LA DIRECTIVA",
                             subtitulo = "Cargos oficiales para actas y balances",
                             icono = Icons.Outlined.Groups,
-                            colorPrincipal = colorPrincipal
+                            primaryColor = primaryColor
                         ) {
-                            OutlinedTextField(
-                                value = presidente,
+                            CampoConfiguracion(
+                                valor = presidente,
                                 onValueChange = { presidente = it },
-                                label = { Text("Presidente / Administrador") },
-                                leadingIcon = { Icon(Icons.Outlined.Person, null, tint = colorPrincipal) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp)
+                                etiqueta = "Presidente / Administrador",
+                                icono = Icons.Outlined.Person,
+                                primaryColor = primaryColor
                             )
-                            OutlinedTextField(
-                                value = tesorero,
+                            CampoConfiguracion(
+                                valor = tesorero,
                                 onValueChange = { tesorero = it },
-                                label = { Text("Tesorero / Encargado de Cobranzas") },
-                                leadingIcon = { Icon(Icons.Outlined.AccountBalanceWallet, null, tint = colorPrincipal) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp)
+                                etiqueta = "Tesorero / Encargado de Cobranzas",
+                                icono = Icons.Outlined.AccountBalanceWallet,
+                                primaryColor = primaryColor
                             )
-                            OutlinedTextField(
-                                value = secretario,
+                            CampoConfiguracion(
+                                valor = secretario,
                                 onValueChange = { secretario = it },
-                                label = { Text("Secretario de Actas") },
-                                leadingIcon = { Icon(Icons.Outlined.Description, null, tint = colorPrincipal) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp)
+                                etiqueta = "Secretario de Actas y Archivo",
+                                icono = Icons.Outlined.Description,
+                                primaryColor = primaryColor
                             )
                         }
                     }
@@ -302,7 +307,7 @@ fun ConfiguracionScreen(
                             titulo = "PARÁMETROS CONTABLES",
                             subtitulo = "Símbolos y apertura del ejercicio",
                             icono = Icons.Outlined.AccountBalance,
-                            colorPrincipal = colorPrincipal
+                            primaryColor = primaryColor
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -313,34 +318,37 @@ fun ConfiguracionScreen(
                                     onValueChange = { simboloMoneda = it },
                                     label = { Text("Símbolo") },
                                     modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = coloresCampo(primaryColor)
                                 )
                                 OutlinedTextField(
                                     value = saldoApertura,
                                     onValueChange = { saldoApertura = it },
-                                    label = { Text("Saldo Apertura") },
+                                    label = { Text("Saldo de apertura") },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     modifier = Modifier.weight(2f),
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = coloresCampo(primaryColor)
                                 )
                             }
 
                             Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = colorPrincipal.copy(alpha = 0.08f),
+                                shape = RoundedCornerShape(14.dp),
+                                color = primaryColor.copy(alpha = 0.08f),
+                                border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(12.dp),
+                                    modifier = Modifier.padding(14.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.CheckCircle,
                                         contentDescription = null,
-                                        tint = colorPrincipal,
+                                        tint = primaryColor,
                                         modifier = Modifier.size(20.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(10.dp))
                                     Text(
                                         text = if (configuracionInicial.contabilidad_iniciada) {
                                             "Contabilidad iniciada para el ejercicio ${configuracionInicial.anio_inicio ?: 2026}"
@@ -348,8 +356,8 @@ fun ConfiguracionScreen(
                                             "Contabilidad pendiente de apertura inicial"
                                         },
                                         fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = colorPrincipal
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = primaryColor
                                     )
                                 }
                             }
@@ -362,33 +370,39 @@ fun ConfiguracionScreen(
                             titulo = "SEGURIDAD Y AUDITORÍA",
                             subtitulo = "Reglas de inicio de sesión y registro",
                             icono = Icons.Outlined.Security,
-                            colorPrincipal = colorPrincipal
+                            primaryColor = primaryColor
                         ) {
                             FilaSwitchSimple(
-                                titulo = "Bitácora Activa",
+                                titulo = "Bitácora activa",
                                 subtitulo = "Registra todas las acciones y logins de usuarios",
                                 checked = bitacoraActiva,
-                                colorAcento = colorPrincipal,
+                                colorAcento = primaryColor,
                                 onCheckedChange = { bitacoraActiva = it }
                             )
 
-                            HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.25f))
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                thickness = 0.8.dp
+                            )
 
                             FilaSwitchSimple(
-                                titulo = "Sesión Única",
+                                titulo = "Sesión única",
                                 subtitulo = "Cierra sesiones anteriores al abrir en otro dispositivo",
                                 checked = sesionUnica,
-                                colorAcento = colorPrincipal,
+                                colorAcento = primaryColor,
                                 onCheckedChange = { sesionUnica = it }
                             )
 
-                            HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.25f))
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                thickness = 0.8.dp
+                            )
 
                             FilaSwitchSimple(
-                                titulo = "Bloqueo por Intentos",
+                                titulo = "Bloqueo por intentos",
                                 subtitulo = "Bloquea cuenta tras fallos repetidos",
                                 checked = bloqueoIntentos,
-                                colorAcento = Color(0xFFEF4444),
+                                colorAcento = MaterialTheme.colorScheme.error,
                                 onCheckedChange = { bloqueoIntentos = it }
                             )
 
@@ -399,25 +413,27 @@ fun ConfiguracionScreen(
                                 OutlinedTextField(
                                     value = intentosLogin,
                                     onValueChange = { intentosLogin = it },
-                                    label = { Text("Máx. Intentos") },
+                                    label = { Text("Máx. intentos") },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = coloresCampo(primaryColor)
                                 )
                                 OutlinedTextField(
                                     value = tiempoSesion,
                                     onValueChange = { tiempoSesion = it },
-                                    label = { Text("Tiempo Sesión (min)") },
+                                    label = { Text("Sesión (min)") },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = coloresCampo(primaryColor)
                                 )
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // BOTÓN DE GUARDAR
                 Button(
@@ -443,17 +459,19 @@ fun ConfiguracionScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
+                        .height(50.dp),
                     enabled = !cargando,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = colorPrincipal),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryColor,
+                        contentColor = Color.White
+                    )
                 ) {
                     if (cargando) {
                         CircularProgressIndicator(
-                            color = colors.onPrimary,
+                            color = Color.White,
                             strokeWidth = 2.5.dp,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     } else {
                         Icon(
@@ -463,14 +481,14 @@ fun ConfiguracionScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Guardar Configuración",
+                            text = "Guardar configuración",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
+                            fontSize = 14.sp
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
@@ -480,84 +498,48 @@ fun ConfiguracionScreen(
 private fun CardHeroConfiguracion(
     nombreOrg: String,
     subtitulo: String,
-    colorPrincipal: Color
+    primaryColor: Color
 ) {
-    val colors = MaterialTheme.colorScheme
-
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surface),
-        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.35f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Canvas(
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
                 modifier = Modifier
-                    .matchParentSize()
-                    .clip(RoundedCornerShape(22.dp))
+                    .size(46.dp)
+                    .background(primaryColor.copy(alpha = 0.12f), CircleShape),
+                contentAlignment = Alignment.Center
             ) {
-                val cx = size.width + 15.dp.toPx()
-                val cy = -5.dp.toPx()
-
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(colorPrincipal.copy(alpha = 0.25f), Color.Transparent),
-                        center = Offset(cx - 50.dp.toPx(), 30.dp.toPx()),
-                        radius = 150.dp.toPx()
-                    ),
-                    radius = 150.dp.toPx(),
-                    center = Offset(cx - 50.dp.toPx(), 30.dp.toPx())
-                )
-                drawCircle(
-                    color = colorPrincipal.copy(alpha = 0.12f),
-                    radius = 100.dp.toPx(),
-                    center = Offset(cx, cy),
-                    style = Stroke(width = 1.5.dp.toPx())
+                Icon(
+                    imageVector = Icons.Outlined.Tune,
+                    contentDescription = null,
+                    tint = primaryColor,
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(18.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .background(
-                            brush = Brush.linearGradient(
-                                listOf(colorPrincipal, colorPrincipal.copy(alpha = 0.75f))
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Tune,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+            Spacer(modifier = Modifier.width(14.dp))
 
-                Spacer(modifier = Modifier.width(14.dp))
-
-                Column {
-                    Text(
-                        text = nombreOrg,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = subtitulo,
-                        fontSize = 12.sp,
-                        color = colors.onSurfaceVariant
-                    )
-                }
+            Column {
+                Text(
+                    text = nombreOrg,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitulo,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -568,16 +550,15 @@ private fun CardSeccionConfiguracion(
     titulo: String,
     subtitulo: String,
     icono: ImageVector,
-    colorPrincipal: Color,
+    primaryColor: Color,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surface),
-        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.35f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -586,15 +567,15 @@ private fun CardSeccionConfiguracion(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
-                        .background(colorPrincipal.copy(alpha = 0.12f), CircleShape),
+                        .size(36.dp)
+                        .background(primaryColor.copy(alpha = 0.12f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icono,
                         contentDescription = null,
-                        tint = colorPrincipal,
-                        modifier = Modifier.size(20.dp)
+                        tint = primaryColor,
+                        modifier = Modifier.size(19.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
@@ -603,18 +584,46 @@ private fun CardSeccionConfiguracion(
                         text = titulo,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.onSurface
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = subtitulo,
                         fontSize = 11.5.sp,
-                        color = colors.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                thickness = 0.8.dp
+            )
+
             content()
         }
     }
+}
+
+@Composable
+private fun CampoConfiguracion(
+    valor: String,
+    onValueChange: (String) -> Unit,
+    etiqueta: String,
+    icono: ImageVector,
+    primaryColor: Color,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
+    OutlinedTextField(
+        value = valor,
+        onValueChange = onValueChange,
+        label = { Text(etiqueta) },
+        leadingIcon = { Icon(icono, null, tint = primaryColor) },
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+        shape = RoundedCornerShape(12.dp),
+        colors = coloresCampo(primaryColor)
+    )
 }
 
 @Composable
@@ -625,7 +634,6 @@ private fun FilaSwitchSimple(
     colorAcento: Color,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -636,12 +644,13 @@ private fun FilaSwitchSimple(
                 text = titulo,
                 fontSize = 13.5.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = colors.onSurface
+                color = MaterialTheme.colorScheme.onSurface
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = subtitulo,
                 fontSize = 11.5.sp,
-                color = colors.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Switch(
@@ -649,8 +658,20 @@ private fun FilaSwitchSimple(
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = colorAcento
+                checkedTrackColor = colorAcento,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
             )
         )
     }
 }
+
+@Composable
+private fun coloresCampo(primaryColor: Color) = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = primaryColor,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+    focusedLabelColor = primaryColor,
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    cursorColor = primaryColor
+)

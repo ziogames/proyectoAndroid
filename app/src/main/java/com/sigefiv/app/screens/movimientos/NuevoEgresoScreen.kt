@@ -2,98 +2,46 @@
 
 package com.sigefiv.app.screens.movimientos
 
+import android.content.ContentValues
+import android.net.Uri
+import android.os.Environment
+import android.provider.MediaStore
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.sigefiv.app.data.model.Categoria
 import com.sigefiv.app.viewmodel.CategoriasViewModel
 import com.sigefiv.app.viewmodel.PeriodoViewModel
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-import android.net.Uri
-import coil.compose.AsyncImage
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import android.content.ContentValues
-import android.os.Environment
-import android.provider.MediaStore
 
-
-/*
-|--------------------------------------------------------------------------
-| COLORES SIGEFIV (ESTILO DASHBOARD / EGRESOS)
-|--------------------------------------------------------------------------
-*/
-
-private val FondoSIGEFIV = Color(0xFFF8FAFC)
-private val FondoTarjeta = Color(0xFFFFFFFF)
-private val VerdeSuave = Color(0xFFDCFCE7)
-private val RojoSuave = Color(0xFFFEE2E2)
-private val Blanco = Color(0xFFFFFFFF)
-private val TextoPrincipal = Color(0xFF0F172A)
-private val GrisClaro = Color(0xFF64748B)
-private val Rojo = Color(0xFFDC2626)
+private val ColorEgreso = Color(0xFFDC2626)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,7 +59,6 @@ fun NuevoEgresoScreen(
     formaPagoInicial: String? = null,
     montoInicial: Double? = null,
     referenciaInicial: String? = null,
-
     onCerrarClick: () -> Unit,
     onGuardar: (
         fecha: String,
@@ -127,68 +74,37 @@ fun NuevoEgresoScreen(
 ) {
     val context = LocalContext.current
 
-    var comprobanteSeleccionado by remember {
-        mutableStateOf(comprobanteUri)
-    }
+    var comprobanteSeleccionado by remember { mutableStateOf(comprobanteUri) }
     val selectorImagen = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        if (uri != null) {
-            comprobanteSeleccionado = uri
-        }
-    }
-    var uriCamara by remember {
-        mutableStateOf<Uri?>(null)
-    }
+    ) { uri -> if (uri != null) comprobanteSeleccionado = uri }
 
+    var uriCamara by remember { mutableStateOf<Uri?>(null) }
     val camaraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { exito ->
-        if (exito) {
-            uriCamara?.let {
-                comprobanteSeleccionado = it
-            }
-        }
+        if (exito) uriCamara?.let { comprobanteSeleccionado = it }
     }
+
     fun abrirCamara() {
         val valores = ContentValues().apply {
-            put(
-                MediaStore.Images.Media.DISPLAY_NAME,
-                "comprobante_${System.currentTimeMillis()}.jpg"
-            )
-            put(
-                MediaStore.Images.Media.MIME_TYPE,
-                "image/jpeg"
-            )
-            put(
-                MediaStore.Images.Media.RELATIVE_PATH,
-                "${Environment.DIRECTORY_PICTURES}/SIGEFIV"
-            )
+            put(MediaStore.Images.Media.DISPLAY_NAME, "comprobante_egreso_${System.currentTimeMillis()}.jpg")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/SIGEFIV")
         }
-
-        val uri = context.contentResolver.insert(
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-            valores
-        )
-
+        val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, valores)
         if (uri != null) {
             uriCamara = uri
             camaraLauncher.launch(uri)
         }
     }
 
-    val permisoCamaraLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestPermission()
-        ) { concedido ->
-            if (concedido) {
-                abrirCamara()
-            }
-        }
+    val permisoCamaraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) abrirCamara()
+    }
 
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
     val categoriasVM = remember { CategoriasViewModel(context) }
     val periodoVM = remember { PeriodoViewModel(context) }
 
@@ -204,11 +120,6 @@ fun NuevoEgresoScreen(
 
     val hoy = remember { LocalDate.now() }
 
-    /*
-    |--------------------------------------------------------------------------
-    | DETERMINACIÓN EXACTA DEL PERÍODO ACTIVO
-    |--------------------------------------------------------------------------
-    */
     val nombrePeriodoEfectivo = periodoCargadoVM?.nombre ?: periodoNombre ?: "Junio"
     val anioPeriodoEfectivo = periodoCargadoVM?.anio ?: periodoAnio ?: 2026
 
@@ -251,53 +162,21 @@ fun NuevoEgresoScreen(
     var fecha by remember(periodoInicio, fechaInicial, fechaPredeterminada) {
         mutableStateOf(fechaPredeterminada)
     }
-
-    var concepto by remember {
-        mutableStateOf("")
-    }
-
-    var persona by remember(personaInicial) {
-        mutableStateOf(
-            personaInicial ?: ""
-        )
-    }
-
-    var formaPago by remember(formaPagoInicial) {
-        mutableStateOf(
-            formaPagoInicial ?: "Efectivo"
-        )
-    }
-
-    var monto by remember(montoInicial) {
-        mutableStateOf(
-            montoInicial?.let { "%.2f".format(it) } ?: ""
-        )
-    }
-
-    var referencia by remember(referenciaInicial) {
-        mutableStateOf(
-            referenciaInicial ?: ""
-        )
-    }
+    var concepto by remember { mutableStateOf("") }
+    var persona by remember(personaInicial) { mutableStateOf(personaInicial ?: "") }
+    var formaPago by remember(formaPagoInicial) { mutableStateOf(formaPagoInicial ?: "Efectivo") }
+    var monto by remember(montoInicial) { mutableStateOf(montoInicial?.let { "%.2f".format(it) } ?: "") }
+    var referencia by remember(referenciaInicial) { mutableStateOf(referenciaInicial ?: "") }
     var observaciones by remember { mutableStateOf("") }
     var categoriaSeleccionada by remember { mutableStateOf<Categoria?>(null) }
     var mostrarCategorias by remember { mutableStateOf(false) }
     var mostrarFormaPagoMenu by remember { mutableStateOf(false) }
     var mostrarCalendario by remember { mutableStateOf(false) }
 
-    /*
-    |--------------------------------------------------------------------------
-    | DATEPICKER CONFIGURADO EN UTC
-    |--------------------------------------------------------------------------
-    */
-    val fechaPredeterminadaDate = remember(fechaPredeterminada) {
-        LocalDate.parse(fechaPredeterminada)
-    }
-
+    val fechaPredeterminadaDate = remember(fechaPredeterminada) { LocalDate.parse(fechaPredeterminada) }
     val initialMonthMillis = remember(periodoInicio) {
         periodoInicio.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     }
-
     val initialSelectedDateMillis = remember(fechaPredeterminadaDate) {
         fechaPredeterminadaDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     }
@@ -307,10 +186,7 @@ fun NuevoEgresoScreen(
         initialDisplayedMonthMillis = initialMonthMillis,
         selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                val date = Instant.ofEpochMilli(utcTimeMillis)
-                    .atZone(ZoneOffset.UTC)
-                    .toLocalDate()
-
+                val date = Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneOffset.UTC).toLocalDate()
                 return !date.isBefore(periodoInicio) && !date.isAfter(periodoFin)
             }
         }
@@ -321,57 +197,47 @@ fun NuevoEgresoScreen(
         datePickerState.selectedDateMillis = initialSelectedDateMillis
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | LISTA UNIFICADA DE CATEGORÍAS DE EGRESO
-    |--------------------------------------------------------------------------
-    */
     val todasLasCategorias = remember(categorias, categoriasCargadasVM) {
         if (categorias.isNotEmpty()) categorias else categoriasCargadasVM
     }
-
     val estaCargandoCategorias = cargandoCategorias || cargandoCategoriasVM
-
     val categoriasEgreso = remember(todasLasCategorias) {
         todasLasCategorias.filter { cat ->
-            val tipoNormalizado = cat.tipo.trim().lowercase()
-            tipoNormalizado == "egreso" || tipoNormalizado == "egresos"
+            val t = cat.tipo.trim().lowercase()
+            t == "egreso" || t == "egresos"
         }
     }
 
     Scaffold(
-        containerColor = FondoSIGEFIV,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
                     Column {
                         Text(
                             text = "Nuevo egreso",
-                            color = Blanco,
-                            fontSize = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Registrar un pago o gasto",
-                            color = Blanco.copy(alpha = 0.85f),
+                            text = "Registrar un gasto u operación",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
                 },
                 navigationIcon = {
-                    IconButton(
-                        onClick = onCerrarClick,
-                        enabled = !guardando
-                    ) {
+                    IconButton(onClick = onCerrarClick, enabled = !guardando) {
                         Icon(
                             imageVector = Icons.Outlined.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Blanco
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorPrincipal
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         }
@@ -380,25 +246,22 @@ fun NuevoEgresoScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(FondoSIGEFIV)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
-                .imePadding()              // <-- Ajuste automático para el teclado
-                .navigationBarsPadding()   // <-- Evita solapamiento con la barra inferior
+                .imePadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
 
-            /*
-            |--------------------------------------------------------------------------
-            | TARJETA INFORMATIVA DEL PERÍODO
-            |--------------------------------------------------------------------------
-            */
-            Card(
+            // Header informativo del período activo
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 1.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             ) {
                 Row(
                     modifier = Modifier.padding(14.dp),
@@ -406,13 +269,15 @@ fun NuevoEgresoScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .background(VerdeSuave, shape = RoundedCornerShape(10.dp))
-                            .padding(8.dp)
+                            .size(40.dp)
+                            .background(ColorEgreso.copy(alpha = 0.12f), CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.DateRange,
+                            imageVector = Icons.Outlined.CalendarMonth,
                             contentDescription = "Período",
-                            tint = colorPrincipal
+                            tint = ColorEgreso,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
 
@@ -421,33 +286,70 @@ fun NuevoEgresoScreen(
                     Column {
                         Text(
                             text = "Período contable activo",
-                            color = GrisClaro,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp
                         )
                         Text(
                             text = if (cargandoPeriodo || cargandoPeriodoVM) "Cargando..." else "$nombrePeriodoEfectivo $anioPeriodoEfectivo",
-                            color = colorPrincipal,
-                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | CAMPO FECHA RESTRINGIDO
-            |--------------------------------------------------------------------------
-            */
+            // Bloque destacado para el Monto
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 2.dp,
+                border = BorderStroke(1.dp, ColorEgreso.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Monto del egreso",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = monto,
+                        onValueChange = { nuevoValor ->
+                            if (nuevoValor.matches(Regex("^\\d*(\\.\\d{0,2})?$"))) {
+                                monto = nuevoValor
+                            }
+                        },
+                        enabled = !guardando,
+                        placeholder = { Text("0.00", fontSize = 24.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
+                        prefix = {
+                            Text(
+                                "S/ ",
+                                color = ColorEgreso,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        },
+                        textStyle = TextStyle(
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Start
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        colors = coloresCampoGenerico()
+                    )
+                }
+            }
+
+            // Selector de Fecha
             OutlinedTextField(
                 value = runCatching {
-                    LocalDate.parse(fecha).let {
-                        "%02d-%02d-%04d".format(
-                            it.dayOfMonth,
-                            it.monthValue,
-                            it.year
-                        )
-                    }
+                    LocalDate.parse(fecha).let { "%02d-%02d-%04d".format(it.dayOfMonth, it.monthValue, it.year) }
                 }.getOrElse { fecha },
                 onValueChange = {},
                 readOnly = true,
@@ -455,30 +357,21 @@ fun NuevoEgresoScreen(
                 label = { Text("Fecha de egreso") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(enabled = !guardando) {
-                        mostrarCalendario = true
-                    },
+                    .clickable(enabled = !guardando) { mostrarCalendario = true },
                 singleLine = true,
                 trailingIcon = {
-                    IconButton(
-                        onClick = { mostrarCalendario = true },
-                        enabled = !guardando
-                    ) {
+                    IconButton(onClick = { mostrarCalendario = true }, enabled = !guardando) {
                         Icon(
                             imageVector = Icons.Outlined.DateRange,
                             contentDescription = "Seleccionar fecha",
-                            tint = Rojo
+                            tint = ColorEgreso
                         )
                     }
                 },
-                colors = coloresCampoEgreso()
+                colors = coloresCampoGenerico()
             )
 
-            /*
-            |--------------------------------------------------------------------------
-            | SELECT CATEGORÍA DE EGRESO
-            |--------------------------------------------------------------------------
-            */
+            // Selector de Categoría
             Box(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = categoriaSeleccionada?.nombre ?: "",
@@ -491,8 +384,8 @@ fun NuevoEgresoScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    trailingIcon = { Text(text = "▼", color = Rojo) },
-                    colors = coloresCampoEgreso()
+                    trailingIcon = { Text("▼", color = ColorEgreso, fontSize = 12.sp) },
+                    colors = coloresCampoGenerico()
                 )
 
                 Box(
@@ -508,70 +401,39 @@ fun NuevoEgresoScreen(
                     onDismissRequest = { mostrarCategorias = false },
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
-                        .background(FondoTarjeta)
+                        .background(MaterialTheme.colorScheme.surface)
                 ) {
                     if (estaCargandoCategorias) {
                         Text(
-                            text = "Obteniendo categorías desde la base de datos...",
-                            color = GrisClaro,
-                            modifier = Modifier.padding(16.dp),
+                            text = "Obteniendo categorías...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(14.dp),
                             fontSize = 13.sp
                         )
                     } else if (categoriasEgreso.isEmpty()) {
                         Text(
-                            text = "No se encontraron categorías de tipo egreso.",
-                            color = GrisClaro,
-                            modifier = Modifier.padding(16.dp),
+                            text = "No se encontraron categorías de egreso.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(14.dp),
                             fontSize = 13.sp
                         )
                     } else {
-                        Text(
-                            text = "CATEGORÍAS DE EGRESO",
-                            color = Rojo,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
-
                         categoriasEgreso.forEach { categoria ->
                             val esSeleccionada = categoriaSeleccionada?.id == categoria.id
-
                             DropdownMenuItem(
                                 text = {
                                     Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .background(
-                                                if (esSeleccionada) RojoSuave else Color.Transparent,
-                                                shape = RoundedCornerShape(8.dp)
-                                            )
-                                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                                        modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Folder,
-                                                contentDescription = null,
-                                                tint = if (esSeleccionada) Rojo else GrisClaro,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(10.dp))
-                                            Text(
-                                                text = categoria.nombre,
-                                                color = if (esSeleccionada) Rojo else TextoPrincipal,
-                                                fontWeight = if (esSeleccionada) FontWeight.Bold else FontWeight.Medium,
-                                                fontSize = 14.sp
-                                            )
-                                        }
-
+                                        Text(
+                                            text = categoria.nombre,
+                                            color = if (esSeleccionada) ColorEgreso else MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = if (esSeleccionada) FontWeight.Bold else FontWeight.Normal
+                                        )
                                         if (esSeleccionada) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Check,
-                                                contentDescription = null,
-                                                tint = Rojo,
-                                                modifier = Modifier.size(18.dp)
-                                            )
+                                            Icon(Icons.Outlined.Check, contentDescription = null, tint = ColorEgreso, modifier = Modifier.size(16.dp))
                                         }
                                     }
                                 },
@@ -585,7 +447,7 @@ fun NuevoEgresoScreen(
                 }
             }
 
-            // CONCEPTO
+            // Concepto
             OutlinedTextField(
                 value = concepto,
                 onValueChange = { concepto = it },
@@ -594,10 +456,10 @@ fun NuevoEgresoScreen(
                 placeholder = { Text("Ej. Compra de materiales de limpieza") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                colors = coloresCampoEgreso()
+                colors = coloresCampoGenerico()
             )
 
-            // PERSONA / PROVEEDOR
+            // Proveedor / Persona
             OutlinedTextField(
                 value = persona,
                 onValueChange = { persona = it },
@@ -605,10 +467,10 @@ fun NuevoEgresoScreen(
                 label = { Text("Proveedor o persona (opcional)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                colors = coloresCampoEgreso()
+                colors = coloresCampoGenerico()
             )
 
-            // FORMA DE PAGO
+            // Forma de Pago
             Box(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = formaPago,
@@ -618,25 +480,24 @@ fun NuevoEgresoScreen(
                     label = { Text("Forma de pago") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    trailingIcon = { Text(text = "▼", color = Rojo) },
-                    colors = coloresCampoEgreso()
+                    trailingIcon = { Text("▼", color = ColorEgreso, fontSize = 12.sp) },
+                    colors = coloresCampoGenerico()
                 )
 
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .clickable(enabled = !guardando) {
-                            mostrarFormaPagoMenu = true
-                        }
+                        .clickable(enabled = !guardando) { mostrarFormaPagoMenu = true }
                 )
 
                 DropdownMenu(
                     expanded = mostrarFormaPagoMenu,
-                    onDismissRequest = { mostrarFormaPagoMenu = false }
+                    onDismissRequest = { mostrarFormaPagoMenu = false },
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                 ) {
                     listOf("Efectivo", "Yape", "Plin", "Transferencia", "Depósito", "Otro").forEach { opcion ->
                         DropdownMenuItem(
-                            text = { Text(opcion) },
+                            text = { Text(opcion, color = MaterialTheme.colorScheme.onSurface) },
                             onClick = {
                                 formaPago = opcion
                                 mostrarFormaPagoMenu = false
@@ -646,25 +507,7 @@ fun NuevoEgresoScreen(
                 }
             }
 
-            // MONTO
-            OutlinedTextField(
-                value = monto,
-                onValueChange = { nuevoValor ->
-                    if (nuevoValor.matches(Regex("^\\d*(\\.\\d{0,2})?$"))) {
-                        monto = nuevoValor
-                    }
-                },
-                enabled = !guardando,
-                label = { Text("Monto") },
-                placeholder = { Text("0.00") },
-                prefix = { Text("S/ ", color = Rojo, fontWeight = FontWeight.Bold) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                colors = coloresCampoEgreso()
-            )
-
-            // REFERENCIA
+            // Referencia
             OutlinedTextField(
                 value = referencia,
                 onValueChange = { referencia = it },
@@ -672,109 +515,95 @@ fun NuevoEgresoScreen(
                 label = { Text("N° de operación / Comprobante (opcional)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                colors = coloresCampoEgreso()
+                colors = coloresCampoGenerico()
             )
-            // COMPROBANTE
 
-            Row(
+            // Sección de Comprobante / Evidencia
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             ) {
-                Button(
-                    onClick = {
-                        selectorImagen.launch("image/*")
-                    },
-                    enabled = !guardando,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Rojo,
-                        contentColor = Blanco
-                    )
-                ) {
-                    Text(
-                        text = "🖼️ Imagen",
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Button(
-                    onClick = {
-                        permisoCamaraLauncher.launch(
-                            android.Manifest.permission.CAMERA
-                        )
-                    },
-                    enabled = !guardando,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Rojo,
-                        contentColor = Blanco
-                    )
-                ) {
-                    Text(
-                        text = "📷 Cámara",
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            if (comprobanteSeleccionado != null) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = FondoTarjeta
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp)
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Comprobante",
-                                color = TextoPrincipal,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            TextButton(
-                                onClick = {
-                                    comprobanteSeleccionado = null
-                                },
-                                enabled = !guardando
-                            ) {
-                                Text(
-                                    text = "✕",
-                                    color = Rojo,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                        Text(
+                            text = "Comprobante / Recibo",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (comprobanteSeleccionado != null) {
+                            TextButton(onClick = { comprobanteSeleccionado = null }, enabled = !guardando) {
+                                Text("Quitar", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                             }
                         }
+                    }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
+                    if (comprobanteSeleccionado != null) {
                         AsyncImage(
                             model = comprobanteSeleccionado,
                             contentDescription = "Comprobante",
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(220.dp)
+                                .height(180.dp)
                                 .clip(RoundedCornerShape(10.dp)),
-                            contentScale = ContentScale.Fit
+                            contentScale = ContentScale.Crop
                         )
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Surface(
+                                onClick = { selectorImagen.launch("image/*") },
+                                enabled = !guardando,
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surface,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Outlined.PhotoLibrary, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Galería", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                                }
+                            }
+
+                            Surface(
+                                onClick = { permisoCamaraLauncher.launch(android.Manifest.permission.CAMERA) },
+                                enabled = !guardando,
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surface,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Outlined.PhotoCamera, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Cámara", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            // OBSERVACIONES
+            // Observaciones
             OutlinedTextField(
                 value = observaciones,
                 onValueChange = { observaciones = it },
@@ -783,34 +612,30 @@ fun NuevoEgresoScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 3,
-                colors = coloresCampoEgreso()
+                colors = coloresCampoGenerico()
             )
 
             if (!mensaje.isNullOrBlank()) {
                 Text(
                     text = mensaje,
-                    color = Rojo,
+                    color = MaterialTheme.colorScheme.error,
                     fontSize = 12.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            /*
-            |--------------------------------------------------------------------------
-            | BOTONES ACCIÓN
-            |--------------------------------------------------------------------------
-            */
+            // Botones de Acción
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 TextButton(
                     onClick = onCerrarClick,
                     enabled = !guardando,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(text = "Cancelar", color = GrisClaro)
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
                 Button(
@@ -834,10 +659,10 @@ fun NuevoEgresoScreen(
                             categoriaSeleccionada != null &&
                             concepto.isNotBlank() &&
                             (monto.replace(",", ".").toDoubleOrNull() ?: 0.0) > 0.0,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1.3f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Rojo,
-                        contentColor = Blanco
+                        containerColor = ColorEgreso,
+                        contentColor = Color.White
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -847,14 +672,12 @@ fun NuevoEgresoScreen(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | DIÁLOGO DEL CALENDARIO
-    |--------------------------------------------------------------------------
-    */
+    // Modal Calendario
     if (mostrarCalendario) {
         DatePickerDialog(
             onDismissRequest = { mostrarCalendario = false },
@@ -862,20 +685,18 @@ fun NuevoEgresoScreen(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let {
-                            val nuevaFecha = Instant.ofEpochMilli(it)
-                                .atZone(ZoneOffset.UTC)
-                                .toLocalDate()
+                            val nuevaFecha = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()
                             fecha = nuevaFecha.toString()
                         }
                         mostrarCalendario = false
                     }
                 ) {
-                    Text(text = "Aceptar", color = Rojo, fontWeight = FontWeight.Bold)
+                    Text("Aceptar", color = ColorEgreso, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { mostrarCalendario = false }) {
-                    Text(text = "Cancelar", color = GrisClaro)
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         ) {
@@ -887,7 +708,7 @@ fun NuevoEgresoScreen(
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Rojo
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 },
                 showModeToggle = false
@@ -896,24 +717,13 @@ fun NuevoEgresoScreen(
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| COLORES DE CAMPOS DE EGRESO
-|--------------------------------------------------------------------------
-*/
-
 @Composable
-private fun coloresCampoEgreso() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = Rojo,
-    unfocusedBorderColor = GrisClaro.copy(alpha = 0.35f),
-    focusedLabelColor = Rojo,
-    unfocusedLabelColor = GrisClaro,
-    focusedTextColor = TextoPrincipal,
-    unfocusedTextColor = TextoPrincipal,
-    focusedPlaceholderColor = GrisClaro.copy(alpha = 0.65f),
-    unfocusedPlaceholderColor = GrisClaro.copy(alpha = 0.65f),
-    cursorColor = Rojo,
-    disabledTextColor = GrisClaro,
-    disabledBorderColor = GrisClaro.copy(alpha = 0.2f),
-    disabledLabelColor = GrisClaro.copy(alpha = 0.6f)
+private fun coloresCampoGenerico() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = ColorEgreso,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+    focusedLabelColor = ColorEgreso,
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    cursorColor = ColorEgreso
 )

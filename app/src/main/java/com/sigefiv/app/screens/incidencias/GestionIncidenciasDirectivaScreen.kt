@@ -1,18 +1,30 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.sigefiv.app.screens.incidencias
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.AssignmentLate
 import androidx.compose.material.icons.outlined.CalendarToday
@@ -21,15 +33,29 @@ import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -39,10 +65,11 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.sigefiv.app.ServidorConfig
 import com.sigefiv.app.data.model.IncidenciaItem
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val ColorPendiente = Color(0xFFF59E0B)
+private val ColorEnProceso = Color(0xFF0284C7)
+private val ColorAtendido = Color(0xFF10B981)
+
 @Composable
 fun GestionIncidenciasDirectivaScreen(
     listaIncidencias: List<IncidenciaItem>,
@@ -50,9 +77,7 @@ fun GestionIncidenciasDirectivaScreen(
     onCambiarEstado: (Long, String) -> Unit,
     onBackClick: () -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
-    val colors = MaterialTheme.colorScheme
-
+    val primaryColor = MaterialTheme.colorScheme.primary
     var filtroSeleccionado by remember { mutableStateOf("Todos") }
 
     val incidenciasFiltradas = remember(listaIncidencias, filtroSeleccionado) {
@@ -75,7 +100,7 @@ fun GestionIncidenciasDirectivaScreen(
     }
 
     Scaffold(
-        containerColor = colors.background,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
@@ -84,25 +109,27 @@ fun GestionIncidenciasDirectivaScreen(
                             text = "Gestión de Incidencias",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
-                            color = colors.onPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Administración y control directivo",
                             fontSize = 12.sp,
-                            color = colors.onPrimary.copy(alpha = 0.85f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = "Regresar",
-                            tint = colors.onPrimary
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = colorPrincipal)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
     ) { paddingValues ->
@@ -123,7 +150,7 @@ fun GestionIncidenciasDirectivaScreen(
                         pendientes = totalPendientes,
                         enProceso = totalEnProceso,
                         atendidos = totalAtendidos,
-                        colorPrincipal = colorPrincipal
+                        primaryColor = primaryColor
                     )
                 }
 
@@ -136,20 +163,28 @@ fun GestionIncidenciasDirectivaScreen(
                     ) {
                         items(filtros) { filtro ->
                             val seleccionado = filtroSeleccionado == filtro
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = if (seleccionado) colorPrincipal else colors.surface,
-                                border = if (seleccionado) null else BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.35f)),
-                                modifier = Modifier.clickable { filtroSeleccionado = filtro }
-                            ) {
-                                Text(
-                                    text = filtro,
-                                    fontSize = 12.sp,
-                                    fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (seleccionado) colors.onPrimary else colors.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
-                                )
-                            }
+                            FilterChip(
+                                selected = seleccionado,
+                                onClick = { filtroSeleccionado = filtro },
+                                label = {
+                                    Text(
+                                        text = filtro,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = primaryColor.copy(alpha = 0.14f),
+                                    selectedLabelColor = primaryColor,
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (seleccionado) primaryColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                ),
+                                shape = RoundedCornerShape(20.dp)
+                            )
                         }
                     }
                 }
@@ -157,54 +192,61 @@ fun GestionIncidenciasDirectivaScreen(
                 // 3. LISTADO DE TICKETS
                 if (incidenciasFiltradas.isEmpty() && !isRefreshing) {
                     item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 40.dp, horizontal = 20.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 1.dp,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         ) {
-                            Surface(
-                                modifier = Modifier.size(68.dp),
-                                shape = CircleShape,
-                                color = colorPrincipal.copy(alpha = 0.12f)
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 36.dp, horizontal = 20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .background(primaryColor.copy(alpha = 0.12f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                     Icon(
                                         imageVector = Icons.Outlined.AssignmentLate,
                                         contentDescription = null,
-                                        modifier = Modifier.size(34.dp),
-                                        tint = colorPrincipal
+                                        modifier = Modifier.size(30.dp),
+                                        tint = primaryColor
                                     )
                                 }
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Text(
+                                    text = "Sin incidencias que mostrar",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "No se encontraron registros con el filtro seleccionado.",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
                             }
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Text(
-                                text = "Sin incidencias que mostrar",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "No hay registros disponibles con el filtro seleccionado.",
-                                fontSize = 13.sp,
-                                color = colors.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
                         }
                     }
                 } else {
                     items(incidenciasFiltradas, key = { it.id }) { incidencia ->
                         TarjetaGestionDirectivaItem(
                             incidencia = incidencia,
-                            colorPrincipal = colorPrincipal,
+                            primaryColor = primaryColor,
                             onActualizarEstado = { nuevoEstado -> onCambiarEstado(incidencia.id, nuevoEstado) }
                         )
                     }
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
 
@@ -214,17 +256,11 @@ fun GestionIncidenciasDirectivaScreen(
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
             ) {
-                LinearProgressIndicator(color = colorPrincipal, modifier = Modifier.fillMaxWidth())
+                LinearProgressIndicator(color = primaryColor, modifier = Modifier.fillMaxWidth())
             }
         }
     }
 }
-
-/*
-|--------------------------------------------------------------------------
-| PANEL HERO DE CONTROL DIRECTIVO
-|--------------------------------------------------------------------------
-*/
 
 @Composable
 private fun CardHeroDirectiva(
@@ -232,130 +268,93 @@ private fun CardHeroDirectiva(
     pendientes: Int,
     enProceso: Int,
     atendidos: Int,
-    colorPrincipal: Color
+    primaryColor: Color
 ) {
-    val colors = MaterialTheme.colorScheme
-
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surface),
-        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.35f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Canvas(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(RoundedCornerShape(22.dp))
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                val cx = size.width + 15.dp.toPx()
-                val cy = -5.dp.toPx()
+                Column {
+                    Text(
+                        text = "Panel de atención vecinal",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Gestión y seguimiento de requerimientos",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(colorPrincipal.copy(alpha = 0.25f), Color.Transparent),
-                        center = Offset(cx - 50.dp.toPx(), 30.dp.toPx()),
-                        radius = 150.dp.toPx()
-                    ),
-                    radius = 150.dp.toPx(),
-                    center = Offset(cx - 50.dp.toPx(), 30.dp.toPx())
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .background(primaryColor.copy(alpha = 0.12f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.AdminPanelSettings,
+                        contentDescription = null,
+                        tint = primaryColor,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                MiniKpiBox(
+                    modifier = Modifier.weight(1f),
+                    titulo = "Total avisos",
+                    valor = "$total",
+                    icono = Icons.Outlined.AssignmentLate,
+                    colorAcento = primaryColor
                 )
-                drawCircle(
-                    color = colorPrincipal.copy(alpha = 0.12f),
-                    radius = 100.dp.toPx(),
-                    center = Offset(cx, cy),
-                    style = Stroke(width = 1.5.dp.toPx())
+                MiniKpiBox(
+                    modifier = Modifier.weight(1f),
+                    titulo = "Pendientes",
+                    valor = "$pendientes",
+                    icono = Icons.Outlined.HourglassEmpty,
+                    colorAcento = ColorPendiente
                 )
             }
 
-            Column(modifier = Modifier.padding(18.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Panel de atención vecinal",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.onSurface
-                        )
-                        Text(
-                            text = "Gestión centralizada de requerimientos",
-                            fontSize = 12.sp,
-                            color = colors.onSurfaceVariant
-                        )
-                    }
+            Spacer(modifier = Modifier.height(10.dp))
 
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .background(
-                                brush = Brush.linearGradient(
-                                    listOf(colorPrincipal, colorPrincipal.copy(alpha = 0.75f))
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AdminPanelSettings,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    MiniKpiBox(
-                        modifier = Modifier.weight(1f),
-                        titulo = "Total avisos",
-                        valor = "$total",
-                        icono = Icons.Outlined.AssignmentLate,
-                        fondo = Color(0xFF1E293B),
-                        colorAcento = Color(0xFF38BDF8)
-                    )
-                    MiniKpiBox(
-                        modifier = Modifier.weight(1f),
-                        titulo = "Pendientes",
-                        valor = "$pendientes",
-                        icono = Icons.Outlined.HourglassEmpty,
-                        fondo = Color(0xFF78350F).copy(alpha = 0.85f),
-                        colorAcento = Color(0xFFFBBF24)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    MiniKpiBox(
-                        modifier = Modifier.weight(1f),
-                        titulo = "En proceso",
-                        valor = "$enProceso",
-                        icono = Icons.Outlined.ErrorOutline,
-                        fondo = Color(0xFF0C4A6E).copy(alpha = 0.85f),
-                        colorAcento = Color(0xFF38BDF8)
-                    )
-                    MiniKpiBox(
-                        modifier = Modifier.weight(1f),
-                        titulo = "Atendidos",
-                        valor = "$atendidos",
-                        icono = Icons.Outlined.CheckCircle,
-                        fondo = Color(0xFF064E3B).copy(alpha = 0.85f),
-                        colorAcento = Color(0xFF34D399)
-                    )
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                MiniKpiBox(
+                    modifier = Modifier.weight(1f),
+                    titulo = "En proceso",
+                    valor = "$enProceso",
+                    icono = Icons.Outlined.ErrorOutline,
+                    colorAcento = ColorEnProceso
+                )
+                MiniKpiBox(
+                    modifier = Modifier.weight(1f),
+                    titulo = "Atendidos",
+                    valor = "$atendidos",
+                    icono = Icons.Outlined.CheckCircle,
+                    colorAcento = ColorAtendido
+                )
             }
         }
     }
@@ -367,13 +366,13 @@ private fun MiniKpiBox(
     titulo: String,
     valor: String,
     icono: ImageVector,
-    fondo: Color,
     colorAcento: Color
 ) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
-        color = fondo
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        border = BorderStroke(1.dp, colorAcento.copy(alpha = 0.25f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -381,8 +380,8 @@ private fun MiniKpiBox(
         ) {
             Box(
                 modifier = Modifier
-                    .size(32.dp)
-                    .background(colorAcento.copy(alpha = 0.20f), RoundedCornerShape(8.dp)),
+                    .size(34.dp)
+                    .background(colorAcento.copy(alpha = 0.12f), RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -399,41 +398,33 @@ private fun MiniKpiBox(
                 Text(
                     text = titulo,
                     fontSize = 11.sp,
-                    color = Color.White.copy(alpha = 0.75f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
                 )
                 Text(
                     text = valor,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| TARJETA DE GESTIÓN PARA CADA TICKET
-|--------------------------------------------------------------------------
-*/
-
 @Composable
 private fun TarjetaGestionDirectivaItem(
     incidencia: IncidenciaItem,
-    colorPrincipal: Color,
+    primaryColor: Color,
     onActualizarEstado: (String) -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
     var expanded by remember { mutableStateOf(false) }
-
     val estadoActual = incidencia.estado ?: "pendiente"
 
     val (colorEstado, textoEstado) = when (estadoActual.lowercase()) {
-        "en_proceso" -> Color(0xFF0284C7) to "En Proceso"
-        "atendido" -> Color(0xFF10B981) to "Atendido"
-        else -> Color(0xFFF59E0B) to "Pendiente"
+        "en_proceso" -> ColorEnProceso to "En Proceso"
+        "atendido" -> ColorAtendido to "Atendido"
+        else -> ColorPendiente to "Pendiente"
     }
 
     val urlImagen = remember(incidencia.imagen_path) {
@@ -443,15 +434,15 @@ private fun TarjetaGestionDirectivaItem(
         }
     }
 
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surface),
-        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.35f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Cabecera: ID + Vecino y Menú desplegable estilizado
+            // Cabecera: ID + Vecino y Menú selector de estado
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -459,15 +450,15 @@ private fun TarjetaGestionDirectivaItem(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
-                        color = colorPrincipal.copy(alpha = 0.12f),
+                        color = primaryColor.copy(alpha = 0.10f),
                         shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.25f))
+                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
                     ) {
                         Text(
                             text = "#${incidencia.id}",
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.5.sp,
-                            color = colorPrincipal,
+                            color = primaryColor,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
@@ -478,20 +469,20 @@ private fun TarjetaGestionDirectivaItem(
                         Icon(
                             imageVector = Icons.Outlined.Person,
                             contentDescription = null,
-                            modifier = Modifier.size(13.dp),
-                            tint = colors.onSurfaceVariant
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.width(3.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Vecino #${incidencia.user_id}",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = colors.onSurface
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
 
-                // Menú selector de estado estilo Badge Interactivo
+                // Selector de estado estilo Badge Interactivo
                 Box {
                     Surface(
                         color = colorEstado.copy(alpha = 0.12f),
@@ -528,12 +519,12 @@ private fun TarjetaGestionDirectivaItem(
                     DropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
-                        modifier = Modifier.background(colors.surface)
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Pendiente", color = colors.onSurface, fontSize = 13.sp) },
+                            text = { Text("Pendiente", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp) },
                             leadingIcon = {
-                                Icon(Icons.Outlined.HourglassEmpty, null, tint = Color(0xFFF59E0B), modifier = Modifier.size(16.dp))
+                                Icon(Icons.Outlined.HourglassEmpty, null, tint = ColorPendiente, modifier = Modifier.size(16.dp))
                             },
                             onClick = {
                                 expanded = false
@@ -541,9 +532,9 @@ private fun TarjetaGestionDirectivaItem(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("En Proceso", color = colors.onSurface, fontSize = 13.sp) },
+                            text = { Text("En Proceso", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp) },
                             leadingIcon = {
-                                Icon(Icons.Outlined.ErrorOutline, null, tint = Color(0xFF0284C7), modifier = Modifier.size(16.dp))
+                                Icon(Icons.Outlined.ErrorOutline, null, tint = ColorEnProceso, modifier = Modifier.size(16.dp))
                             },
                             onClick = {
                                 expanded = false
@@ -551,9 +542,9 @@ private fun TarjetaGestionDirectivaItem(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Atendido", color = colors.onSurface, fontSize = 13.sp) },
+                            text = { Text("Atendido", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp) },
                             leadingIcon = {
-                                Icon(Icons.Outlined.CheckCircle, null, tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                                Icon(Icons.Outlined.CheckCircle, null, tint = ColorAtendido, modifier = Modifier.size(16.dp))
                             },
                             onClick = {
                                 expanded = false
@@ -571,26 +562,26 @@ private fun TarjetaGestionDirectivaItem(
                         imageVector = Icons.Outlined.CalendarToday,
                         contentDescription = null,
                         modifier = Modifier.size(12.dp),
-                        tint = colors.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Registrado el ${incidencia.created_at.take(10)}",
                         fontSize = 11.5.sp,
-                        color = colors.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Mensaje
+            // Mensaje del reporte
             Text(
                 text = incidencia.mensaje,
-                fontSize = 14.sp,
+                fontSize = 13.5.sp,
                 fontWeight = FontWeight.Normal,
-                color = colors.onSurface,
-                lineHeight = 21.sp
+                color = MaterialTheme.colorScheme.onSurface,
+                lineHeight = 20.sp
             )
 
             // Evidencia fotográfica
@@ -603,7 +594,7 @@ private fun TarjetaGestionDirectivaItem(
                         .fillMaxWidth()
                         .height(180.dp)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(colors.surfaceVariant.copy(alpha = 0.5f)),
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                     contentScale = ContentScale.Crop
                 )
             }

@@ -1,32 +1,45 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.sigefiv.app.screens.emprendimiento
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.sigefiv.app.viewmodel.EmprendimientoItemUi
 import com.sigefiv.app.viewmodel.EmprendimientosListState
 
-private val SigefivGreen = Color(0xFF15803D)
-private val SigefivGreenDark = Color(0xFF166534)
-private val SigefivGreenLight = Color(0xFFDCFCE7)
-private val SigefivAmber = Color(0xFFB45309)
-private val SigefivRed = Color(0xFFB91C1C)
+private val ColorPublicado = Color(0xFF16A34A)
+private val ColorPausado = Color(0xFFD97706)
+private val ColorEstrella = Color(0xFFF59E0B)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmprendimientosListScreen(
     state: EmprendimientosListState,
@@ -35,37 +48,40 @@ fun EmprendimientosListScreen(
     onEditarEmprendimientoClick: (Long) -> Unit,
     onCambiarEstadoClick: (Long, String) -> Unit,
     onEliminarEmprendimientoClick: (Long) -> Unit,
-    onItemClick: (Long) -> Unit // 👈 NUEVO: Callback para navegar al detalle completo del negocio
+    onItemClick: (Long) -> Unit
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column {
                         Text(
                             text = "Mis emprendimientos",
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleLarge
+                            fontSize = 18.sp
                         )
                         Text(
-                            text = "Administra tus negocios",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "Administra y publica tus negocios",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver"
+                            imageVector = Icons.Outlined.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
@@ -74,19 +90,22 @@ fun EmprendimientosListScreen(
                 onClick = onNuevoEmprendimientoClick,
                 icon = {
                     Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null
+                        imageVector = Icons.Outlined.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
                     )
                 },
                 text = {
                     Text(
                         text = "Nuevo negocio",
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
                     )
                 },
-                containerColor = SigefivGreen,
-                contentColor = Color.White,
-                shape = RoundedCornerShape(18.dp)
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = CircleShape,
+                elevation = FloatingActionButtonDefaults.elevation(4.dp)
             )
         }
     ) { paddingValues ->
@@ -102,13 +121,11 @@ fun EmprendimientosListScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        CircularProgressIndicator(
-                            color = SigefivGreen
-                        )
+                        CircularProgressIndicator(color = primaryColor)
                         Text(
                             text = "Cargando tus emprendimientos...",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium
+                            fontSize = 13.sp
                         )
                     }
                 }
@@ -116,43 +133,38 @@ fun EmprendimientosListScreen(
                 state.emprendimientos.isEmpty() -> {
                     EmptyEmprendimientos(
                         errorMessage = state.errorMessage,
+                        primaryColor = primaryColor,
                         onNuevoClick = onNuevoEmprendimientoClick
                     )
                 }
 
                 else -> {
                     Column(modifier = Modifier.fillMaxSize()) {
-                        // Encabezado con resumen
+                        // Tarjeta superior tipo resumen métrico
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
                             shape = RoundedCornerShape(20.dp),
                             color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(
-                                    alpha = 0.5f
-                                )
-                            )
+                            tonalElevation = 1.dp,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         ) {
                             Row(
-                                modifier = Modifier.padding(
-                                    horizontal = 18.dp,
-                                    vertical = 16.dp
-                                ),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = SigefivGreenLight,
-                                    modifier = Modifier.size(48.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(46.dp)
+                                        .background(primaryColor.copy(alpha = 0.12f), CircleShape),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Storefront,
+                                        imageVector = Icons.Outlined.Storefront,
                                         contentDescription = null,
-                                        tint = SigefivGreenDark,
-                                        modifier = Modifier.padding(12.dp)
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 }
 
@@ -161,19 +173,15 @@ fun EmprendimientosListScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = "Tu actividad comercial",
-                                        style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    Spacer(Modifier.height(3.dp))
+                                    Spacer(Modifier.height(2.dp))
                                     Text(
                                         text = "${state.emprendimientos.size} " +
-                                                if (state.emprendimientos.size == 1) {
-                                                    "emprendimiento registrado"
-                                                } else {
-                                                    "emprendimientos registrados"
-                                                },
-                                        style = MaterialTheme.typography.bodySmall,
+                                                if (state.emprendimientos.size == 1) "negocio registrado" else "negocios registrados",
+                                        fontSize = 12.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -182,18 +190,28 @@ fun EmprendimientosListScreen(
                                     it.status.equals("published", ignoreCase = true)
                                 }
 
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        text = publicados.toString(),
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = SigefivGreen
-                                    )
-                                    Text(
-                                        text = "Publicados",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = ColorPublicado.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, ColorPublicado.copy(alpha = 0.25f))
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = "$publicados",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = ColorPublicado
+                                        )
+                                        Text(
+                                            text = "Publicados",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = ColorPublicado
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -202,11 +220,8 @@ fun EmprendimientosListScreen(
                             Text(
                                 text = error,
                                 color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(
-                                    horizontal = 20.dp,
-                                    vertical = 4.dp
-                                )
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                             )
                         }
 
@@ -215,10 +230,10 @@ fun EmprendimientosListScreen(
                             contentPadding = PaddingValues(
                                 start = 16.dp,
                                 end = 16.dp,
-                                top = 8.dp,
-                                bottom = 100.dp
+                                top = 6.dp,
+                                bottom = 90.dp
                             ),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(
                                 items = state.emprendimientos,
@@ -226,16 +241,13 @@ fun EmprendimientosListScreen(
                             ) { item ->
                                 EmprendimientoCard(
                                     item = item,
-                                    onCardClick = { onItemClick(item.id) }, // 👈 Al hacer clic en la tarjeta va al detalle
-                                    onEditarClick = {
-                                        onEditarEmprendimientoClick(item.id)
-                                    },
+                                    primaryColor = primaryColor,
+                                    onCardClick = { onItemClick(item.id) },
+                                    onEditarClick = { onEditarEmprendimientoClick(item.id) },
                                     onCambiarEstado = { nuevoEstado ->
                                         onCambiarEstadoClick(item.id, nuevoEstado)
                                     },
-                                    onEliminarClick = {
-                                        onEliminarEmprendimientoClick(item.id)
-                                    }
+                                    onEliminarClick = { onEliminarEmprendimientoClick(item.id) }
                                 )
                             }
                         }
@@ -249,6 +261,7 @@ fun EmprendimientosListScreen(
 @Composable
 private fun EmptyEmprendimientos(
     errorMessage: String?,
+    primaryColor: Color,
     onNuevoClick: () -> Unit
 ) {
     Column(
@@ -258,67 +271,59 @@ private fun EmptyEmprendimientos(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Surface(
-            modifier = Modifier.size(112.dp),
-            shape = RoundedCornerShape(32.dp),
-            color = SigefivGreenLight
+        Box(
+            modifier = Modifier
+                .size(96.dp)
+                .background(primaryColor.copy(alpha = 0.12f), CircleShape),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Storefront,
+                imageVector = Icons.Outlined.Storefront,
                 contentDescription = null,
-                tint = SigefivGreenDark,
-                modifier = Modifier.padding(28.dp)
+                tint = primaryColor,
+                modifier = Modifier.size(46.dp)
             )
         }
 
-        Spacer(Modifier.height(26.dp))
+        Spacer(Modifier.height(20.dp))
 
         Text(
-            text = if (errorMessage == null) {
-                "Tu negocio comienza aquí"
-            } else {
-                "No pudimos cargar tus negocios"
-            },
-            style = MaterialTheme.typography.headlineSmall,
+            text = if (errorMessage == null) "Tu negocio comienza aquí" else "No pudimos cargar tus negocios",
+            fontSize = 19.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(8.dp))
 
         Text(
             text = errorMessage
-                ?: "Registra tu emprendimiento para que los vecinos conozcan tus servicios y productos.",
-            style = MaterialTheme.typography.bodyMedium,
+                ?: "Registra tu emprendimiento para que los vecinos conozcan tus productos y servicios en el directorio.",
+            fontSize = 13.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            lineHeight = 22.sp
+            lineHeight = 19.sp
         )
 
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(22.dp))
 
         Button(
             onClick = onNuevoClick,
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = SigefivGreen,
-                contentColor = Color.White
-            ),
-            contentPadding = PaddingValues(
-                horizontal = 24.dp,
-                vertical = 14.dp
-            )
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+            contentPadding = PaddingValues(horizontal = 22.dp, vertical = 12.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.Add,
+                imageVector = Icons.Outlined.Add,
                 contentDescription = null,
-                modifier = Modifier.size(19.dp)
+                modifier = Modifier.size(18.dp)
             )
-            Spacer(Modifier.width(9.dp))
+            Spacer(Modifier.width(8.dp))
             Text(
                 text = "Registrar mi negocio",
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp
             )
         }
     }
@@ -327,13 +332,15 @@ private fun EmptyEmprendimientos(
 @Composable
 fun EmprendimientoCard(
     item: EmprendimientoItemUi,
-    onCardClick: () -> Unit, // 👈 Se añade el evento de clic general en la tarjeta
+    primaryColor: Color,
+    onCardClick: () -> Unit,
     onEditarClick: () -> Unit,
     onCambiarEstado: (String) -> Unit,
     onEliminarClick: () -> Unit
 ) {
     val isPublished = item.status.equals("published", ignoreCase = true)
     val isDraft = item.status.equals("draft", ignoreCase = true)
+
     val statusText = when {
         isPublished -> "Publicado"
         isDraft -> "Borrador"
@@ -342,288 +349,300 @@ fun EmprendimientoCard(
     }
 
     val statusColor = when {
-        isPublished -> SigefivGreen
-        isDraft -> Color(0xFF64748B)
-        else -> SigefivAmber
-    }
-
-    val statusBackground = when {
-        isPublished -> SigefivGreenLight
-        isDraft -> Color(0xFFE2E8F0)
-        else -> Color(0xFFFEF3C7)
+        isPublished -> ColorPublicado
+        isDraft -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> ColorPausado
     }
 
     var mostrarDialogoEliminar by remember { mutableStateOf(false) }
 
     if (mostrarDialogoEliminar) {
-        AlertDialog(
+        Dialog(
             onDismissRequest = { mostrarDialogoEliminar = false },
-            title = {
-                Text(text = "Eliminar emprendimiento", fontWeight = FontWeight.Bold)
-            },
-            text = {
-                Text(text = "¿Estás seguro de que deseas eliminar \"${item.nombre}\"? Esta acción no se puede deshacer.")
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        mostrarDialogoEliminar = false
-                        onEliminarClick()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = SigefivRed)
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = tween(200)) + scaleIn(initialScale = 0.90f, animationSpec = tween(200)),
+                exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.90f, animationSpec = tween(150))
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(0.88f),
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 6.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 ) {
-                    Text("Sí, eliminar", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { mostrarDialogoEliminar = false }) {
-                    Text("Cancelar")
+                    Column(
+                        modifier = Modifier.padding(22.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.DeleteOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            text = "Eliminar emprendimiento",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 18.sp,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(Modifier.height(8.dp))
+
+                        Text(
+                            text = "¿Estás seguro de que deseas eliminar \"${item.nombre}\"? Esta acción no se puede deshacer.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 18.sp
+                        )
+
+                        Spacer(Modifier.height(20.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            TextButton(
+                                onClick = { mostrarDialogoEliminar = false },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+
+                            Button(
+                                onClick = {
+                                    mostrarDialogoEliminar = false
+                                    onEliminarClick()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Eliminar", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
             }
-        )
+        }
     }
 
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onCardClick), // 👈 Permite hacer clic en toda la tarjeta para ver el detalle
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        ),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
-        )
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onCardClick),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp)
+                .padding(16.dp)
         ) {
+            // Fila 1: Icono + Título + Badge de Estado + Eliminar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    modifier = Modifier.size(52.dp),
-                    shape = RoundedCornerShape(15.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(primaryColor.copy(alpha = 0.12f), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Storefront,
+                        imageVector = Icons.Outlined.Storefront,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(13.dp)
+                        tint = primaryColor,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
-                Spacer(Modifier.width(13.dp))
+                Spacer(Modifier.width(12.dp))
 
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = item.nombre,
-                        style = MaterialTheme.typography.titleMedium,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
 
-                    Spacer(Modifier.height(5.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Category,
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp),
-                            tint = SigefivGreen
-                        )
-                        Spacer(Modifier.width(5.dp))
+                    if (!item.categoria.isNullOrBlank()) {
+                        Spacer(Modifier.height(2.dp))
                         Text(
-                            text = item.categoria ?: "",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = SigefivGreen,
-                            fontWeight = FontWeight.SemiBold
-                        )
-
-                        // 👇 NUEVO: Insignia visual de calificación promedio en la tarjeta
-                        Spacer(Modifier.width(8.dp))
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = Color(0xFFFFC107)
-                        )
-                        Spacer(Modifier.width(2.dp))
-                        Text(
-                            text = "4.8", // O puedes enlazar item.calificacionPromedio si lo tienes en tu modelo UI
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Bold
+                            text = item.categoria!!,
+                            fontSize = 12.sp,
+                            color = primaryColor,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
                 Spacer(Modifier.width(8.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = RoundedCornerShape(9.dp),
-                        color = statusBackground
+                // Badge de Estado (Publicado / Pausado)
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = statusColor.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, statusColor.copy(alpha = 0.25f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(
-                                horizontal = 9.dp,
-                                vertical = 6.dp
-                            ),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                modifier = Modifier.size(6.dp),
-                                shape = RoundedCornerShape(50),
-                                color = statusColor
-                            ) {}
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                text = statusText,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = statusColor,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.width(4.dp))
-
-                    IconButton(
-                        onClick = { mostrarDialogoEliminar = true },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "Eliminar",
-                            tint = SigefivRed,
-                            modifier = Modifier.size(20.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(statusColor, CircleShape)
+                        )
+                        Spacer(Modifier.width(5.dp))
+                        Text(
+                            text = statusText,
+                            fontSize = 11.sp,
+                            color = statusColor,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
+
+                Spacer(Modifier.width(2.dp))
+
+                IconButton(
+                    onClick = { mostrarDialogoEliminar = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.DeleteOutline,
+                        contentDescription = "Eliminar",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
 
+            // Fila 2: Descripción limpia (si existe)
             if (!item.description.isNullOrBlank()) {
-                Spacer(Modifier.height(16.dp))
-
+                Spacer(Modifier.height(10.dp))
                 Text(
                     text = item.description,
-                    style = MaterialTheme.typography.bodyMedium,
+                    fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 21.sp,
-                    maxLines = 3
+                    lineHeight = 18.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Spacer(Modifier.height(17.dp))
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+            Spacer(Modifier.height(12.dp))
 
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-            )
-
-            Spacer(Modifier.height(15.dp))
-
-            Column(verticalArrangement = Arrangement.spacedBy(13.dp)) {
-                ContactDetail(
-                    icon = Icons.Default.Phone,
+            // Fila 3: Detalles de contacto ordenados
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                ContactDetailItem(
+                    icon = Icons.Outlined.Phone,
                     label = "Teléfono",
-                    value = item.phone +
-                            if (item.showWhatsapp) " · WhatsApp" else ""
+                    value = item.phone + if (item.showWhatsapp) " · WhatsApp" else ""
                 )
 
-                ContactDetail(
-                    icon = Icons.Default.Storefront,
+                ContactDetailItem(
+                    icon = Icons.Outlined.Storefront,
                     label = "Modalidad",
-                    value = item.modality
-                        .replace("_", " ")
-                        .replaceFirstChar { it.uppercase() }
+                    value = item.modality.replace("_", " ").replaceFirstChar { it.uppercase() }
                 )
 
                 if (!item.attentionZone.isNullOrBlank()) {
-                    ContactDetail(
-                        icon = Icons.Default.LocationOn,
-                        label = "Zona de atención",
+                    ContactDetailItem(
+                        icon = Icons.Outlined.LocationOn,
+                        label = "Zona",
                         value = item.attentionZone
-                    )
-                }
-
-                if (!item.schedule.isNullOrBlank()) {
-                    ContactDetail(
-                        icon = Icons.Default.Schedule,
-                        label = "Horario",
-                        value = item.schedule
                     )
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(14.dp))
 
+            // Fila 4: Botones de Editar y Pausar/Publicar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                OutlinedButton(
+                Surface(
                     onClick = onEditarClick,
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     modifier = Modifier
                         .weight(1f)
-                        .height(46.dp),
-                    shape = RoundedCornerShape(13.dp),
-                    border = BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.outlineVariant
-                    )
+                        .height(38.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = null,
-                        modifier = Modifier.size(17.dp)
-                    )
-                    Spacer(Modifier.width(7.dp))
-                    Text("Editar", fontWeight = FontWeight.SemiBold)
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Edit,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "Editar",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
 
                 Button(
                     onClick = {
-                        onCambiarEstado(
-                            if (isPublished) "paused" else "published"
-                        )
+                        onCambiarEstado(if (isPublished) "paused" else "published")
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(46.dp),
-                    shape = RoundedCornerShape(13.dp),
+                        .height(38.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isPublished) {
-                            SigefivAmber
-                        } else {
-                            SigefivGreen
-                        },
+                        containerColor = if (isPublished) ColorPausado else ColorPublicado,
                         contentColor = Color.White
-                    )
+                    ),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
                     Icon(
-                        imageVector = if (isPublished) {
-                            Icons.Default.Pause
-                        } else {
-                            Icons.Default.PlayArrow
-                        },
+                        imageVector = if (isPublished) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(Modifier.width(7.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(
                         text = if (isPublished) "Pausar" else "Publicar",
-                        fontWeight = FontWeight.SemiBold
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -632,39 +651,35 @@ fun EmprendimientoCard(
 }
 
 @Composable
-private fun ContactDetail(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+private fun ContactDetailItem(
+    icon: ImageVector,
     label: String,
     value: String
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .padding(top = 2.dp)
-                .size(18.dp)
+            modifier = Modifier.size(14.dp)
         )
-
-        Spacer(Modifier.width(11.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Medium
-            )
-        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = "$label: ",
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = value,
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

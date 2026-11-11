@@ -1,6 +1,5 @@
 package com.sigefiv.app.screens.usuarios
 
-import android.app.Activity
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,6 +34,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,7 +53,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,35 +60,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sigefiv.app.data.model.RolDetalle
 import com.sigefiv.app.data.model.UsuarioListado
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
 import com.sigefiv.app.viewmodel.UsuarioViewModel
 
-private val VerdeClaroContraste = Color(0xFFCCFBF1)
-
-private val ActivoBg = Color(0xFFDCFCE7)
-private val ActivoTexto = Color(0xFF15803D)
-private val ActivoBorde = Color(0xFF86EFAC)
-
-private val PendienteBg = Color(0xFFFEF3C7)
-private val PendienteTexto = Color(0xFFB45309)
-private val PendienteBorde = Color(0xFFFCD34D)
-
-private val BloqueadoBg = Color(0xFFFEE2E2)
-private val BloqueadoTexto = Color(0xFFB91C1C)
-private val BloqueadoBorde = Color(0xFFFCA5A5)
+// Tonos semánticos universales legibles
+private val VerdeSemantico = Color(0xFF16A34A)
+private val AmbarSemantico = Color(0xFFD97706)
+private val RojoSemantico = Color(0xFFDC2626)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,52 +82,22 @@ fun UsuariosScreen(
     viewModel: UsuarioViewModel,
     onBackClick: () -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
-    val colorPrincipalOscuro = colorPrincipal.copy(alpha = 0.88f)
-
-    // Íconos de barra de estado en blanco sobre el encabezado verde
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as? Activity)?.window
-            if (window != null) {
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-            }
-        }
-    }
-
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var buscar by remember { mutableStateOf("") }
-
-    var usuarioPendienteCambio by remember {
-        mutableStateOf<UsuarioListado?>(null)
-    }
-    var estadoPendienteCambio by remember {
-        mutableStateOf<String?>(null)
-    }
-    var usuarioPendienteEliminacion by remember {
-        mutableStateOf<UsuarioListado?>(null)
-    }
-    var usuarioPendienteCambioRol by remember {
-        mutableStateOf<UsuarioListado?>(null)
-    }
-    var rolPendienteCambio by remember {
-        mutableStateOf<String?>(null)
-    }
+    var usuarioPendienteCambio by remember { mutableStateOf<UsuarioListado?>(null) }
+    var estadoPendienteCambio by remember { mutableStateOf<String?>(null) }
+    var usuarioPendienteEliminacion by remember { mutableStateOf<UsuarioListado?>(null) }
+    var usuarioPendienteCambioRol by remember { mutableStateOf<UsuarioListado?>(null) }
+    var rolPendienteCambio by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.cargarUsuarios()
         viewModel.cargarRoles()
     }
 
-    // Confirmación de cambio de estado.
-    if (
-        usuarioPendienteCambio != null &&
-        estadoPendienteCambio != null
-    ) {
+    // Diálogo: Confirmación de cambio de estado
+    if (usuarioPendienteCambio != null && estadoPendienteCambio != null) {
         val usuario = usuarioPendienteCambio!!
         val nuevoEstado = estadoPendienteCambio!!
 
@@ -151,28 +106,31 @@ fun UsuariosScreen(
                 usuarioPendienteCambio = null
                 estadoPendienteCambio = null
             },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
                     text = "Confirmar cambio de estado",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             text = {
                 Text(
-                    "¿Deseas cambiar el estado de ${usuario.name} a " +
-                            "${nuevoEstado.replaceFirstChar { it.uppercase() }}?"
+                    text = "¿Deseas cambiar el estado de ${formatearNombre(usuario.name)} a ${nuevoEstado.replaceFirstChar { it.uppercase() }}?",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.actualizarEstado(
-                            usuarioId = usuario.id,
-                            nuevoEstado = nuevoEstado
-                        )
+                        viewModel.actualizarEstado(usuarioId = usuario.id, nuevoEstado = nuevoEstado)
                         usuarioPendienteCambio = null
                         estadoPendienteCambio = null
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
                     Text("Confirmar")
                 }
@@ -184,17 +142,14 @@ fun UsuariosScreen(
                         estadoPendienteCambio = null
                     }
                 ) {
-                    Text("Cancelar")
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
     }
 
-    // Confirmación de cambio de rol.
-    if (
-        usuarioPendienteCambioRol != null &&
-        rolPendienteCambio != null
-    ) {
+    // Diálogo: Confirmación de cambio de rol
+    if (usuarioPendienteCambioRol != null && rolPendienteCambio != null) {
         val usuario = usuarioPendienteCambioRol!!
         val nuevoRol = rolPendienteCambio!!
 
@@ -203,25 +158,31 @@ fun UsuariosScreen(
                 usuarioPendienteCambioRol = null
                 rolPendienteCambio = null
             },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
                     text = "Confirmar cambio de rol",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             text = {
-                Text("¿Deseas asignar el rol $nuevoRol a ${usuario.name}?")
+                Text(
+                    text = "¿Deseas asignar el rol $nuevoRol a ${formatearNombre(usuario.name)}?",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.cambiarRol(
-                            usuarioId = usuario.id,
-                            rol = nuevoRol
-                        )
+                        viewModel.cambiarRol(usuarioId = usuario.id, rol = nuevoRol)
                         usuarioPendienteCambioRol = null
                         rolPendienteCambio = null
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
                     Text("Confirmar")
                 }
@@ -233,30 +194,30 @@ fun UsuariosScreen(
                         rolPendienteCambio = null
                     }
                 ) {
-                    Text("Cancelar")
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
     }
 
-    // Confirmación de eliminación.
+    // Diálogo: Confirmación de eliminación
     if (usuarioPendienteEliminacion != null) {
         val usuario = usuarioPendienteEliminacion!!
 
         AlertDialog(
-            onDismissRequest = {
-                usuarioPendienteEliminacion = null
-            },
+            onDismissRequest = { usuarioPendienteEliminacion = null },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
                     text = "Eliminar usuario",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             text = {
                 Text(
-                    "¿Estás seguro de que deseas eliminar a ${usuario.name}? " +
-                            "Esta acción no se puede deshacer."
+                    text = "¿Estás seguro de que deseas eliminar a ${formatearNombre(usuario.name)}? Esta acción no se puede deshacer.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             confirmButton = {
@@ -264,45 +225,58 @@ fun UsuariosScreen(
                     onClick = {
                         viewModel.eliminarUsuario(usuario.id)
                         usuarioPendienteEliminacion = null
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
                 ) {
                     Text("Eliminar")
                 }
             },
             dismissButton = {
                 TextButton(
-                    onClick = {
-                        usuarioPendienteEliminacion = null
-                    }
+                    onClick = { usuarioPendienteEliminacion = null }
                 ) {
-                    Text("Cancelar")
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
     }
 
-    // Diálogo de error.
+    // Diálogo: Error
     if (uiState.error != null) {
         AlertDialog(
             onDismissRequest = { viewModel.limpiarError() },
+            containerColor = MaterialTheme.colorScheme.surface,
             icon = {
                 Icon(
                     imageVector = Icons.Default.ErrorOutline,
                     contentDescription = null,
-                    tint = BloqueadoTexto
+                    tint = MaterialTheme.colorScheme.error
                 )
             },
             title = {
                 Text(
                     text = "No se pudo completar la acción",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             text = {
-                Text(uiState.error ?: "Ocurrió un error inesperado.")
+                Text(
+                    text = uiState.error ?: "Ocurrió un error inesperado.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             },
             confirmButton = {
-                Button(onClick = { viewModel.limpiarError() }) {
+                Button(
+                    onClick = { viewModel.limpiarError() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
                     Text("Aceptar")
                 }
             }
@@ -324,23 +298,17 @@ fun UsuariosScreen(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            // Encabezado verde unificado con buscador integrado
-            Box(
+            Surface(
+                color = MaterialTheme.colorScheme.background,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                colorPrincipal,
-                                colorPrincipalOscuro
-                            )
-                        )
-                    )
                     .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -348,14 +316,15 @@ fun UsuariosScreen(
                         Surface(
                             onClick = onBackClick,
                             shape = CircleShape,
-                            color = Color.White.copy(alpha = 0.16f),
-                            modifier = Modifier.size(38.dp)
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                            modifier = Modifier.size(40.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = "Volver",
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onBackground,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -366,51 +335,44 @@ fun UsuariosScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Gestión de usuarios",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
-                                text = "Control de accesos y roles de SIGEFIV",
-                                fontSize = 11.sp,
-                                color = Color.White.copy(alpha = 0.85f)
+                                text = "Control de accesos y roles",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = Color.White.copy(alpha = 0.16f),
-                            border = BorderStroke(
-                                1.dp,
-                                Color.White.copy(alpha = 0.25f)
-                            )
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
                         ) {
                             Row(
-                                modifier = Modifier.padding(
-                                    horizontal = 10.dp,
-                                    vertical = 5.dp
-                                ),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
                                     text = uiState.usuarios.size.toString(),
-                                    color = Color.White,
-                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     text = "usuarios",
-                                    color = Color.White.copy(alpha = 0.90f),
+                                    color = MaterialTheme.colorScheme.primary,
                                     fontSize = 11.sp
                                 )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // Buscador integrado en la franja superior
                     OutlinedTextField(
                         value = buscar,
                         onValueChange = { buscar = it },
@@ -427,7 +389,7 @@ fun UsuariosScreen(
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Buscar",
-                                tint = colorPrincipal,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                         },
@@ -447,8 +409,8 @@ fun UsuariosScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.surface,
                             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            focusedBorderColor = Color.White,
-                            unfocusedBorderColor = Color.Transparent
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
                         )
                     )
                 }
@@ -461,8 +423,6 @@ fun UsuariosScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(10.dp))
-
             when {
                 uiState.cargando -> {
                     Box(
@@ -471,17 +431,16 @@ fun UsuariosScreen(
                             .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator(
-                                color = colorPrincipal,
+                                color = MaterialTheme.colorScheme.primary,
                                 strokeWidth = 3.dp
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
                                 text = "Cargando usuarios...",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 13.sp
                             )
                         }
                     }
@@ -491,7 +450,6 @@ fun UsuariosScreen(
                     EstadoVacioUsuarios(
                         titulo = "No hay usuarios",
                         descripcion = "Todavía no hay usuarios para mostrar.",
-                        colorPrincipal = colorPrincipal,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -500,7 +458,6 @@ fun UsuariosScreen(
                     EstadoVacioUsuarios(
                         titulo = "Sin resultados",
                         descripcion = "Prueba con otro nombre o correo.",
-                        colorPrincipal = colorPrincipal,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -509,7 +466,7 @@ fun UsuariosScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 4.dp),
+                            .padding(horizontal = 4.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -526,14 +483,12 @@ fun UsuariosScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
-                        contentPadding = PaddingValues(bottom = 24.dp)
+                        contentPadding = PaddingValues(top = 4.dp, bottom = 24.dp)
                     ) {
                         items(
                             items = usuariosFiltrados,
@@ -542,7 +497,6 @@ fun UsuariosScreen(
                             UsuarioTarjetaProfional(
                                 usuario = usuario,
                                 rolesDisponibles = uiState.roles,
-                                colorPrincipal = colorPrincipal,
                                 onGuardarEstado = { nuevoEstado ->
                                     usuarioPendienteCambio = usuario
                                     estadoPendienteCambio = nuevoEstado
@@ -567,7 +521,6 @@ fun UsuariosScreen(
 private fun EstadoVacioUsuarios(
     titulo: String,
     descripcion: String,
-    colorPrincipal: Color,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -583,14 +536,14 @@ private fun EstadoVacioUsuarios(
         ) {
             Surface(
                 shape = CircleShape,
-                color = colorPrincipal.copy(alpha = 0.10f),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
                 modifier = Modifier.size(72.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = null,
-                        tint = colorPrincipal,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(36.dp)
                     )
                 }
@@ -622,13 +575,14 @@ private fun EstadoVacioUsuarios(
 private fun UsuarioTarjetaProfional(
     usuario: UsuarioListado,
     rolesDisponibles: List<RolDetalle>,
-    colorPrincipal: Color,
     onGuardarEstado: (String) -> Unit,
     onGuardarRol: (String) -> Unit,
     onEliminarUsuario: () -> Unit
 ) {
-    val nombre = usuario.name.ifBlank { "Usuario" }
-    val inicial = nombre.trim().firstOrNull()?.uppercase() ?: "U"
+    val nombreFormateado = remember(usuario.name) {
+        formatearNombre(usuario.name)
+    }
+    val inicial = nombreFormateado.trim().firstOrNull()?.uppercase() ?: "U"
 
     val rolActual = usuario.roles
         .firstOrNull()
@@ -639,25 +593,30 @@ private fun UsuarioTarjetaProfional(
     var estadoSeleccionado by remember(usuario.id, usuario.estado) {
         mutableStateOf(usuario.estado ?: "pendiente")
     }
-
-    var menuEstadoAbierto by remember(usuario.id) {
-        mutableStateOf(false)
-    }
+    var menuEstadoAbierto by remember(usuario.id) { mutableStateOf(false) }
 
     var rolSeleccionado by remember(usuario.id, rolActual) {
         mutableStateOf(rolActual)
     }
+    var menuRolAbierto by remember(usuario.id) { mutableStateOf(false) }
 
-    var menuRolAbierto by remember(usuario.id) {
-        mutableStateOf(false)
+    val (bgColor, textColor, borderColor) = when (estadoSeleccionado.lowercase()) {
+        "activo" -> Triple(
+            VerdeSemantico.copy(alpha = 0.12f),
+            VerdeSemantico,
+            VerdeSemantico.copy(alpha = 0.35f)
+        )
+        "bloqueado" -> Triple(
+            RojoSemantico.copy(alpha = 0.12f),
+            RojoSemantico,
+            RojoSemantico.copy(alpha = 0.35f)
+        )
+        else -> Triple(
+            AmbarSemantico.copy(alpha = 0.12f),
+            AmbarSemantico,
+            AmbarSemantico.copy(alpha = 0.35f)
+        )
     }
-
-    val (bgColor, textColor, borderColor) =
-        when (estadoSeleccionado.lowercase()) {
-            "activo" -> Triple(ActivoBg, ActivoTexto, ActivoBorde)
-            "bloqueado" -> Triple(BloqueadoBg, BloqueadoTexto, BloqueadoBorde)
-            else -> Triple(PendienteBg, PendienteTexto, PendienteBorde)
-        }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -667,44 +626,42 @@ private fun UsuarioTarjetaProfional(
         ),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
-            // Cabecera compacta: Avatar + Nombre/Correo + Botón Eliminar en esquina superior derecha
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Avatar circular
                 Box {
                     Surface(
                         modifier = Modifier.size(42.dp),
                         shape = CircleShape,
-                        color = VerdeClaroContraste,
-                        border = BorderStroke(
-                            1.5.dp,
-                            colorPrincipal.copy(alpha = 0.25f)
-                        )
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 text = inicial,
-                                fontSize = 18.sp,
+                                fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = colorPrincipal
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
 
+                    // Indicador de estado
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .size(12.dp)
+                            .size(11.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surface)
                             .padding(1.5.dp)
@@ -722,7 +679,7 @@ private fun UsuarioTarjetaProfional(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = nombre,
+                        text = nombreFormateado,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -754,19 +711,19 @@ private fun UsuarioTarjetaProfional(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Botón eliminar sutil en la esquina superior derecha
+                // Botón eliminar
                 Surface(
                     onClick = onEliminarUsuario,
                     shape = CircleShape,
-                    color = BloqueadoBg.copy(alpha = 0.85f),
-                    border = BorderStroke(1.dp, BloqueadoBorde.copy(alpha = 0.6f)),
+                    color = RojoSemantico.copy(alpha = 0.10f),
+                    border = BorderStroke(1.dp, RojoSemantico.copy(alpha = 0.25f)),
                     modifier = Modifier.size(34.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Eliminar usuario",
-                            tint = BloqueadoTexto,
+                            tint = RojoSemantico,
                             modifier = Modifier.size(17.dp)
                         )
                     }
@@ -778,7 +735,7 @@ private fun UsuarioTarjetaProfional(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
             )
 
-            // Fila 1: Selector de Rol compacto + Guardar
+            // Selector de Rol
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -787,27 +744,21 @@ private fun UsuarioTarjetaProfional(
                 Box(modifier = Modifier.weight(1f)) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant
-                        ),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
                             .clickable { menuRolAbierto = true }
                     ) {
                         Row(
-                            modifier = Modifier.padding(
-                                horizontal = 10.dp,
-                                vertical = 8.dp
-                            ),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Shield,
                                 contentDescription = null,
-                                tint = colorPrincipal,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp)
                             )
 
@@ -834,7 +785,7 @@ private fun UsuarioTarjetaProfional(
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = "Seleccionar rol",
-                                tint = colorPrincipal,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -856,13 +807,7 @@ private fun UsuarioTarjetaProfional(
                                     text = {
                                         Text(
                                             text = opcionRol.name,
-                                            fontWeight = if (
-                                                opcionRol.name == rolSeleccionado
-                                            ) {
-                                                FontWeight.Bold
-                                            } else {
-                                                FontWeight.Normal
-                                            }
+                                            fontWeight = if (opcionRol.name == rolSeleccionado) FontWeight.Bold else FontWeight.Normal
                                         )
                                     },
                                     onClick = {
@@ -876,22 +821,21 @@ private fun UsuarioTarjetaProfional(
                 }
 
                 BotonAccionCircular(
-                    descripcion = "Guardar rol",
-                    color = colorPrincipal,
+                    color = MaterialTheme.colorScheme.primary,
                     onClick = { onGuardarRol(rolSeleccionado) }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Save,
                         contentDescription = "Guardar rol",
-                        tint = Color.White,
-                        modifier = Modifier.size(17.dp)
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Fila 2: Selector de Estado compacto + Guardar
+            // Selector de Estado
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -908,10 +852,7 @@ private fun UsuarioTarjetaProfional(
                             .clickable { menuEstadoAbierto = true }
                     ) {
                         Row(
-                            modifier = Modifier.padding(
-                                horizontal = 10.dp,
-                                vertical = 8.dp
-                            ),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
@@ -932,9 +873,7 @@ private fun UsuarioTarjetaProfional(
                             Spacer(modifier = Modifier.width(5.dp))
 
                             Text(
-                                text = estadoSeleccionado.replaceFirstChar {
-                                    it.uppercase()
-                                },
+                                text = estadoSeleccionado.replaceFirstChar { it.uppercase() },
                                 modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
@@ -960,7 +899,7 @@ private fun UsuarioTarjetaProfional(
                             text = {
                                 Text(
                                     text = "Activo",
-                                    color = ActivoTexto,
+                                    color = VerdeSemantico,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             },
@@ -969,12 +908,11 @@ private fun UsuarioTarjetaProfional(
                                 menuEstadoAbierto = false
                             }
                         )
-
                         DropdownMenuItem(
                             text = {
                                 Text(
                                     text = "Pendiente",
-                                    color = PendienteTexto,
+                                    color = AmbarSemantico,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             },
@@ -983,12 +921,11 @@ private fun UsuarioTarjetaProfional(
                                 menuEstadoAbierto = false
                             }
                         )
-
                         DropdownMenuItem(
                             text = {
                                 Text(
                                     text = "Bloqueado",
-                                    color = BloqueadoTexto,
+                                    color = RojoSemantico,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             },
@@ -1001,15 +938,14 @@ private fun UsuarioTarjetaProfional(
                 }
 
                 BotonAccionCircular(
-                    descripcion = "Guardar estado",
-                    color = colorPrincipal,
+                    color = MaterialTheme.colorScheme.primary,
                     onClick = { onGuardarEstado(estadoSeleccionado) }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Save,
                         contentDescription = "Guardar estado",
-                        tint = Color.White,
-                        modifier = Modifier.size(17.dp)
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -1019,7 +955,6 @@ private fun UsuarioTarjetaProfional(
 
 @Composable
 private fun BotonAccionCircular(
-    descripcion: String,
     color: Color,
     onClick: () -> Unit,
     contenido: @Composable () -> Unit
@@ -1028,7 +963,6 @@ private fun BotonAccionCircular(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
         color = color,
-        shadowElevation = 1.dp,
         modifier = Modifier.size(36.dp)
     ) {
         Box(
@@ -1038,4 +972,17 @@ private fun BotonAccionCircular(
             contenido()
         }
     }
+}
+
+/**
+ * Función auxiliar para formatear cadenas a Title Case limpio.
+ */
+private fun formatearNombre(nombre: String): String {
+    if (nombre.isBlank()) return "Usuario"
+    return nombre
+        .trim()
+        .split("\\s+".toRegex())
+        .joinToString(" ") { palabra ->
+            palabra.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        }
 }

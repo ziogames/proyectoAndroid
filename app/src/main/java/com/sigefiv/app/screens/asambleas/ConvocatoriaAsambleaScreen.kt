@@ -21,17 +21,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -41,7 +38,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -49,46 +45,51 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Asamblea
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
-
-private val FondoLienzo = Color(0xFFF8FAFC)
-private val Blanco = Color.White
-private val GrisBorde = Color(0xFFE2E8F0)
-private val TextoOscuro = Color(0xFF0F172A)
-private val TextoSecundario = Color(0xFF64748B)
 
 @Composable
 fun ConvocatoriaAsambleaScreen(
     asamblea: Asamblea,
     onBackClick: () -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Scaffold(
-        containerColor = FondoLienzo,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "Citación Oficial",
-                        color = Blanco,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.ExtraBold
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Blanco
-                        )
+                    Surface(
+                        onClick = onBackClick,
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .size(38.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = colorPrincipal)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         }
     ) { innerPadding ->
@@ -96,22 +97,21 @@ fun ConvocatoriaAsambleaScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                // Lienzo tipo Cédula / Invitación Oficial Única
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Blanco),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    border = BorderStroke(1.dp, GrisBorde)
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp)
+                            .padding(20.dp)
                     ) {
                         // 1. Membrete de Convocatoria
                         Row(
@@ -120,31 +120,33 @@ fun ConvocatoriaAsambleaScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .background(colorPrincipal.copy(alpha = 0.12f), CircleShape),
-                                    contentAlignment = Alignment.Center
+                                Surface(
+                                    modifier = Modifier.size(38.dp),
+                                    shape = CircleShape,
+                                    color = primaryColor.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Campaign,
-                                        contentDescription = null,
-                                        tint = colorPrincipal,
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Campaign,
+                                            contentDescription = null,
+                                            tint = primaryColor,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
                                         text = "CONVOCATORIA",
-                                        color = colorPrincipal,
+                                        color = primaryColor,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.ExtraBold,
-                                        letterSpacing = 1.2.sp
+                                        letterSpacing = 1.sp
                                     )
                                     Text(
                                         text = asamblea.tipo?.ifBlank { "Asamblea General" } ?: "Asamblea General",
-                                        color = TextoSecundario,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -155,11 +157,12 @@ fun ConvocatoriaAsambleaScreen(
                             val colorBadge = when (asamblea.importancia?.lowercase(Locale.getDefault())) {
                                 "urgente" -> Color(0xFFEF4444)
                                 "importante" -> Color(0xFFF59E0B)
-                                else -> colorPrincipal
+                                else -> primaryColor
                             }
                             Surface(
                                 shape = RoundedCornerShape(20.dp),
-                                color = colorBadge.copy(alpha = 0.12f)
+                                color = colorBadge.copy(alpha = 0.12f),
+                                border = BorderStroke(1.dp, colorBadge.copy(alpha = 0.25f))
                             ) {
                                 Text(
                                     text = asamblea.importancia?.replaceFirstChar { it.uppercase() } ?: "Normal",
@@ -176,7 +179,7 @@ fun ConvocatoriaAsambleaScreen(
                         // 2. Título Principal
                         Text(
                             text = asamblea.titulo?.takeIf { it.isNotBlank() } ?: "Asamblea de Vecinos",
-                            color = TextoOscuro,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             lineHeight = 26.sp
@@ -186,15 +189,17 @@ fun ConvocatoriaAsambleaScreen(
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Convoca: ${asamblea.convoca}",
-                                color = TextoSecundario,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(20.dp))
-                        HorizontalDivider(color = GrisBorde)
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        )
+                        Spacer(modifier = Modifier.height(18.dp))
 
                         // 3. Cuadrícula de Fecha, Horas y Lugar
                         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -202,15 +207,15 @@ fun ConvocatoriaAsambleaScreen(
                                 icon = Icons.Outlined.Event,
                                 titulo = "Fecha programada",
                                 valor = formatearFechaCompleta(asamblea.fecha),
-                                colorIcono = colorPrincipal
+                                colorIcono = primaryColor
                             )
 
-                            // Bloque horario completo: Hora oficial + 1ª y 2ª citación
+                            // Bloque horario completo
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(14.dp),
-                                color = colorPrincipal.copy(alpha = 0.05f),
-                                border = BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.2f))
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -226,24 +231,24 @@ fun ConvocatoriaAsambleaScreen(
                                     ) {
                                         Text(
                                             text = "Hora Asamblea",
-                                            fontSize = 10.5.sp,
-                                            color = TextoSecundario,
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontWeight = FontWeight.Medium
                                         )
-                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Spacer(modifier = Modifier.height(3.dp))
                                         Text(
                                             text = formatearHora12Horas(asamblea.hora).ifBlank { "--:--" },
                                             fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = colorPrincipal
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = primaryColor
                                         )
                                     }
 
                                     Box(
                                         modifier = Modifier
-                                            .height(28.dp)
+                                            .height(26.dp)
                                             .width(1.dp)
-                                            .background(colorPrincipal.copy(alpha = 0.25f))
+                                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                                     )
 
                                     // 2. Primera citación
@@ -253,24 +258,24 @@ fun ConvocatoriaAsambleaScreen(
                                     ) {
                                         Text(
                                             text = "1ª Citación",
-                                            fontSize = 10.5.sp,
-                                            color = TextoSecundario,
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontWeight = FontWeight.Medium
                                         )
-                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Spacer(modifier = Modifier.height(3.dp))
                                         Text(
                                             text = formatearHora12Horas(asamblea.primera_citacion).ifBlank { "--:--" },
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = TextoOscuro
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
 
                                     Box(
                                         modifier = Modifier
-                                            .height(28.dp)
+                                            .height(26.dp)
                                             .width(1.dp)
-                                            .background(colorPrincipal.copy(alpha = 0.25f))
+                                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                                     )
 
                                     // 3. Segunda citación
@@ -280,16 +285,16 @@ fun ConvocatoriaAsambleaScreen(
                                     ) {
                                         Text(
                                             text = "2ª Citación",
-                                            fontSize = 10.5.sp,
-                                            color = TextoSecundario,
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontWeight = FontWeight.Medium
                                         )
-                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Spacer(modifier = Modifier.height(3.dp))
                                         Text(
                                             text = formatearHora12Horas(asamblea.segunda_citacion).ifBlank { "--:--" },
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = TextoOscuro
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 }
@@ -299,7 +304,7 @@ fun ConvocatoriaAsambleaScreen(
                                 icon = Icons.Outlined.LocationOn,
                                 titulo = "Lugar de encuentro",
                                 valor = asamblea.lugar?.takeIf { it.isNotBlank() } ?: "Local comunal",
-                                colorIcono = colorPrincipal
+                                colorIcono = primaryColor
                             )
 
                             // Ubicación vecinal complementaria
@@ -315,50 +320,50 @@ fun ConvocatoriaAsambleaScreen(
                                 Text(
                                     text = "📍 $coordenadas",
                                     fontSize = 12.sp,
-                                    color = TextoSecundario,
-                                    modifier = Modifier.padding(start = 38.dp)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 42.dp)
                                 )
                             }
                         }
 
                         // 4. Descripción adicional si existe
                         if (!asamblea.descripcion.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(20.dp))
-                            HorizontalDivider(color = GrisBorde)
+                            Spacer(modifier = Modifier.height(18.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                             Spacer(modifier = Modifier.height(16.dp))
 
                             Text(
                                 text = "Detalle de la citación",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextoOscuro
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = asamblea.descripcion,
-                                color = TextoSecundario,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 13.5.sp,
                                 lineHeight = 20.sp
                             )
                         }
 
                         // 5. Agenda de temas
-                        Spacer(modifier = Modifier.height(20.dp))
-                        HorizontalDivider(color = GrisBorde)
+                        Spacer(modifier = Modifier.height(18.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
                             text = "Orden del Día (${asamblea.agendas.size} puntos)",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextoOscuro
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(12.dp))
 
                         if (asamblea.agendas.isEmpty()) {
                             Text(
                                 text = "Temas generales según estatuto comunal.",
-                                color = TextoSecundario,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 13.sp
                             )
                         } else {
@@ -370,14 +375,14 @@ fun ConvocatoriaAsambleaScreen(
                                     ) {
                                         Text(
                                             text = "${punto.numero}.",
-                                            color = colorPrincipal,
+                                            color = primaryColor,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp,
                                             modifier = Modifier.width(22.dp)
                                         )
                                         Text(
                                             text = punto.descripcion ?: "",
-                                            color = TextoOscuro,
+                                            color = MaterialTheme.colorScheme.onSurface,
                                             fontSize = 13.5.sp,
                                             lineHeight = 19.sp,
                                             modifier = Modifier.weight(1f)
@@ -393,14 +398,17 @@ fun ConvocatoriaAsambleaScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(FondoLienzo, RoundedCornerShape(12.dp))
+                                .background(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
                                 .padding(12.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "Agradecemos de antemano su puntual asistencia y compromiso vecinal.",
                                 fontSize = 11.5.sp,
-                                color = TextoSecundario,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
                                 fontWeight = FontWeight.Medium
                             )
@@ -423,18 +431,33 @@ private fun ItemDatoInvitacion(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .background(colorIcono.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.Center
+        Surface(
+            modifier = Modifier.size(34.dp),
+            shape = RoundedCornerShape(9.dp),
+            color = colorIcono.copy(alpha = 0.12f)
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = colorIcono, modifier = Modifier.size(18.dp))
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = colorIcono,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
         Spacer(modifier = Modifier.width(10.dp))
         Column {
-            Text(text = titulo, fontSize = 11.sp, color = TextoSecundario)
-            Text(text = valor, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextoOscuro)
+            Text(
+                text = titulo,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = valor,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

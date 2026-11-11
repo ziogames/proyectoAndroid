@@ -66,8 +66,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sigefiv.app.data.model.BitacoraItem
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
 import com.sigefiv.app.viewmodel.BitacoraViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,8 +75,8 @@ fun BitacoraScreen(
     viewModel: BitacoraViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
     val colors = MaterialTheme.colorScheme
+    val primaryColor = colors.primary
 
     LaunchedEffect(Unit) {
         viewModel.cargarBitacora()
@@ -91,28 +89,39 @@ fun BitacoraScreen(
                     Column {
                         Text(
                             text = "Bitácora del Sistema",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = colors.onPrimary
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 19.sp,
+                            color = colors.onBackground
                         )
                         Text(
                             text = "Auditoría de eventos y seguridad",
                             fontSize = 12.sp,
-                            color = colors.onPrimary.copy(alpha = 0.85f)
+                            color = colors.onSurfaceVariant
                         )
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Regresar",
-                            tint = colors.onPrimary
-                        )
+                    Surface(
+                        onClick = onBackClick,
+                        shape = CircleShape,
+                        color = colors.surfaceVariant.copy(alpha = 0.6f),
+                        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .size(38.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Regresar",
+                                tint = colors.onBackground,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorPrincipal
+                    containerColor = colors.background
                 )
             )
         },
@@ -122,7 +131,7 @@ fun BitacoraScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // 1. TARJETA HERO: RESUMEN DE AUDITORÍA CON ILUSTRACIÓN DE FONDO
@@ -132,7 +141,7 @@ fun BitacoraScreen(
                     usuariosActivos = state.metricas?.usuarios_activos ?: 0,
                     modulos = state.metricas?.modulos ?: 0,
                     accionesHoy = state.metricas?.acciones_hoy ?: 0,
-                    colorPrincipal = colorPrincipal
+                    colorPrincipal = primaryColor
                 )
             }
 
@@ -147,7 +156,7 @@ fun BitacoraScreen(
                 CardDistribucionAuditoria(
                     movimientosCount = movCount,
                     seguridadCount = segCount,
-                    colorPrincipal = colorPrincipal
+                    colorPrincipal = primaryColor
                 )
             }
 
@@ -172,7 +181,7 @@ fun BitacoraScreen(
                         Icon(
                             imageVector = Icons.Outlined.Search,
                             contentDescription = null,
-                            tint = colorPrincipal,
+                            tint = primaryColor,
                             modifier = Modifier.size(20.dp)
                         )
                     },
@@ -191,8 +200,8 @@ fun BitacoraScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = colors.surface,
                         unfocusedContainerColor = colors.surface,
-                        focusedBorderColor = colorPrincipal,
-                        unfocusedBorderColor = colors.outlineVariant.copy(alpha = 0.5f)
+                        focusedBorderColor = primaryColor,
+                        unfocusedBorderColor = colors.outlineVariant.copy(alpha = 0.6f)
                     )
                 )
             }
@@ -207,7 +216,7 @@ fun BitacoraScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(
-                            color = colorPrincipal,
+                            color = primaryColor,
                             strokeWidth = 2.5.dp,
                             modifier = Modifier.size(32.dp)
                         )
@@ -241,7 +250,7 @@ fun BitacoraScreen(
                 items(state.registros, key = { it.id }) { item ->
                     ItemRegistroBitacora(
                         item = item,
-                        colorPrincipal = colorPrincipal
+                        colorPrincipal = primaryColor
                     )
                 }
             }
@@ -269,11 +278,11 @@ private fun CardResumenAuditoria(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surface),
-        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.35f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            // ILUSTRACIÓN DE FONDO (ESCUDO Y ONDAS DE SEGURIDAD)
+            // ILUSTRACIÓN DE FONDO
             Canvas(
                 modifier = Modifier
                     .matchParentSize()
@@ -282,10 +291,9 @@ private fun CardResumenAuditoria(
                 val cx = size.width + 20.dp.toPx()
                 val cy = -10.dp.toPx()
 
-                // Glow radial verde
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(colorPrincipal.copy(alpha = 0.28f), Color.Transparent),
+                        colors = listOf(colorPrincipal.copy(alpha = 0.18f), Color.Transparent),
                         center = Offset(cx - 60.dp.toPx(), 40.dp.toPx()),
                         radius = 160.dp.toPx()
                     ),
@@ -293,15 +301,14 @@ private fun CardResumenAuditoria(
                     center = Offset(cx - 60.dp.toPx(), 40.dp.toPx())
                 )
 
-                // Círculos concéntricos de radar/seguridad
                 drawCircle(
-                    color = colorPrincipal.copy(alpha = 0.15f),
+                    color = colorPrincipal.copy(alpha = 0.12f),
                     radius = 110.dp.toPx(),
                     center = Offset(cx, cy),
                     style = Stroke(width = 1.5.dp.toPx())
                 )
                 drawCircle(
-                    color = colorPrincipal.copy(alpha = 0.10f),
+                    color = colorPrincipal.copy(alpha = 0.08f),
                     radius = 160.dp.toPx(),
                     center = Offset(cx, cy),
                     style = Stroke(width = 1.5.dp.toPx())
@@ -315,7 +322,7 @@ private fun CardResumenAuditoria(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Resumen de auditoría",
                             fontSize = 18.sp,
@@ -330,29 +337,26 @@ private fun CardResumenAuditoria(
                         )
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .background(
-                                brush = Brush.linearGradient(
-                                    listOf(colorPrincipal, colorPrincipal.copy(alpha = 0.7f))
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            ),
-                        contentAlignment = Alignment.Center
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colorPrincipal.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.25f)),
+                        modifier = Modifier.size(42.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Security,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.Security,
+                                contentDescription = null,
+                                tint = colorPrincipal,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // MALLA 2x2 DE KPIS
+                // MALLA 2x2 DE KPIS ADAPTATIVA
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -362,16 +366,14 @@ private fun CardResumenAuditoria(
                         titulo = "Total eventos",
                         valor = "$totalRegistros",
                         icono = Icons.Outlined.HistoryEdu,
-                        colorFondo = Color(0xFF1E293B),
-                        colorAcento = Color(0xFF38BDF8)
+                        colorAcento = Color(0xFF0284C7)
                     )
                     MiniKpiBox(
                         modifier = Modifier.weight(1f),
                         titulo = "Usuarios activos",
                         valor = "$usuariosActivos",
                         icono = Icons.Outlined.Group,
-                        colorFondo = Color(0xFF064E3B).copy(alpha = 0.85f),
-                        colorAcento = Color(0xFF34D399)
+                        colorAcento = Color(0xFF16A34A)
                     )
                 }
 
@@ -386,16 +388,14 @@ private fun CardResumenAuditoria(
                         titulo = "Módulos",
                         valor = "$modulos",
                         icono = Icons.Outlined.Layers,
-                        colorFondo = Color(0xFF312E81).copy(alpha = 0.85f),
-                        colorAcento = Color(0xFFA78BFA)
+                        colorAcento = Color(0xFF7C3AED)
                     )
                     MiniKpiBox(
                         modifier = Modifier.weight(1f),
                         titulo = "Acciones hoy",
                         valor = "$accionesHoy",
                         icono = Icons.Outlined.Today,
-                        colorFondo = Color(0xFF78350F).copy(alpha = 0.85f),
-                        colorAcento = Color(0xFFFBBF24)
+                        colorAcento = Color(0xFFD97706)
                     )
                 }
             }
@@ -409,30 +409,33 @@ private fun MiniKpiBox(
     titulo: String,
     valor: String,
     icono: ImageVector,
-    colorFondo: Color,
     colorAcento: Color
 ) {
+    val colors = MaterialTheme.colorScheme
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
-        color = colorFondo
+        color = colors.surfaceVariant.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.5f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .background(colorAcento.copy(alpha = 0.18f), RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.size(34.dp),
+                shape = RoundedCornerShape(8.dp),
+                color = colorAcento.copy(alpha = 0.12f)
             ) {
-                Icon(
-                    imageVector = icono,
-                    contentDescription = null,
-                    tint = colorAcento,
-                    modifier = Modifier.size(18.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icono,
+                        contentDescription = null,
+                        tint = colorAcento,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(10.dp))
@@ -441,14 +444,14 @@ private fun MiniKpiBox(
                 Text(
                     text = titulo,
                     fontSize = 11.sp,
-                    color = Color.White.copy(alpha = 0.75f),
+                    color = colors.onSurfaceVariant,
                     maxLines = 1
                 )
                 Text(
                     text = valor,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = colors.onSurface
                 )
             }
         }
@@ -472,15 +475,15 @@ private fun CardDistribucionAuditoria(
     val pctMov = (movimientosCount.toFloat() / total * 100f)
     val pctSeg = 100f - pctMov
 
-    val colorMov = Color(0xFF10B981)
-    val colorSeg = Color(0xFFF43F5E)
+    val colorMov = Color(0xFF16A34A)
+    val colorSeg = Color(0xFFE11D48)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surface),
-        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.35f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
+        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
             Text(
@@ -524,7 +527,11 @@ private fun CardDistribucionAuditoria(
                     modifier = Modifier.size(105.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize().padding(6.dp)) {
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(6.dp)
+                    ) {
                         val strokeW = 10.dp.toPx()
                         val sweepMov = (pctMov / 100f) * 360f
                         val sweepSeg = 360f - sweepMov
@@ -585,7 +592,7 @@ private fun CardDistribucionAuditoria(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // BARRA HORIZONTAL BICOLOR (IGUAL A CAJA)
+            // BARRA HORIZONTAL BICOLOR
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -622,12 +629,11 @@ private fun ItemRegistroBitacora(
 ) {
     val colors = MaterialTheme.colorScheme
 
-    // Distinción de colores por tipo de módulo
     val colorModulo = when {
-        item.modulo.contains("movimiento", ignoreCase = true) -> Color(0xFF10B981)
-        item.modulo.contains("rol", ignoreCase = true) -> Color(0xFFA855F7)
-        item.modulo.contains("asamblea", ignoreCase = true) -> Color(0xFF3B82F6)
-        item.modulo.contains("usuario", ignoreCase = true) -> Color(0xFFF59E0B)
+        item.modulo.contains("movimiento", ignoreCase = true) -> Color(0xFF16A34A)
+        item.modulo.contains("rol", ignoreCase = true) -> Color(0xFF7C3AED)
+        item.modulo.contains("asamblea", ignoreCase = true) -> Color(0xFF2563EB)
+        item.modulo.contains("usuario", ignoreCase = true) -> Color(0xFFD97706)
         else -> colorPrincipal
     }
 
@@ -635,8 +641,8 @@ private fun ItemRegistroBitacora(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surface),
-        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.35f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
@@ -647,7 +653,7 @@ private fun ItemRegistroBitacora(
                 Surface(
                     shape = RoundedCornerShape(6.dp),
                     color = colorModulo.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, colorModulo.copy(alpha = 0.30f))
+                    border = BorderStroke(1.dp, colorModulo.copy(alpha = 0.25f))
                 ) {
                     Text(
                         text = item.modulo.uppercase(),
@@ -669,14 +675,14 @@ private fun ItemRegistroBitacora(
 
             Text(
                 text = item.descripcion,
-                fontSize = 14.sp,
+                fontSize = 13.5.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.onSurface,
                 lineHeight = 19.sp
             )
 
             Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.25f))
+            HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.35f))
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(
@@ -686,19 +692,20 @@ private fun ItemRegistroBitacora(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     val inicial = item.usuario.firstOrNull()?.uppercaseChar()?.toString() ?: "U"
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(colorModulo.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
+                    Surface(
+                        modifier = Modifier.size(28.dp),
+                        shape = CircleShape,
+                        color = colorModulo.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, colorModulo.copy(alpha = 0.25f))
                     ) {
-                        Text(
-                            text = inicial,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colorModulo
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = inicial,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colorModulo
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -722,7 +729,8 @@ private fun ItemRegistroBitacora(
 
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = colors.surfaceVariant.copy(alpha = 0.6f)
+                    color = colors.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(0.8.dp, colors.outlineVariant.copy(alpha = 0.4f))
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),

@@ -1,6 +1,6 @@
-
 package com.sigefiv.app.screens.actividad
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,10 +15,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
@@ -29,15 +31,19 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -51,6 +57,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -62,7 +70,6 @@ import com.sigefiv.app.viewmodel.ActividadUiState
 import com.sigefiv.app.viewmodel.ActividadViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
-import androidx.compose.material.icons.filled.ArrowBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,55 +78,58 @@ fun ActividadScreen(
     onBack: () -> Unit
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Scaffold(
         topBar = {
             TopAppBar(
                 navigationIcon = {
-                    IconButton(
-                        onClick = onBack
+                    Surface(
+                        onClick = onBack,
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .size(38.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 },
                 title = {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Timeline,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-
-                        Spacer(modifier = Modifier.width(10.dp))
-
                         Text(
                             text = "Actividad de usuarios",
-                            fontWeight = FontWeight.Bold
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 },
                 actions = {
                     IconButton(
-                        onClick = {
-                            viewModel.cargarActividades()
-                        }
+                        onClick = { viewModel.cargarActividades() },
+                        modifier = Modifier.padding(end = 6.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Actualizar",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = primaryColor
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         },
@@ -127,7 +137,6 @@ fun ActividadScreen(
     ) { paddingValues ->
 
         when (val resultado = estado) {
-
             is ActividadUiState.Cargando -> {
                 LoadingContent(paddingValues)
             }
@@ -136,9 +145,7 @@ fun ActividadScreen(
                 ErrorContent(
                     paddingValues = paddingValues,
                     mensaje = resultado.mensaje,
-                    onRetry = {
-                        viewModel.cargarActividades()
-                    }
+                    onRetry = { viewModel.cargarActividades() }
                 )
             }
 
@@ -153,37 +160,28 @@ fun ActividadScreen(
 }
 
 /*
- * CONTENIDO PRINCIPAL
- */
+|--------------------------------------------------------------------------
+| CONTENIDO PRINCIPAL
+|--------------------------------------------------------------------------
+*/
 @Composable
 private fun ActividadContent(
     paddingValues: PaddingValues,
     respuesta: ActividadResponse
 ) {
-    var busqueda by remember {
-        mutableStateOf("")
-    }
-
-    var moduloSeleccionado by remember {
-        mutableStateOf("Todos")
-    }
+    var busqueda by remember { mutableStateOf("") }
+    var moduloSeleccionado by remember { mutableStateOf("Todos") }
 
     val actividadesFiltradas = respuesta.actividades.datos.filter { actividad ->
-
         val coincideBusqueda =
             actividad.modulo.contains(busqueda, ignoreCase = true) ||
                     actividad.accion.contains(busqueda, ignoreCase = true) ||
-                    actividad.usuario?.nombre.orEmpty()
-                        .contains(busqueda, ignoreCase = true) ||
-                    actividad.ip.orEmpty()
-                        .contains(busqueda, ignoreCase = true)
+                    actividad.usuario?.nombre.orEmpty().contains(busqueda, ignoreCase = true) ||
+                    actividad.ip.orEmpty().contains(busqueda, ignoreCase = true)
 
         val coincideModulo =
             moduloSeleccionado == "Todos" ||
-                    actividad.modulo.equals(
-                        moduloSeleccionado,
-                        ignoreCase = true
-                    )
+                    actividad.modulo.equals(moduloSeleccionado, ignoreCase = true)
 
         coincideBusqueda && coincideModulo
     }
@@ -217,9 +215,7 @@ private fun ActividadContent(
         item {
             SearchSection(
                 busqueda = busqueda,
-                onBusquedaChange = {
-                    busqueda = it
-                }
+                onBusquedaChange = { busqueda = it }
             )
         }
 
@@ -227,15 +223,15 @@ private fun ActividadContent(
             FilterSection(
                 modulos = modulos,
                 moduloSeleccionado = moduloSeleccionado,
-                onModuloSelected = {
-                    moduloSeleccionado = it
-                }
+                onModuloSelected = { moduloSeleccionado = it }
             )
         }
 
         item {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -246,11 +242,18 @@ private fun ActividadContent(
                     color = MaterialTheme.colorScheme.onBackground
                 )
 
-                Text(
-                    text = "${actividadesFiltradas.size} registros",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = "${actividadesFiltradas.size} registros",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
             }
         }
 
@@ -263,51 +266,88 @@ private fun ActividadContent(
                 items = actividadesFiltradas,
                 key = { it.id }
             ) { actividad ->
-
-                ActividadCard(
-                    actividad = actividad
-                )
+                ActividadCard(actividad = actividad)
             }
         }
     }
 }
 
 /*
- * ENCABEZADO
- */
+|--------------------------------------------------------------------------
+| ENCABEZADO
+|--------------------------------------------------------------------------
+*/
 @Composable
 private fun EncabezadoActividad() {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primary
-        )
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = 0.12f),
+                            primaryColor.copy(alpha = 0.03f)
+                        )
+                    )
+                )
+                .padding(18.dp)
         ) {
-            Text(
-                text = "Panel de actividad",
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.size(46.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = primaryColor.copy(alpha = 0.15f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Timeline,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
 
-            Spacer(modifier = Modifier.height(6.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Panel de actividad",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
 
-            Text(
-                text = "Consulta las acciones realizadas por los usuarios de SIGEFIV.",
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
-                fontSize = 14.sp
-            )
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    Text(
+                        text = "Auditoría de acciones realizadas en SIGEFIV",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                }
+            }
         }
     }
 }
 
 /*
- * ESTADÍSTICAS
- */
+|--------------------------------------------------------------------------
+| ESTADÍSTICAS
+|--------------------------------------------------------------------------
+*/
 @Composable
 private fun EstadisticasSection(
     respuesta: ActividadResponse
@@ -364,46 +404,62 @@ private fun StatisticCard(
     title: String,
     value: String
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(26.dp)
-            )
+            Surface(
+                modifier = Modifier.size(38.dp),
+                shape = CircleShape,
+                color = primaryColor.copy(alpha = 0.12f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = primaryColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
 
-            Text(
-                text = value,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Text(
-                text = title,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column {
+                Text(
+                    text = value,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = title,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
 
 /*
- * MÓDULOS MÁS UTILIZADOS
- */
+|--------------------------------------------------------------------------
+| MÓDULOS MÁS UTILIZADOS
+|--------------------------------------------------------------------------
+*/
 @Composable
 private fun ModulosSection(
     respuesta: ActividadResponse
@@ -423,11 +479,13 @@ private fun ModulosSection(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
-        )
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = "Módulos más utilizados",
@@ -437,9 +495,7 @@ private fun ModulosSection(
             )
 
             modulos.forEach { modulo ->
-
-                val fraction =
-                    modulo.total.toFloat() / maxTotal.toFloat()
+                val fraction = modulo.total.toFloat() / maxTotal.toFloat()
 
                 Column(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -451,12 +507,13 @@ private fun ModulosSection(
                         Text(
                             text = modulo.modulo,
                             fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Text(
-                            text = modulo.total.toString(),
-                            fontSize = 13.sp,
+                            text = "${modulo.total} acciones",
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -465,22 +522,16 @@ private fun ModulosSection(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(8.dp)
+                            .height(6.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                MaterialTheme.colorScheme.primary.copy(
-                                    alpha = 0.12f
-                                )
-                            )
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(fraction)
-                                .height(8.dp)
+                                .height(6.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    MaterialTheme.colorScheme.primary
-                                )
+                                .background(MaterialTheme.colorScheme.primary)
                         )
                     }
                 }
@@ -490,8 +541,10 @@ private fun ModulosSection(
 }
 
 /*
- * BÚSQUEDA
- */
+|--------------------------------------------------------------------------
+| BÚSQUEDA
+|--------------------------------------------------------------------------
+*/
 @Composable
 private fun SearchSection(
     busqueda: String,
@@ -506,33 +559,44 @@ private fun SearchSection(
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = "Buscar",
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
             )
         },
         trailingIcon = {
             if (busqueda.isNotEmpty()) {
-                IconButton(
-                    onClick = {
-                        onBusquedaChange("")
-                    }
-                ) {
+                IconButton(onClick = { onBusquedaChange("") }) {
                     Icon(
                         imageVector = Icons.Default.Clear,
-                        contentDescription = "Limpiar búsqueda"
+                        contentDescription = "Limpiar búsqueda",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
         },
         placeholder = {
-            Text("Buscar usuario, módulo, acción o IP")
+            Text(
+                text = "Buscar usuario, módulo, acción o IP...",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         },
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(14.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+        )
     )
 }
 
 /*
- * FILTROS
- */
+|--------------------------------------------------------------------------
+| FILTROS
+|--------------------------------------------------------------------------
+*/
 @Composable
 private fun FilterSection(
     modulos: List<String>,
@@ -549,35 +613,49 @@ private fun FilterSection(
                 imageVector = Icons.Default.FilterList,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
 
             Spacer(modifier = Modifier.width(6.dp))
 
             Text(
                 text = "Filtrar por módulo",
-                fontWeight = FontWeight.Medium,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground
             )
         }
 
-        androidx.compose.foundation.lazy.LazyRow(
+        LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(
-                count = modulos.size
-            ) { index ->
-
+            items(count = modulos.size) { index ->
                 val modulo = modulos[index]
+                val seleccionado = moduloSeleccionado == modulo
 
                 FilterChip(
-                    selected = moduloSeleccionado == modulo,
-                    onClick = {
-                        onModuloSelected(modulo)
-                    },
+                    selected = seleccionado,
+                    onClick = { onModuloSelected(modulo) },
                     label = {
-                        Text(modulo)
-                    }
+                        Text(
+                            text = modulo,
+                            fontSize = 12.sp,
+                            fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        selectedBorderColor = MaterialTheme.colorScheme.primary,
+                        enabled = true,
+                        selected = seleccionado
+                    )
                 )
             }
         }
@@ -585,17 +663,17 @@ private fun FilterSection(
 }
 
 /*
- * TARJETA DE ACTIVIDAD
- */
+|--------------------------------------------------------------------------
+| TARJETA DE ACTIVIDAD
+|--------------------------------------------------------------------------
+*/
 @Composable
 private fun ActividadCard(
     actividad: Actividad
 ) {
-    val nombreUsuario =
-        actividad.usuario?.nombre ?: "Usuario desconocido"
-
-    val inicial =
-        nombreUsuario.firstOrNull()?.uppercase() ?: "?"
+    val nombreUsuario = actividad.usuario?.nombre ?: "Usuario desconocido"
+    val inicial = nombreUsuario.firstOrNull()?.uppercase() ?: "?"
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -603,98 +681,93 @@ private fun ActividadCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        )
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(
-                            MaterialTheme.colorScheme.primary.copy(
-                                alpha = 0.12f
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = CircleShape,
+                    color = primaryColor.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
                 ) {
-                    Text(
-                        text = inicial,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = inicial,
+                            color = primaryColor,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(10.dp))
 
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = nombreUsuario,
                         fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(
-                        text = actividad.usuario?.email
-                            ?: "Sin correo",
-                        fontSize = 12.sp,
+                        text = actividad.usuario?.email ?: "Sin correo",
+                        fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(
-                        alpha = 0.12f
-                    )
+                    color = primaryColor.copy(alpha = 0.12f),
+                    border = BorderStroke(0.8.dp, primaryColor.copy(alpha = 0.25f))
                 ) {
                     Text(
                         text = actividad.modulo,
-                        modifier = Modifier.padding(
-                            horizontal = 8.dp,
-                            vertical = 5.dp
-                        ),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
+                        fontWeight = FontWeight.Bold,
+                        color = primaryColor
                     )
                 }
             }
 
             Text(
                 text = actividad.accion,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            HorizontalInfoRow(
-                label = "Fecha",
-                value = formatearFecha(actividad.fechaCreacion)
-            )
-
-            actividad.ip?.let { ip ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        RoundedCornerShape(10.dp)
+                    )
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 HorizontalInfoRow(
-                    label = "IP",
-                    value = ip
+                    label = "Fecha",
+                    value = formatearFecha(actividad.fechaCreacion)
                 )
-            }
 
-            actividad.ruta?.let { ruta ->
-                HorizontalInfoRow(
-                    label = "Ruta",
-                    value = ruta
-                )
+                actividad.ip?.let { ip ->
+                    HorizontalInfoRow(label = "IP", value = ip)
+                }
+
+                actividad.ruta?.let { ruta ->
+                    HorizontalInfoRow(label = "Ruta", value = ruta)
+                }
             }
         }
     }
@@ -708,28 +781,30 @@ private fun HorizontalInfoRow(
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
-            fontSize = 12.sp,
+            fontSize = 11.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(10.dp))
 
         Text(
             text = value,
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
 
 /*
- * CARGANDO
- */
+|--------------------------------------------------------------------------
+| CARGANDO
+|--------------------------------------------------------------------------
+*/
 @Composable
 private fun LoadingContent(
     paddingValues: PaddingValues
@@ -740,15 +815,26 @@ private fun LoadingContent(
             .padding(paddingValues),
         contentAlignment = Alignment.Center
     ) {
-        CircularProgressIndicator(
-            color = MaterialTheme.colorScheme.primary
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 3.dp
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Cargando actividades...",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp
+            )
+        }
     }
 }
 
 /*
- * ERROR
- */
+|--------------------------------------------------------------------------
+| ERROR
+|--------------------------------------------------------------------------
+*/
 @Composable
 private fun ErrorContent(
     paddingValues: PaddingValues,
@@ -763,32 +849,47 @@ private fun ErrorContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = Icons.Default.Clear,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.error,
-            modifier = Modifier.size(48.dp)
-        )
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
+            modifier = Modifier.size(56.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.Clear,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         Text(
             text = "No se pudo cargar la actividad",
             fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Text(
             text = mensaje,
+            fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
-        androidx.compose.material3.Button(
-            onClick = onRetry
+        Button(
+            onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
+            shape = RoundedCornerShape(12.dp)
         ) {
             Text("Reintentar")
         }
@@ -796,15 +897,19 @@ private fun ErrorContent(
 }
 
 /*
- * SIN RESULTADOS
- */
+|--------------------------------------------------------------------------
+| SIN RESULTADOS
+|--------------------------------------------------------------------------
+*/
 @Composable
 private fun EmptyContent() {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
-        )
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(
             modifier = Modifier
@@ -812,23 +917,34 @@ private fun EmptyContent() {
                 .padding(28.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(42.dp)
-            )
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                modifier = Modifier.size(56.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = "No se encontraron actividades",
                 color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
             )
 
+            Spacer(modifier = Modifier.height(4.dp))
+
             Text(
-                text = "Prueba con otro filtro o búsqueda.",
+                text = "Prueba con otro filtro o término de búsqueda.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp
             )
@@ -837,24 +953,15 @@ private fun EmptyContent() {
 }
 
 /*
- * FORMATEAR FECHA
- */
+|--------------------------------------------------------------------------
+| FORMATEAR FECHA
+|--------------------------------------------------------------------------
+*/
 private fun formatearFecha(fecha: String): String {
     return try {
-        val fechaLimpia = fecha
-            .replace("Z", "")
-            .substringBefore(".")
-
-        val formatoEntrada = SimpleDateFormat(
-            "yyyy-MM-dd'T'HH:mm:ss",
-            Locale.getDefault()
-        )
-
-        val formatoSalida = SimpleDateFormat(
-            "dd-MM-yyyy HH:mm",
-            Locale.getDefault()
-        )
-
+        val fechaLimpia = fecha.replace("Z", "").substringBefore(".")
+        val formatoEntrada = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+        val formatoSalida = SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault())
         val fechaConvertida = formatoEntrada.parse(fechaLimpia)
 
         if (fechaConvertida != null) {
@@ -862,7 +969,6 @@ private fun formatearFecha(fecha: String): String {
         } else {
             fecha
         }
-
     } catch (e: Exception) {
         fecha
     }

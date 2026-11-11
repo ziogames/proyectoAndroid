@@ -2,54 +2,30 @@
 
 package com.sigefiv.app.screens.periodos
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.RadioButtonUnchecked
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.data.model.Periodo
 import com.sigefiv.app.ui.components.AppBottomBar
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
 import com.sigefiv.app.viewmodel.PeriodosViewModel
+
+private val ColorAbierto = Color(0xFF16A34A)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,10 +40,7 @@ fun PeriodosAnioScreen(
     onPeriodosClick: () -> Unit,
     onMiCuentaClick: () -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
-
+    val primaryColor = MaterialTheme.colorScheme.primary
     val periodos by periodosViewModel.periodos.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -98,7 +71,6 @@ fun PeriodosAnioScreen(
     }
 
     val periodosRegistrados = periodosDelAnio.size
-
     val periodoAbierto = periodosDelAnio.values.firstOrNull {
         it.estado.equals("Abierto", ignoreCase = true)
     }
@@ -110,14 +82,14 @@ fun PeriodosAnioScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Períodos - $anio",
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            text = "Períodos $anio",
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 19.sp
+                            fontSize = 18.sp
                         )
                         Text(
-                            text = "Meses del ejercicio $anio",
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
+                            text = "Meses del ejercicio fiscal",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
@@ -127,12 +99,12 @@ fun PeriodosAnioScreen(
                         Icon(
                             imageVector = Icons.Outlined.ArrowBack,
                             contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorPrincipal
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
@@ -156,71 +128,77 @@ fun PeriodosAnioScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-
             item {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-                Card(
+                // Tarjeta resumen del ejercicio
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 1.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(46.dp)
-                                .background(MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(12.dp)),
-                            contentAlignment = Alignment.Center
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Outlined.CalendarMonth,
-                                contentDescription = null,
-                                tint = colorPrincipal,
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(14.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Ejercicio $anio",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Spacer(modifier = Modifier.height(2.dp))
-
-                            Text(
-                                text = "$periodosRegistrados de 12 meses registrados",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 12.sp
-                            )
-                        }
-
-                        if (periodoAbierto != null) {
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = "Mes activo",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 10.sp
+                            Box(
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .background(primaryColor.copy(alpha = 0.12f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(24.dp)
                                 )
+                            }
 
-                                Spacer(modifier = Modifier.height(2.dp))
+                            Spacer(modifier = Modifier.width(14.dp))
 
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = periodoAbierto.nombre,
-                                    color = colorPrincipal,
-                                    fontSize = 13.sp,
+                                    text = "Ejercicio fiscal $anio",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
                                 )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "$periodosRegistrados de 12 meses registrados",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 12.sp
+                                )
+                            }
+
+                            if (periodoAbierto != null) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = ColorAbierto.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, ColorAbierto.copy(alpha = 0.25f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .background(ColorAbierto, CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = periodoAbierto.nombre,
+                                            color = ColorAbierto,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -228,13 +206,15 @@ fun PeriodosAnioScreen(
             }
 
             item {
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "MESES DEL AÑO $anio",
-                    color = colorPrincipal,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
+                    text = "MESES DEL EJERCICIO",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(start = 4.dp)
                 )
             }
 
@@ -242,12 +222,13 @@ fun PeriodosAnioScreen(
                 items = meses,
                 key = { it.first }
             ) { (mes, nombreMes) ->
-
                 val periodo = periodosDelAnio[mes]
 
                 PeriodoMesCard(
                     nombre = nombreMes,
+                    numeroMes = mes,
                     periodo = periodo,
+                    primaryColor = primaryColor,
                     onClick = {
                         if (periodo != null) {
                             onPeriodoClick(periodo.id)
@@ -266,13 +247,11 @@ fun PeriodosAnioScreen(
 @Composable
 private fun PeriodoMesCard(
     nombre: String,
+    numeroMes: Int,
     periodo: Periodo?,
+    primaryColor: Color,
     onClick: () -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
-
     val estado = when {
         periodo == null -> EstadoMes.NO_INICIADO
         periodo.estado.equals("Abierto", ignoreCase = true) -> EstadoMes.ABIERTO
@@ -280,35 +259,41 @@ private fun PeriodoMesCard(
         else -> EstadoMes.OTRO
     }
 
-    val fondoTarjeta = when (estado) {
-        EstadoMes.ABIERTO -> MaterialTheme.colorScheme.secondaryContainer
-        else -> MaterialTheme.colorScheme.surface
+    val colorEstado = when (estado) {
+        EstadoMes.ABIERTO -> ColorAbierto
+        EstadoMes.CERRADO -> MaterialTheme.colorScheme.onSurfaceVariant
+        EstadoMes.NO_INICIADO -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        EstadoMes.OTRO -> primaryColor
     }
 
     val textoEstado = when (estado) {
         EstadoMes.ABIERTO -> "Abierto"
         EstadoMes.CERRADO -> "Cerrado"
         EstadoMes.NO_INICIADO -> "No iniciado"
-        EstadoMes.OTRO -> periodo?.estado ?: "No iniciado"
+        EstadoMes.OTRO -> periodo?.estado ?: "Sin registrar"
     }
 
-    val colorEstado = when (estado) {
-        EstadoMes.ABIERTO -> colorPrincipal
-        EstadoMes.CERRADO -> MaterialTheme.colorScheme.onSurfaceVariant
-        EstadoMes.NO_INICIADO -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-        EstadoMes.OTRO -> MaterialTheme.colorScheme.onSurfaceVariant
+    val borde = when (estado) {
+        EstadoMes.ABIERTO -> BorderStroke(1.2.dp, ColorAbierto.copy(alpha = 0.45f))
+        else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
     }
 
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
             .clickable(
                 enabled = periodo != null,
                 onClick = onClick
             ),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = fondoTarjeta),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (estado == EstadoMes.ABIERTO) 2.dp else 1.dp)
+        shape = RoundedCornerShape(16.dp),
+        color = if (estado == EstadoMes.ABIERTO) {
+            ColorAbierto.copy(alpha = 0.05f)
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        tonalElevation = if (estado == EstadoMes.ABIERTO) 2.dp else 1.dp,
+        border = borde
     ) {
         Row(
             modifier = Modifier
@@ -316,43 +301,85 @@ private fun PeriodoMesCard(
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = when (estado) {
-                    EstadoMes.ABIERTO -> Icons.Outlined.CheckCircle
-                    EstadoMes.CERRADO -> Icons.Outlined.Lock
-                    EstadoMes.NO_INICIADO -> Icons.Outlined.RadioButtonUnchecked
-                    EstadoMes.OTRO -> Icons.Outlined.CalendarMonth
-                },
-                contentDescription = textoEstado,
-                tint = colorEstado,
-                modifier = Modifier.size(21.dp)
-            )
+            // Contenedor número / ícono
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(
+                        color = when (estado) {
+                            EstadoMes.ABIERTO -> ColorAbierto.copy(alpha = 0.12f)
+                            EstadoMes.CERRADO -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "%02d".format(numeroMes),
+                    color = colorEstado,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
-            Text(
-                text = nombre,
-                color = if (estado == EstadoMes.ABIERTO) colorPrincipal else MaterialTheme.colorScheme.onSurface,
-                fontSize = 15.sp,
-                fontWeight = if (estado == EstadoMes.ABIERTO) FontWeight.Bold else FontWeight.Medium,
-                modifier = Modifier.weight(1f)
-            )
+            // Nombre del mes
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = nombre,
+                    color = if (estado == EstadoMes.NO_INICIADO) {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                    fontSize = 15.sp,
+                    fontWeight = if (estado == EstadoMes.ABIERTO) FontWeight.Bold else FontWeight.SemiBold
+                )
+            }
 
-            Text(
-                text = textoEstado,
-                color = colorEstado,
-                fontSize = 12.sp,
-                fontWeight = if (estado == EstadoMes.ABIERTO) FontWeight.Bold else FontWeight.Normal
-            )
+            // Badge de estado
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = when (estado) {
+                    EstadoMes.ABIERTO -> ColorAbierto.copy(alpha = 0.12f)
+                    EstadoMes.CERRADO -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    else -> Color.Transparent
+                }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = when (estado) {
+                            EstadoMes.ABIERTO -> Icons.Outlined.CheckCircle
+                            EstadoMes.CERRADO -> Icons.Outlined.Lock
+                            EstadoMes.NO_INICIADO -> Icons.Outlined.RadioButtonUnchecked
+                            EstadoMes.OTRO -> Icons.Outlined.Info
+                        },
+                        contentDescription = null,
+                        tint = colorEstado,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = textoEstado,
+                        color = colorEstado,
+                        fontSize = 11.sp,
+                        fontWeight = if (estado == EstadoMes.ABIERTO) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
+            }
 
             if (periodo != null) {
-                Spacer(modifier = Modifier.width(8.dp))
-
+                Spacer(modifier = Modifier.width(6.dp))
                 Icon(
                     imageVector = Icons.Outlined.ChevronRight,
                     contentDescription = "Ver mes",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }

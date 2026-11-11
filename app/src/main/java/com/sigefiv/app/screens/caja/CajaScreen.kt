@@ -1,6 +1,8 @@
 package com.sigefiv.app.screens.caja
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,11 +19,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.TrendingDown
@@ -34,9 +38,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -52,38 +56,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sigefiv.app.data.model.CajaMes
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
-import com.sigefiv.app.viewmodel.CajaViewModel
-import androidx.compose.foundation.Image
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import com.sigefiv.app.R
-import androidx.compose.material.icons.outlined.Check
-// ============================================================
-// COLORES
-// ============================================================
-
-private val Verde = Color(0xFF15803D)
-private val VerdeOscuro = Color(0xFF087443)
-private val VerdeClaro = Color(0xFFE7F8ED)
-
-private val Rojo = Color(0xFFDC2626)
-private val RojoClaro = Color(0xFFFFE9E9)
-
-private val Azul = Color(0xFF2563EB)
-private val AzulClaro = Color(0xFFE8F1FF)
-
-private val Blanco = Color.White
+import com.sigefiv.app.data.model.CajaMes
+import com.sigefiv.app.viewmodel.CajaViewModel
 
 // ============================================================
-// CAJA SCREEN
+// COLORES SEMÁNTICOS
 // ============================================================
+private val VerdeSemantico = Color(0xFF16A34A)
+private val RojoSemantico = Color(0xFFDC2626)
+private val AzulSemantico = Color(0xFF2563EB)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,18 +81,12 @@ fun CajaScreen(
     onOpenDrawer: () -> Unit = {},
     darkTheme: Boolean = false
 ) {
-
-    val colorPrincipal = SeasonalColors.primary(
-        SeasonalTheme.getSeason()
-    )
-
+    val primaryColor = MaterialTheme.colorScheme.primary
     val caja by viewModel.caja.collectAsState()
     val cargando by viewModel.cargando.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    var menuAnioAbierto by remember {
-        mutableStateOf(false)
-    }
+    var menuAnioAbierto by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.cargarCaja()
@@ -115,345 +97,204 @@ fun CajaScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "Caja",
-                        color = Blanco,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) {
-                        Icon(
-                            imageVector = Icons.Outlined.Menu,
-                            contentDescription = "Abrir menú",
-                            tint = Blanco
+                    Column {
+                        Text(
+                            text = "Caja General",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 19.sp
+                        )
+                        Text(
+                            text = "Saldos y consolidados financieros",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
                         )
                     }
                 },
+                navigationIcon = {
+                    Surface(
+                        onClick = onOpenDrawer,
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .size(38.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.Menu,
+                                contentDescription = "Abrir menú",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                },
                 actions = {
-                    // Selector de año en la parte superior derecha
                     caja?.let { datos ->
-                        Box(modifier = Modifier.padding(end = 8.dp)) {
-                            Row(
-                                modifier = Modifier
-                                    .background(
-                                        Color.White.copy(alpha = 0.2f),
-                                        RoundedCornerShape(16.dp)
-                                    )
-                                    .clickable { menuAnioAbierto = true }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                        Box(modifier = Modifier.padding(end = 12.dp)) {
+                            Surface(
+                                onClick = { menuAnioAbierto = true },
+                                shape = RoundedCornerShape(14.dp),
+                                color = primaryColor.copy(alpha = 0.12f),
+                                border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
                             ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.CalendarMonth,
-                                    contentDescription = null,
-                                    tint = Blanco,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Año ${datos.anio}",
-                                    color = Blanco,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "▼",
-                                    color = Blanco,
-                                    fontSize = 10.sp
-                                )
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CalendarMonth,
+                                        contentDescription = null,
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Año ${datos.anio}",
+                                        color = primaryColor,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "▼",
+                                        color = primaryColor,
+                                        fontSize = 10.sp
+                                    )
+                                }
                             }
 
                             DropdownMenu(
-
                                 expanded = menuAnioAbierto,
-
-                                onDismissRequest = {
-                                    menuAnioAbierto = false
-                                },
-
-                                modifier = Modifier
-                                    .width(190.dp),
-
+                                onDismissRequest = { menuAnioAbierto = false },
+                                modifier = Modifier.width(190.dp),
                                 shape = RoundedCornerShape(18.dp),
-
                                 containerColor = MaterialTheme.colorScheme.surface,
-
                                 tonalElevation = 4.dp,
-
                                 shadowElevation = 8.dp
-
                             ) {
-
-                                // =====================================================
-                                // ENCABEZADO
-                                // =====================================================
-
                                 Row(
-
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(
-                                            horizontal = 16.dp,
-                                            vertical = 12.dp
-                                        ),
-
-                                    verticalAlignment =
-                                        Alignment.CenterVertically
-
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-
-                                    Box(
-
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .background(
-                                                if (darkTheme) Color(0xFF123D25) else VerdeClaro,
-                                                RoundedCornerShape(10.dp)
-                                            ),
-
-                                        contentAlignment =
-                                            Alignment.Center
-
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = primaryColor.copy(alpha = 0.12f),
+                                        modifier = Modifier.size(36.dp)
                                     ) {
-
-                                        Icon(
-
-                                            imageVector =
-                                                Icons.Outlined.CalendarMonth,
-
-                                            contentDescription = null,
-
-                                            tint = Verde,
-
-                                            modifier =
-                                                Modifier.size(20.dp)
-                                        )
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.CalendarMonth,
+                                                contentDescription = null,
+                                                tint = primaryColor,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
                                     }
 
-                                    Spacer(
-                                        modifier =
-                                            Modifier.width(10.dp)
-                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
 
                                     Column {
-
                                         Text(
-
                                             text = "Seleccionar año",
-
                                             fontSize = 13.sp,
-
-                                            fontWeight =
-                                                FontWeight.Bold,
-
-                                            color =
-                                                MaterialTheme
-                                                    .colorScheme
-                                                    .onSurface
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
-
                                         Text(
-
                                             text = "Período financiero",
-
                                             fontSize = 10.sp,
-
-                                            color =
-                                                MaterialTheme
-                                                    .colorScheme
-                                                    .onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
 
-
-                                // =====================================================
-                                // SEPARADOR
-                                // =====================================================
-
                                 HorizontalDivider(
-                                    modifier = Modifier.padding(
-                                        horizontal = 12.dp
-                                    ),
-
-                                    color =
-                                        MaterialTheme
-                                            .colorScheme
-                                            .outlineVariant
+                                    modifier = Modifier.padding(horizontal = 12.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                                 )
 
-
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(6.dp)
-                                )
-
-
-                                // =====================================================
-                                // AÑOS
-                                // =====================================================
+                                Spacer(modifier = Modifier.height(6.dp))
 
                                 datos.anios.forEach { anio ->
-
-                                    val seleccionado =
-                                        anio == datos.anio
+                                    val seleccionado = anio == datos.anio
 
                                     DropdownMenuItem(
-
                                         text = {
-
                                             Text(
-
-                                                text =
-                                                    anio.toString(),
-
+                                                text = anio.toString(),
                                                 fontSize = 15.sp,
-
-                                                fontWeight =
-                                                    if (seleccionado)
-                                                        FontWeight.Bold
-                                                    else
-                                                        FontWeight.Normal,
-
-                                                color =
-                                                    if (seleccionado)
-                                                        (if (darkTheme) Color(0xFF4ADE80) else VerdeOscuro)
-                                                    else
-                                                        MaterialTheme
-                                                            .colorScheme
-                                                            .onSurface
+                                                fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (seleccionado) primaryColor else MaterialTheme.colorScheme.onSurface
                                             )
                                         },
-
                                         leadingIcon = {
-
-                                            Box(
-
-                                                modifier =
-                                                    Modifier
-                                                        .size(34.dp)
-                                                        .background(
-
-                                                            if (seleccionado)
-                                                                (if (darkTheme) Color(0xFF123D25) else VerdeClaro)
-                                                            else
-                                                                Color.Transparent,
-
-                                                            RoundedCornerShape(9.dp)
-                                                        ),
-
-                                                contentAlignment =
-                                                    Alignment.Center
-
+                                            Surface(
+                                                modifier = Modifier.size(34.dp),
+                                                shape = RoundedCornerShape(9.dp),
+                                                color = if (seleccionado) primaryColor.copy(alpha = 0.12f) else Color.Transparent
                                             ) {
-
-                                                Icon(
-
-                                                    imageVector =
-                                                        Icons.Outlined.CalendarMonth,
-
-                                                    contentDescription =
-                                                        null,
-
-                                                    tint =
-                                                        if (seleccionado)
-                                                            Verde
-                                                        else
-                                                            MaterialTheme
-                                                                .colorScheme
-                                                                .onSurfaceVariant,
-
-                                                    modifier =
-                                                        Modifier.size(18.dp)
-                                                )
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(
+                                                        imageVector = Icons.Outlined.CalendarMonth,
+                                                        contentDescription = null,
+                                                        tint = if (seleccionado) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
                                             }
                                         },
-
                                         trailingIcon = {
-
                                             if (seleccionado) {
-
                                                 Icon(
-
-                                                    imageVector =
-                                                        Icons.Outlined.Check,
-
-                                                    contentDescription =
-                                                        "Año seleccionado",
-
-                                                    tint = if (darkTheme) Color(0xFF4ADE80) else Verde,
-
-                                                    modifier =
-                                                        Modifier.size(20.dp)
+                                                    imageVector = Icons.Outlined.Check,
+                                                    contentDescription = "Año seleccionado",
+                                                    tint = primaryColor,
+                                                    modifier = Modifier.size(20.dp)
                                                 )
                                             }
                                         },
-
                                         onClick = {
-
                                             menuAnioAbierto = false
-
-                                            viewModel.seleccionarAnio(
-                                                anio
-                                            )
+                                            viewModel.seleccionarAnio(anio)
                                         },
-
                                         modifier = Modifier
-                                            .padding(
-                                                horizontal = 6.dp,
-                                                vertical = 2.dp
-                                            )
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
                                             .background(
-
-                                                if (seleccionado)
-                                                    (if (darkTheme) Color(0xFF123D25) else VerdeClaro)
-                                                else
-                                                    Color.Transparent,
-
+                                                if (seleccionado) primaryColor.copy(alpha = 0.08f) else Color.Transparent,
                                                 RoundedCornerShape(12.dp)
                                             )
                                     )
                                 }
 
-
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(6.dp)
-                                )
+                                Spacer(modifier = Modifier.height(6.dp))
                             }
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorPrincipal
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
     ) { innerPadding ->
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-
             when {
-                // ====================================================
-                // CARGANDO
-                // ====================================================
                 cargando -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
-                        color = colorPrincipal
+                        color = primaryColor
                     )
                 }
 
-                // ====================================================
-                // ERROR
-                // ====================================================
                 error != null -> {
                     Column(
                         modifier = Modifier
@@ -476,308 +317,114 @@ fun CajaScreen(
                     }
                 }
 
-                // ====================================================
-                // CONTENIDO
-                // ====================================================
                 caja != null -> {
                     val datos = caja!!
 
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
-                            horizontal = 16.dp,
-                            vertical = 16.dp
-                        ),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-
-                        // =================================================
-// RESUMEN FINANCIERO
-// =================================================
-
+                        // 1. RESUMEN FINANCIERO
                         item {
-
-                            val imagenFinanzas =
-                                if (darkTheme) {
-                                    R.drawable.caja_finanzas_dark
-                                } else {
-                                    R.drawable.caja_finanzas_light
-                                }
+                            val imagenFinanzas = if (darkTheme) {
+                                R.drawable.caja_finanzas_dark
+                            } else {
+                                R.drawable.caja_finanzas_light
+                            }
 
                             Card(
-
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(292.dp),
-
-                                shape =
-                                    RoundedCornerShape(22.dp),
-
-                                colors =
-                                    CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surface
-                                    ),
-
-                                elevation =
-                                    CardDefaults.cardElevation(
-                                        defaultElevation = 2.dp
-                                    )
-
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(292.dp),
+                                shape = RoundedCornerShape(22.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
                             ) {
-
-                                Box(
-                                    modifier =
-                                        Modifier.fillMaxWidth()
-                                ) {
-
-                                    // =================================================
-                                    // ILUSTRACIÓN DE FINANZAS
-                                    // =================================================
-
+                                Box(modifier = Modifier.fillMaxWidth()) {
                                     Image(
-
-                                        painter =
-                                            painterResource(
-                                                id = imagenFinanzas
-                                            ),
-
-                                        contentDescription =
-                                            "Resumen financiero",
-
-                                        contentScale =
-                                            ContentScale.Crop,
-
-                                        modifier =
-                                            Modifier
-                                                .align(
-                                                    Alignment.TopEnd
-                                                )
-                                                .size(
-                                                    width = 175.dp,
-                                                    height = 105.dp
-                                                )
+                                        painter = painterResource(id = imagenFinanzas),
+                                        contentDescription = "Resumen financiero",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .size(width = 175.dp, height = 105.dp)
                                     )
-
-
-                                    // =================================================
-                                    // CONTENIDO
-                                    // =================================================
 
                                     Column(
-
-                                        modifier =
-                                            Modifier
-                                                .fillMaxWidth()
-                                                .padding(
-                                                    horizontal = 16.dp,
-                                                    vertical = 16.dp
-                                                )
-
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 16.dp)
                                     ) {
-
-                                        // =============================================
-                                        // TITULO
-                                        // =============================================
-
                                         Text(
-
-                                            text =
-                                                "Resumen financiero",
-
-                                            fontSize = 21.sp,
-
-                                            fontWeight =
-                                                FontWeight.Bold,
-
-                                            color =
-                                                MaterialTheme
-                                                    .colorScheme
-                                                    .onSurface
+                                            text = "Resumen financiero",
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
 
-
-                                        Spacer(
-                                            modifier =
-                                                Modifier.height(3.dp)
-                                        )
-
+                                        Spacer(modifier = Modifier.height(3.dp))
 
                                         Text(
-
-                                            text =
-                                                "Estado general de la caja en ${datos.anio}",
-
+                                            text = "Estado general de la caja en ${datos.anio}",
                                             fontSize = 12.sp,
-
-                                            color =
-                                                MaterialTheme
-                                                    .colorScheme
-                                                    .onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
 
+                                        Spacer(modifier = Modifier.height(18.dp))
 
-                                        Spacer(
-                                            modifier =
-                                                Modifier.height(18.dp)
-                                        )
-
-
-                                        // =============================================
-                                        // FILA 1
-                                        // =============================================
-
+                                        // FILA 1: SALDO INICIAL & INGRESOS
                                         Row(
-
-                                            modifier =
-                                                Modifier.fillMaxWidth(),
-
-                                            horizontalArrangement =
-                                                Arrangement.spacedBy(10.dp)
-
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                                         ) {
-
                                             CajaResumenCard(
-
-                                                modifier =
-                                                    Modifier.weight(1f),
-
-                                                titulo =
-                                                    "Saldo inicial",
-
-                                                valor =
-                                                    datos
-                                                        .resumen
-                                                        .saldo_inicial,
-
-                                                icono =
-                                                    Icons
-                                                        .Outlined
-                                                        .AccountBalanceWallet,
-
-                                                fondoIcono =
-                                                    if (darkTheme) Color(0xFF1E3A5F) else Color(0xFFD8E7FF),
-
-                                                colorIcono =
-                                                    Azul,
-
-                                                fondoTarjeta =
-                                                    if (darkTheme) Color(0xFF172554) else AzulClaro,
-
-                                                colorValor =
-                                                    if (darkTheme) Color(0xFF93C5FD) else Color(0xFF102A56)
+                                                modifier = Modifier.weight(1f),
+                                                titulo = "Saldo inicial",
+                                                valor = datos.resumen.saldo_inicial,
+                                                icono = Icons.Outlined.AccountBalanceWallet,
+                                                colorAcento = AzulSemantico
                                             )
 
-
                                             CajaResumenCard(
-
-                                                modifier =
-                                                    Modifier.weight(1f),
-
-                                                titulo =
-                                                    "Ingresos",
-
-                                                valor =
-                                                    datos
-                                                        .resumen
-                                                        .ingresos,
-
-                                                icono =
-                                                    Icons
-                                                        .Outlined
-                                                        .TrendingUp,
-
-                                                fondoIcono =
-                                                    if (darkTheme) Color(0xFF174D2E) else Color(0xFFD2F3DE),
-
-                                                colorIcono =
-                                                    Verde,
-
-                                                fondoTarjeta =
-                                                    if (darkTheme) Color(0xFF123D25) else VerdeClaro,
-
-                                                colorValor =
-                                                    if (darkTheme) Color(0xFF4ADE80) else VerdeOscuro
+                                                modifier = Modifier.weight(1f),
+                                                titulo = "Ingresos",
+                                                valor = datos.resumen.ingresos,
+                                                icono = Icons.Outlined.TrendingUp,
+                                                colorAcento = VerdeSemantico
                                             )
                                         }
 
+                                        Spacer(modifier = Modifier.height(10.dp))
 
-                                        Spacer(
-                                            modifier =
-                                                Modifier.height(10.dp)
-                                        )
-
-
-                                        // =============================================
-                                        // FILA 2
-                                        // =============================================
-
+                                        // FILA 2: EGRESOS & SALDO FINAL
                                         Row(
-
-                                            modifier =
-                                                Modifier.fillMaxWidth(),
-
-                                            horizontalArrangement =
-                                                Arrangement.spacedBy(10.dp)
-
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                                         ) {
-
                                             CajaResumenCard(
-
-                                                modifier =
-                                                    Modifier.weight(1f),
-
-                                                titulo =
-                                                    "Egresos",
-
-                                                valor =
-                                                    datos
-                                                        .resumen
-                                                        .egresos,
-
-                                                icono =
-                                                    Icons
-                                                        .Outlined
-                                                        .TrendingDown,
-
-                                                fondoIcono =
-                                                    if (darkTheme) Color(0xFF5A2222) else Color(0xFFFFD5D5),
-
-                                                colorIcono =
-                                                    Rojo,
-
-                                                fondoTarjeta =
-                                                    if (darkTheme) Color(0xFF451A1A) else RojoClaro,
-
-                                                colorValor =
-                                                    if (darkTheme) Color(0xFFF87171) else Rojo
+                                                modifier = Modifier.weight(1f),
+                                                titulo = "Egresos",
+                                                valor = datos.resumen.egresos,
+                                                icono = Icons.Outlined.TrendingDown,
+                                                colorAcento = RojoSemantico
                                             )
 
-
                                             CajaSaldoFinalCard(
-
-                                                modifier =
-                                                    Modifier.weight(1f),
-
-                                                valor =
-                                                    datos
-                                                        .resumen
-                                                        .saldo_final,
-
-                                                colorPrincipal =
-                                                    colorPrincipal
+                                                modifier = Modifier.weight(1f),
+                                                valor = datos.resumen.saldo_final,
+                                                colorPrincipal = primaryColor
                                             )
                                         }
                                     }
                                 }
                             }
                         }
-                        // =================================================
-                        // DISTRIBUCIÓN
-                        // =================================================
+
+                        // 2. DISTRIBUCIÓN
                         item {
                             CajaDistribucionCard(
-                                darkTheme = darkTheme,
                                 porcentajeIngresos = datos.resumen.porcentaje_ingresos,
                                 porcentajeEgresos = datos.resumen.porcentaje_egresos,
                                 ingresos = datos.resumen.ingresos,
@@ -786,31 +433,30 @@ fun CajaScreen(
                             )
                         }
 
-                        // =================================================
-                        // CONSOLIDADO MENSUAL
-                        // =================================================
+                        // 3. CONSOLIDADO MENSUAL
                         item {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(44.dp)
-                                            .background(
-                                                VerdeClaro,
-                                                RoundedCornerShape(13.dp)
-                                            ),
-                                        contentAlignment = Alignment.Center
+                                    Surface(
+                                        modifier = Modifier.size(42.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = primaryColor.copy(alpha = 0.12f),
+                                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.BarChart,
-                                            contentDescription = null,
-                                            tint = if (darkTheme) Color(0xFF4ADE80) else Verde,
-                                            modifier = Modifier.size(24.dp)
-                                        )
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.BarChart,
+                                                contentDescription = null,
+                                                tint = primaryColor,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
                                     }
 
                                     Spacer(modifier = Modifier.width(12.dp))
@@ -818,7 +464,7 @@ fun CajaScreen(
                                     Column {
                                         Text(
                                             text = "Consolidado mensual",
-                                            fontSize = 18.sp,
+                                            fontSize = 17.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
@@ -830,44 +476,44 @@ fun CajaScreen(
                                     }
                                 }
 
-                                // Botón Ver Reporte
-                                Box(
-                                    modifier = Modifier
-                                        .background(if (darkTheme) Color(0xFF123D25) else VerdeClaro, RoundedCornerShape(16.dp))
-                                        .clickable { /* TODO: Acción de ver reporte */ }
-                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = primaryColor.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f)),
+                                    modifier = Modifier.clickable { /* Ver reporte */ }
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
                                         Icon(
                                             imageVector = Icons.Outlined.BarChart,
                                             contentDescription = null,
-                                            tint = if (darkTheme) Color(0xFF4ADE80) else Verde,
-                                            modifier = Modifier.size(16.dp)
+                                            tint = primaryColor,
+                                            modifier = Modifier.size(15.dp)
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
                                             text = "Ver reporte",
-                                            color = if (darkTheme) Color(0xFF4ADE80) else Verde,
+                                            color = primaryColor,
                                             fontSize = 12.sp,
-                                            fontWeight = FontWeight.Medium
+                                            fontWeight = FontWeight.Bold
                                         )
                                     }
                                 }
                             }
                         }
 
-                        // =================================================
-                        // MESES
-                        // =================================================
+                        // 4. MESES
                         items(
                             items = datos.consolidado,
                             key = { it.mes }
                         ) { mes ->
-                            CajaMesCard(mes = mes, darkTheme = darkTheme)
+                            CajaMesCard(mes = mes)
                         }
 
                         item {
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
                         }
                     }
                 }
@@ -877,7 +523,7 @@ fun CajaScreen(
 }
 
 // ============================================================
-// TARJETA RESUMEN
+// TARJETA RESUMEN MODULAR
 // ============================================================
 @Composable
 private fun CajaResumenCard(
@@ -885,42 +531,38 @@ private fun CajaResumenCard(
     titulo: String,
     valor: Double,
     icono: androidx.compose.ui.graphics.vector.ImageVector,
-    fondoIcono: Color,
-    colorIcono: Color,
-    fondoTarjeta: Color,
-    colorValor: Color
+    colorAcento: Color
 ) {
     Card(
         modifier = modifier.height(72.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = fondoTarjeta),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        // Cambiado de Column a Row para colocar el ícono al lado de los textos
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 9.dp, vertical = 11.dp),
+                .padding(horizontal = 10.dp, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // ICONO
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(fondoIcono, RoundedCornerShape(9.dp)),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.size(32.dp),
+                shape = RoundedCornerShape(9.dp),
+                color = colorAcento.copy(alpha = 0.12f)
             ) {
-                Icon(
-                    imageVector = icono,
-                    contentDescription = null,
-                    tint = colorIcono,
-                    modifier = Modifier.size(18.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icono,
+                        contentDescription = null,
+                        tint = colorAcento,
+                        modifier = Modifier.size(17.dp)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.width(7.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-            // TEXTOS
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
@@ -941,10 +583,8 @@ private fun CajaResumenCard(
                     overflow = TextOverflow.Ellipsis,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = colorValor,
-
-                    softWrap = false,
-
+                    color = MaterialTheme.colorScheme.onSurface,
+                    softWrap = false
                 )
             }
         }
@@ -964,36 +604,31 @@ private fun CajaSaldoFinalCard(
         modifier = modifier.height(72.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = colorPrincipal),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        // Cambiado de Column a Row para coincidir con el nuevo diseño
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 9.dp, vertical = 11.dp),
+                .padding(horizontal = 10.dp, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // ICONO
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(
-                        Blanco.copy(alpha = 0.16f),
-                        RoundedCornerShape(9.dp)
-                    ),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.size(32.dp),
+                shape = RoundedCornerShape(9.dp),
+                color = Color.White.copy(alpha = 0.18f)
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.AccountBalanceWallet,
-                    contentDescription = null,
-                    tint = Blanco,
-                    modifier = Modifier.size(18.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Outlined.AccountBalanceWallet,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(17.dp)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.width(7.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-            // TEXTOS
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
@@ -1001,7 +636,7 @@ private fun CajaSaldoFinalCard(
                 Text(
                     text = "Saldo final",
                     fontSize = 11.sp,
-                    color = Blanco.copy(alpha = 0.85f)
+                    color = Color.White.copy(alpha = 0.85f)
                 )
 
                 Spacer(modifier = Modifier.height(1.dp))
@@ -1010,9 +645,9 @@ private fun CajaSaldoFinalCard(
                     text = moneda(valor),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Blanco
+                    color = Color.White
                 )
             }
         }
@@ -1024,7 +659,6 @@ private fun CajaSaldoFinalCard(
 // ============================================================
 @Composable
 private fun CajaDistribucionCard(
-    darkTheme: Boolean,
     porcentajeIngresos: Double,
     porcentajeEgresos: Double,
     ingresos: Double,
@@ -1035,10 +669,10 @@ private fun CajaDistribucionCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
-
             Text(
                 text = "Distribución de movimientos",
                 fontSize = 17.sp,
@@ -1056,9 +690,6 @@ private fun CajaDistribucionCard(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // =================================================
-            // PORCENTAJES + DONUT
-            // =================================================
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -1075,24 +706,21 @@ private fun CajaDistribucionCard(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${porcentajeIngresos} %",
-                        fontSize = 19.sp,
+                        text = "$porcentajeIngresos %",
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (darkTheme) Color(0xFF4ADE80) else Verde
+                        color = VerdeSemantico
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = moneda(ingresos),
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
                 // DONUT
-                CajaDonutChart(
-                    porcentajeIngresos = porcentajeIngresos,
-                    darkTheme = darkTheme
-                )
+                CajaDonutChart(porcentajeIngresos = porcentajeIngresos)
 
                 // EGRESOS
                 Column(
@@ -1106,15 +734,15 @@ private fun CajaDistribucionCard(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${porcentajeEgresos} %",
-                        fontSize = 19.sp,
+                        text = "$porcentajeEgresos %",
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (darkTheme) Color(0xFFF87171) else Rojo
+                        color = RojoSemantico
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = moneda(egresos),
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -1122,22 +750,18 @@ private fun CajaDistribucionCard(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // =================================================
             // BARRA DE DISTRIBUCIÓN
-            // =================================================
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(9.dp)
-                    .background(if (darkTheme) Color(0xFF451A1A) else RojoClaro, RoundedCornerShape(20.dp))
+                    .height(8.dp)
+                    .background(RojoSemantico.copy(alpha = 0.25f), RoundedCornerShape(20.dp))
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(
-                            porcentajeIngresos.toFloat().coerceIn(0f, 100f) / 100f
-                        )
-                        .height(9.dp)
-                        .background(if (darkTheme) Color(0xFF4ADE80) else Verde, RoundedCornerShape(20.dp))
+                        .fillMaxWidth((porcentajeIngresos.toFloat().coerceIn(0f, 100f) / 100f))
+                        .height(8.dp)
+                        .background(VerdeSemantico, RoundedCornerShape(20.dp))
                 )
             }
 
@@ -1148,16 +772,16 @@ private fun CajaDistribucionCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "${porcentajeIngresos} % Ingresos",
+                    text = "$porcentajeIngresos % Ingresos",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (darkTheme) Color(0xFF4ADE80) else Verde
+                    color = VerdeSemantico
                 )
                 Text(
-                    text = "${porcentajeEgresos} % Egresos",
+                    text = "$porcentajeEgresos % Egresos",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (darkTheme) Color(0xFFF87171) else Rojo
+                    color = RojoSemantico
                 )
             }
         }
@@ -1169,111 +793,46 @@ private fun CajaDistribucionCard(
 // ============================================================
 @Composable
 private fun CajaDonutChart(
-    porcentajeIngresos: Double,
-    darkTheme: Boolean
+    porcentajeIngresos: Double
 ) {
-
     Box(
         modifier = Modifier.size(100.dp),
         contentAlignment = Alignment.Center
     ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val strokeWidth = 14.dp.toPx()
+            val ingresosSweep = porcentajeIngresos.toFloat().coerceIn(0f, 100f) * 3.6f
 
-        Canvas(
-            modifier = Modifier.fillMaxSize()
-        ) {
-
-            val strokeWidth = 15.dp.toPx()
-
-            val ingresosSweep =
-                porcentajeIngresos
-                    .toFloat()
-                    .coerceIn(0f, 100f) * 3.6f
-
-            // =================================================
-            // VERDE = INGRESOS
-            // =================================================
-            //
-            // Comienza desde la parte superior
-            // y avanza hacia la izquierda.
-            //
+            // ARCO INGRESOS (Verde)
             drawArc(
-                color = if (darkTheme) Color(0xFF4ADE80) else Verde,
-
+                color = VerdeSemantico,
                 startAngle = -90f,
-
                 sweepAngle = -ingresosSweep,
-
                 useCenter = false,
-
-                style = Stroke(
-                    width = strokeWidth,
-                    cap = StrokeCap.Round
-                )
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
             )
 
-            // =================================================
-            // ROJO = EGRESOS
-            // =================================================
-            //
-            // Completa el resto del círculo.
-            //
+            // ARCO EGRESOS (Rojo)
             drawArc(
-                color = if (darkTheme) Color(0xFFF87171) else Rojo,
-
-                startAngle =
-                    -90f - ingresosSweep,
-
-                sweepAngle =
-                    -(360f - ingresosSweep),
-
+                color = RojoSemantico,
+                startAngle = -90f - ingresosSweep,
+                sweepAngle = -(360f - ingresosSweep),
                 useCenter = false,
-
-                style = Stroke(
-                    width = strokeWidth,
-                    cap = StrokeCap.Round
-                )
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
             )
         }
 
-        Column(
-            horizontalAlignment =
-                Alignment.CenterHorizontally
-        ) {
-
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "100%",
-
-                fontSize = 15.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    MaterialTheme
-                        .colorScheme
-                        .onSurface
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
-
             Text(
-                text = "Movimientos",
-
-                fontSize = 8.sp,
-
-                color =
-                    MaterialTheme
-                        .colorScheme
-                        .onSurfaceVariant
-            )
-
-            Text(
-                text = "del año",
-
-                fontSize = 8.sp,
-
-                color =
-                    MaterialTheme
-                        .colorScheme
-                        .onSurfaceVariant
+                text = "Auditado",
+                fontSize = 9.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -1284,41 +843,38 @@ private fun CajaDonutChart(
 // ============================================================
 @Composable
 private fun CajaMesCard(
-    mes: CajaMes,
-    darkTheme: Boolean
+    mes: CajaMes
 ) {
     val tieneMovimientos = mes.ingresos != 0.0 || mes.egresos != 0.0
+    val esSaldoPositivo = mes.saldo_final >= 0
+    val colorBadge = if (esSaldoPositivo) VerdeSemantico else RojoSemantico
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-        )
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-
-            // =================================================
-            // CABECERA
-            // =================================================
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .background(if (darkTheme) Color(0xFF123D25) else VerdeClaro, RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    modifier = Modifier.size(42.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.CalendarMonth,
-                        contentDescription = null,
-                        tint = if (darkTheme) Color(0xFF4ADE80) else Verde,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.CalendarMonth,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(11.dp))
@@ -1326,53 +882,49 @@ private fun CajaMesCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = mes.nombre_mes,
-                        fontSize = 17.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = if (tieneMovimientos) "Con movimientos" else "Sin movimientos",
                         fontSize = 11.sp,
-                        color = if (tieneMovimientos) Verde else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (tieneMovimientos) VerdeSemantico else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                // Píldora de Saldo Final en la esquina superior
-                Box(
-                    modifier = Modifier
-                        .background(
-                            if (mes.saldo_final >= 0) { if (darkTheme) Color(0xFF123D25) else VerdeClaro } else { if (darkTheme) Color(0xFF451A1A) else RojoClaro },
-                            RoundedCornerShape(16.dp)
-                        )
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = colorBadge.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, colorBadge.copy(alpha = 0.25f))
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             text = moneda(mes.saldo_final),
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (mes.saldo_final >= 0) { if (darkTheme) Color(0xFF4ADE80) else Verde } else { if (darkTheme) Color(0xFFF87171) else Rojo }
+                            color = colorBadge
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
                         Icon(
                             imageVector = Icons.Outlined.KeyboardArrowRight,
                             contentDescription = null,
-                            tint = if (mes.saldo_final >= 0) { if (darkTheme) Color(0xFF4ADE80) else Verde } else { if (darkTheme) Color(0xFFF87171) else Rojo },
-                            modifier = Modifier.size(16.dp)
+                            tint = colorBadge,
+                            modifier = Modifier.size(15.dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(13.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // =================================================
-            // DATOS DEL MES (4 Columnas)
-            // =================================================
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -1386,19 +938,19 @@ private fun CajaMesCard(
                 CajaDatoMes(
                     etiqueta = "Ingresos",
                     valor = mes.ingresos,
-                    color = if (darkTheme) Color(0xFF4ADE80) else Verde
+                    color = VerdeSemantico
                 )
 
                 CajaDatoMes(
                     etiqueta = "Egresos",
                     valor = mes.egresos,
-                    color = if (darkTheme) Color(0xFFF87171) else Rojo
+                    color = RojoSemantico
                 )
 
                 CajaDatoMes(
                     etiqueta = "Saldo final",
                     valor = mes.saldo_final,
-                    color = if (mes.saldo_final >= 0) { if (darkTheme) Color(0xFF4ADE80) else Verde } else { if (darkTheme) Color(0xFFF87171) else Rojo }
+                    color = colorBadge
                 )
             }
         }
@@ -1417,7 +969,7 @@ private fun CajaDatoMes(
     Column {
         Text(
             text = etiqueta,
-            fontSize = 9.sp,
+            fontSize = 10.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(3.dp))
@@ -1436,4 +988,3 @@ private fun CajaDatoMes(
 private fun moneda(valor: Double): String {
     return "S/ %.2f".format(java.util.Locale.US, valor)
 }
-

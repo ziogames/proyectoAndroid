@@ -1,37 +1,42 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.sigefiv.app.screens.emprendimiento
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.LocalShipping
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.sigefiv.app.data.model.EmprendimientoModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val ColorWhatsApp = Color(0xFF10B981)
+private val ColorEstrella = Color(0xFFF59E0B)
+
 @Composable
 fun DetalleEmprendimientoScreen(
     emprendimiento: EmprendimientoModel,
@@ -40,68 +45,143 @@ fun DetalleEmprendimientoScreen(
     onBackClick: () -> Unit,
     onOpenOpiniones: () -> Unit,
     onContactarWhatsapp: () -> Unit,
-    onLlamar: () -> Unit
+    onLlamar: () -> Unit,
+    onToggleFavorito: () -> Unit = {}
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val fotos = emprendimiento.photos ?: emptyList()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Detalle del emprendimiento", color = Color.White) },
+                title = {
+                    Column {
+                        Text(
+                            text = "Detalle del negocio",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Directorio de emprendimientos",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Regresar", tint = Color.White)
+                        Icon(
+                            imageVector = Icons.Outlined.ArrowBack,
+                            contentDescription = "Regresar",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* Marcar favorito */ }) {
+                    IconButton(onClick = onToggleFavorito) {
                         Icon(
                             imageVector = if (emprendimiento.esFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = "Favorito",
-                            tint = Color.Red
+                            tint = if (emprendimiento.esFavorito) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    IconButton(onClick = { /* Opciones */ }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.White)
-                    }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = primaryColor)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         },
         bottomBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
-                shadowElevation = 12.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+            val tieneTelefono = !emprendimiento.telefono.isNullOrBlank()
+            val mostrarWhatsapp = emprendimiento.showWhatsapp && tieneTelefono
+
+            if (tieneTelefono) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 6.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 ) {
-                    Button(
-                        onClick = onContactarWhatsapp,
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                        shape = RoundedCornerShape(12.dp)
+                            .navigationBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text("💬 Contactar por WhatsApp", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    }
-                    OutlinedButton(
-                        onClick = onLlamar,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF374151))
-                    ) {
-                        Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Llamar", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        if (mostrarWhatsapp) {
+                            // WhatsApp habilitado -> Botón principal verde
+                            Button(
+                                onClick = onContactarWhatsapp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = ColorWhatsApp),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Chat,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Contactar por WhatsApp",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                            }
+
+                            // Llamar pasa a ser botón secundario
+                            OutlinedButton(
+                                onClick = onLlamar,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(46.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Call,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Llamar", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
+                        } else {
+                            // WhatsApp desactivado -> Llamar se convierte en la acción principal
+                            Button(
+                                onClick = onLlamar,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Call,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Llamar al negocio",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -112,14 +192,14 @@ fun DetalleEmprendimientoScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .background(Color(0xFFF8F9FA))
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            // 1. Carrusel de imágenes superior con indicador dinámico
+            // 1. Carrusel de fotos
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(220.dp)
-                    .background(Color(0xFFE5E7EB)),
+                    .height(230.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
                 contentAlignment = Alignment.BottomEnd
             ) {
                 if (fotos.isNotEmpty()) {
@@ -137,19 +217,30 @@ fun DetalleEmprendimientoScreen(
                         )
                     }
 
-                    // Contador flotante dinámico
+                    // Contador de páginas flotante
                     Surface(
-                        color = Color.Black.copy(alpha = 0.6f),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.padding(12.dp)
+                        color = Color.Black.copy(alpha = 0.65f),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.padding(14.dp)
                     ) {
-                        Text(
-                            text = "${pagerState.currentPage + 1}/${fotos.size}",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.PhotoCamera,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = "${pagerState.currentPage + 1}/${fotos.size}",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 } else {
                     Box(
@@ -158,163 +249,250 @@ fun DetalleEmprendimientoScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                Icons.Default.Image,
+                                imageVector = Icons.Outlined.Storefront,
                                 contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = Color.Gray
+                                modifier = Modifier.size(46.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(text = "Sin fotografías registradas", fontSize = 12.sp, color = Color.Gray)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Sin fotografías disponibles",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
             }
 
-            // 2. Tarjeta contenedora de la información principal
+            // 2. Información del negocio
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 18.dp)
             ) {
+                // Título
                 Text(
                     text = emprendimiento.nombre,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF111827)
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 2.dp)
-                ) {
-                    Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFC107), modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "$promedio", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1F2937))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    TextButton(
-                        onClick = onOpenOpiniones,
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                        modifier = Modifier.height(24.dp)
-                    ) {
-                        Text(text = "($totalOpiniones opiniones)", color = Color(0xFF2563EB), fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                    }
-                }
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                Surface(
-                    color = Color(0xFFEFF6FF),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.wrapContentWidth()
+                // Calificación + Badge Vecino
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Default.CheckCircle,
+                            imageVector = Icons.Filled.Star,
                             contentDescription = null,
-                            tint = Color(0xFF1D4ED8),
-                            modifier = Modifier.size(15.dp)
+                            tint = ColorEstrella,
+                            modifier = Modifier.size(17.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Vecino del sector",
-                            color = Color(0xFF1D4ED8),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
+                            text = "$promedio",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "· ($totalOpiniones opiniones)",
+                            color = primaryColor,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable { onOpenOpiniones() }
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = ColorWhatsApp.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, ColorWhatsApp.copy(alpha = 0.25f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                tint = ColorWhatsApp,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Vecino del sector",
+                                color = ColorWhatsApp,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                if (!emprendimiento.zonaAtencion.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Outlined.LocationOn,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = emprendimiento.zonaAtencion!!,
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                if (!emprendimiento.zonaAtencion.isNullOrEmpty()) {
-                    Text(
-                        text = "📍 ${emprendimiento.zonaAtencion}",
-                        fontSize = 13.sp,
-                        color = Color(0xFF4B5563),
-                        fontWeight = FontWeight.Medium
+                // Tarjetas de Horario y Modalidad
+                val (modalidadTexto, modalidadIcono) = remember(emprendimiento.modalidad) {
+                    formatearModalidad(emprendimiento.modalidad)
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Max),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    InfoCardItem(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        icon = Icons.Outlined.AccessTime,
+                        titulo = "Horarios",
+                        valor = emprendimiento.horario?.takeIf { it.isNotBlank() } ?: "A consultar",
+                        colorAcento = primaryColor
+                    )
+
+                    InfoCardItem(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        icon = modalidadIcono,
+                        titulo = "Modalidad",
+                        valor = modalidadTexto,
+                        colorAcento = ColorWhatsApp
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(Icons.Outlined.AccessTime, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(text = "Horarios", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF374151))
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = emprendimiento.horario ?: "Consultar",
-                                fontSize = 11.sp,
-                                color = Color(0xFF6B7280),
-                                maxLines = 1,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
-                    }
-
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(Icons.Outlined.LocalShipping, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(text = "Modalidad", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF374151))
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = emprendimiento.modalidad,
-                                fontSize = 11.sp,
-                                color = Color(0xFF6B7280),
-                                maxLines = 1,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(20.dp))
-                HorizontalDivider(color = Color(0xFFE5E7EB))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Descripción",
+                    text = "Descripción del negocio",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF111827)
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = emprendimiento.descripcion,
-                    fontSize = 14.sp,
-                    color = Color(0xFF4B5563),
-                    lineHeight = 20.sp
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 1.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                ) {
+                    Text(
+                        text = emprendimiento.descripcion,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 22.sp,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
             }
+        }
+    }
+}
+
+private fun formatearModalidad(raw: String): Pair<String, ImageVector> {
+    return when (raw.trim().lowercase()) {
+        "local_emprendedor", "local", "local_fisico", "local físico" ->
+            "Local físico" to Icons.Outlined.Storefront
+        "domicilio_cliente", "domicilio", "a_domicilio", "a domicilio" ->
+            "A domicilio" to Icons.Outlined.LocalShipping
+        "ambos" ->
+            "Local físico y a domicilio" to Icons.Outlined.Handshake
+        "virtual", "online" ->
+            "Atención virtual" to Icons.Outlined.Language
+        else ->
+            raw.replaceFirstChar { it.uppercase() } to Icons.Outlined.Storefront
+    }
+}
+
+@Composable
+private fun InfoCardItem(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    titulo: String,
+    valor: String,
+    colorAcento: Color
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(colorAcento.copy(alpha = 0.12f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = colorAcento,
+                    modifier = Modifier.size(19.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = titulo,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = valor,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

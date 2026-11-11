@@ -3,15 +3,18 @@
 package com.sigefiv.app.screens.sigi
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.AudioRecord.ERROR_INVALID_OPERATION
 import android.media.MediaRecorder
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -19,6 +22,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -33,6 +37,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
@@ -46,7 +51,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -55,6 +59,7 @@ import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
@@ -63,7 +68,6 @@ import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -79,8 +83,6 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -98,9 +100,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -120,21 +123,16 @@ import com.sigefiv.app.ui.components.MovimientoItemModel
 import com.sigefiv.app.ui.components.TarjetaEmprendimientoItem
 import com.sigefiv.app.ui.components.TarjetaReporteFinanciero
 import com.sigefiv.app.ui.components.ZoeEstadisticaChart
-import com.sigefiv.app.ui.theme.SeasonalColors
-import com.sigefiv.app.ui.theme.SeasonalTheme
 import com.sigefiv.app.viewmodel.AsambleaActivaReporte
 import com.sigefiv.app.viewmodel.ZoeMensaje
 import com.sigefiv.app.viewmodel.ZoeViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.roundToInt
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import androidx.compose.animation.core.FastOutSlowInEasing
 
-private val VerdeSuaveAvatar = Color(0xFFDCFCE7)
-private val VerdeOnline = Color(0xFF22C55E)
-private val AzulCheck = Color(0xFF0284C7)
+private val VerdeOnline = Color(0xFF16A34A)
 
 @Composable
 fun SigiScreen(
@@ -146,12 +144,7 @@ fun SigiScreen(
     onOpenDrawer: () -> Unit = {},
     onOpenHistory: () -> Unit = {}
 ) {
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
-    val temaOscuro = MaterialTheme.colorScheme.background.luminance() < 0.5f
-
-    val colorBarraTitulo = if (temaOscuro) MaterialTheme.colorScheme.surface else Color.White
-    val colorContenidoBarra = if (temaOscuro) MaterialTheme.colorScheme.onSurface else Color(0xFF1F2937)
-
+    val primaryColor = MaterialTheme.colorScheme.primary
     val context = LocalContext.current
     val viewModel = remember(context) { ZoeViewModel(context.applicationContext) }
 
@@ -211,7 +204,7 @@ fun SigiScreen(
             uriFotoTemporal = uri
             lanzadorCamara.launch(uri)
         } catch (e: Exception) {
-            android.util.Log.e("ZOE_CAMARA", "Error al preparar la cámara: ${e.message}", e)
+            Log.e("ZOE_CAMARA", "Error al preparar la cámara: ${e.message}", e)
         }
     }
 
@@ -280,219 +273,251 @@ fun SigiScreen(
         }
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet(modifier = Modifier.width(300.dp)) {
-                ContenidoPanelHistorial(
-                    listaConversaciones = historialConversaciones,
-                    onConversacionClick = { conversacionId ->
-                        coroutineScope.launch {
-                            drawerState.close()
-                            viewModel.cargarConversacion(conversacionId)
-                        }
-                    },
-                    onNuevaConversacion = {
-                        coroutineScope.launch {
-                            drawerState.close()
-                            viewModel.iniciarNuevaConversacion()
-                        }
-                    },
-                    onCerrar = { coroutineScope.launch { drawerState.close() } }
-                )
-            }
-        }
+    val sheetShape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
+
+    // Contenedor raíz que desplaza TODA la ventana de ZOE (incluyendo el Drawer y la barra inferior)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .offset { IntOffset(0, offsetY.value.roundToInt()) }
+            .shadow(elevation = 16.dp, shape = sheetShape)
+            .clip(sheetShape)
+            .background(MaterialTheme.colorScheme.background)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                shape = sheetShape
+            )
     ) {
-        Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .offset { IntOffset(0, offsetY.value.roundToInt()) }
-                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
-            containerColor = MaterialTheme.colorScheme.background,
-            topBar = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colorBarraTitulo)
-                        .draggable(
-                            orientation = Orientation.Vertical,
-                            state = rememberDraggableState { delta ->
-                                coroutineScope.launch {
-                                    val nuevoValor = (offsetY.value + delta).coerceAtLeast(0f)
-                                    offsetY.snapTo(nuevoValor)
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet(
+                    modifier = Modifier.width(300.dp),
+                    drawerContainerColor = MaterialTheme.colorScheme.surface
+                ) {
+                    ContenidoPanelHistorial(
+                        listaConversaciones = historialConversaciones,
+                        onConversacionClick = { conversacionId ->
+                            coroutineScope.launch {
+                                drawerState.close()
+                                viewModel.cargarConversacion(conversacionId)
+                            }
+                        },
+                        onNuevaConversacion = {
+                            coroutineScope.launch {
+                                drawerState.close()
+                                viewModel.iniciarNuevaConversacion()
+                            }
+                        },
+                        onCerrar = { coroutineScope.launch { drawerState.close() } }
+                    )
+                }
+            }
+        ) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                containerColor = MaterialTheme.colorScheme.background,
+                topBar = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface)
+                            .draggable(
+                                orientation = Orientation.Vertical,
+                                state = rememberDraggableState { delta ->
+                                    coroutineScope.launch {
+                                        val nuevoValor = (offsetY.value + delta).coerceAtLeast(0f)
+                                        offsetY.snapTo(nuevoValor)
+                                    }
+                                },
+                                onDragStopped = { velocity ->
+                                    coroutineScope.launch {
+                                        if (offsetY.value > 150f || velocity > 650f) {
+                                            offsetY.animateTo(
+                                                targetValue = 2200f,
+                                                animationSpec = tween(durationMillis = 200)
+                                            )
+                                            onBackClick()
+                                        } else {
+                                            offsetY.animateTo(
+                                                targetValue = 0f,
+                                                animationSpec = tween(durationMillis = 220)
+                                            )
+                                        }
+                                    }
+                                }
+                            ),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Indicador superior de arrastre (Drag Handle)
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 10.dp, bottom = 2.dp)
+                                .width(42.dp)
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
+                        )
+
+                        TopAppBar(
+                            windowInsets = WindowInsets(0.dp),
+                            title = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        modifier = Modifier.size(38.dp),
+                                        shape = CircleShape,
+                                        color = primaryColor.copy(alpha = 0.12f),
+                                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.SmartToy,
+                                                contentDescription = "ZOE",
+                                                tint = primaryColor,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(10.dp))
+
+                                    Column {
+                                        Text(
+                                            text = "ZOE Asistente",
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 16.sp
+                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .background(VerdeOnline, CircleShape)
+                                            )
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Text(
+                                                text = if (cargando) "Escribiendo..." else "En línea",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontSize = 11.sp
+                                            )
+                                        }
+                                    }
                                 }
                             },
-                            onDragStopped = { velocity ->
-                                coroutineScope.launch {
-                                    if (offsetY.value > 280f || velocity > 900f) {
-                                        offsetY.animateTo(
-                                            targetValue = 2200f,
-                                            animationSpec = tween(durationMillis = 220)
-                                        )
-                                        onBackClick()
-                                    } else {
-                                        offsetY.animateTo(
-                                            targetValue = 0f,
-                                            animationSpec = tween(durationMillis = 250)
-                                        )
+                            actions = {
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            viewModel.cargarHistorial()
+                                            if (drawerState.isClosed) drawerState.open() else drawerState.close()
+                                        }
                                     }
-                                }
-                            }
-                        ),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .padding(top = 10.dp, bottom = 2.dp)
-                            .width(40.dp)
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(colorContenidoBarra.copy(alpha = 0.30f))
-                    )
-
-                    TopAppBar(
-                        windowInsets = WindowInsets(0.dp),
-                        title = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .background(VerdeSuaveAvatar, CircleShape),
-                                    contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.SmartToy,
-                                        contentDescription = "ZOE",
-                                        tint = colorPrincipal,
-                                        modifier = Modifier.size(24.dp)
+                                        imageVector = Icons.Outlined.History,
+                                        contentDescription = "Historial de conversaciones",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column {
-                                    Text(
-                                        text = "ZOE Asistente",
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp
+                                IconButton(onClick = onBackClick) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Close,
+                                        contentDescription = "Cerrar asistente",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(6.dp)
-                                                .background(VerdeOnline, CircleShape)
-                                        )
-                                        Spacer(modifier = Modifier.width(5.dp))
-                                        Text(
-                                            text = if (cargando) "Escribiendo..." else "En línea",
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                                            fontSize = 11.sp
-                                        )
-                                    }
                                 }
-                            }
-                        },
-                        actions = {
-                            IconButton(
-                                onClick = {
-                                    coroutineScope.launch {
-                                        viewModel.cargarHistorial()
-                                        if (drawerState.isClosed) drawerState.open() else drawerState.close()
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.History,
-                                    contentDescription = "Historial de conversaciones",
-                                    tint = colorContenidoBarra
-                                )
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = colorBarraTitulo,
-                            titleContentColor = colorContenidoBarra,
-                            actionIconContentColor = colorContenidoBarra
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            )
                         )
+                    }
+                }
+            ) { paddingValues ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                ) {
+                    // 1. BARRA DE SUGERENCIAS Y EVENTOS
+                    SugerenciasChipsBar(
+                        reporteAsamblea = reporteAsamblea,
+                        onAsambleaClick = { mostrarBottomSheetAsamblea = true },
+                        onPregunta = { pregunta ->
+                            if (!cargando) viewModel.enviarConsulta(pregunta)
+                        }
+                    )
+
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                        thickness = 0.8.dp
+                    )
+
+                    // 2. HISTORIAL DE MENSAJES
+                    LazyColumn(
+                        state = listaEstado,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(vertical = 12.dp)
+                    ) {
+                        items(
+                            count = mensajes.size,
+                            key = { index ->
+                                val mensaje = mensajes[index]
+                                "$index-${mensaje.esUsuario}-${mensaje.texto.hashCode()}"
+                            }
+                        ) { index ->
+                            BurbujaChat(
+                                mensaje = mensajes[index],
+                                onConfirmarAsistencia = { asambleaId, opcion ->
+                                    viewModel.confirmarAsistenciaAsamblea(asambleaId, opcion)
+                                }
+                            )
+                        }
+
+                        if (cargando) {
+                            item(key = "loading_indicator") { IndicadorCargaMensaje() }
+                        }
+                    }
+
+                    // 3. BARRA DE ENTRADA
+                    BarraEntradaModerna(
+                        consulta = consulta,
+                        onConsultaChange = { consulta = it },
+                        onEnviar = {
+                            viewModel.enviarConsultaOAdjunto(context, consulta)
+                            consulta = ""
+                        },
+                        onMicrofono = { activarMicrofono() },
+                        onDetenerVoz = { viewModel.detenerVoz() },
+                        grabandoVoz = escuchando,
+                        segundosGrabacion = segundosGrabacion,
+                        cargando = cargando,
+                        hablando = hablando,
+                        mostrarMenuAdjuntar = mostrarMenuAdjuntar,
+                        onToggleMenuAdjuntar = { mostrarMenuAdjuntar = it },
+                        onCamaraClick = {
+                            val tienePermiso = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.CAMERA
+                            ) == PackageManager.PERMISSION_GRANTED
+                            if (tienePermiso) abrirCamaraDirectamente() else permisoCamaraLauncher.launch(Manifest.permission.CAMERA)
+                        },
+                        onGaleriaClick = { lanzadorGaleria.launch("*/*") },
+                        archivoAdjuntoUri = archivoAdjuntoUri,
+                        onEliminarAdjunto = { viewModel.limpiarAdjunto() }
                     )
                 }
-            }
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                // 1. BARRA DE ACCIONES RÁPIDAS
-                SugerenciasChipsBar(
-                    reporteAsamblea = reporteAsamblea,
-                    onAsambleaClick = { mostrarBottomSheetAsamblea = true },
-                    onPregunta = { pregunta ->
-                        if (!cargando) viewModel.enviarConsulta(pregunta)
-                    }
-                )
-
-                // 2. HISTORIAL DE CONVERSACIÓN
-                LazyColumn(
-                    state = listaEstado,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 10.dp)
-                ) {
-                    items(
-                        count = mensajes.size,
-                        key = { index ->
-                            val mensaje = mensajes[index]
-                            "$index-${mensaje.esUsuario}-${mensaje.texto.hashCode()}"
-                        }
-                    ) { index ->
-                        BurbujaChat(
-                            mensaje = mensajes[index],
-                            onConfirmarAsistencia = { asambleaId, opcion ->
-                                viewModel.confirmarAsistenciaAsamblea(asambleaId, opcion)
-                            }
-                        )
-                    }
-
-                    if (cargando) {
-                        item(key = "loading_indicator") { IndicadorCargaMensaje() }
-                    }
-                }
-
-                BarraEntradaModerna(
-                    consulta = consulta,
-                    onConsultaChange = { consulta = it },
-                    onEnviar = {
-                        viewModel.enviarConsultaOAdjunto(context, consulta)
-                        consulta = ""
-                    },
-                    onMicrofono = { activarMicrofono() },
-                    onDetenerVoz = { viewModel.detenerVoz() },
-                    grabandoVoz = escuchando,
-                    segundosGrabacion = segundosGrabacion,
-                    cargando = cargando,
-                    hablando = hablando,
-                    mostrarMenuAdjuntar = mostrarMenuAdjuntar,
-                    onToggleMenuAdjuntar = { mostrarMenuAdjuntar = it },
-                    onCamaraClick = {
-                        val tienePermiso = ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.CAMERA
-                        ) == PackageManager.PERMISSION_GRANTED
-                        if (tienePermiso) abrirCamaraDirectamente() else permisoCamaraLauncher.launch(Manifest.permission.CAMERA)
-                    },
-                    onGaleriaClick = { lanzadorGaleria.launch("*/*") },
-                    archivoAdjuntoUri = archivoAdjuntoUri,
-                    onEliminarAdjunto = { viewModel.limpiarAdjunto() }
-                )
             }
         }
     }
 
-    // 3. VENTANA EMERGENTE INFERIOR (MODAL BOTTOM SHEET)
+    // 4. VENTANA EMERGENTE DE ASAMBLEA
     if (mostrarBottomSheetAsamblea && reporteAsamblea != null) {
         val r = reporteAsamblea!!
         val total = if (r.total > 0) r.total.toFloat() else 1f
@@ -502,7 +527,7 @@ fun SigiScreen(
 
         ModalBottomSheet(
             onDismissRequest = { mostrarBottomSheetAsamblea = false },
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
             Column(
@@ -515,19 +540,19 @@ fun SigiScreen(
                     text = "Participación en Asamblea",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF111827)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${r.titulo}",
+                    text = r.titulo ?: "Asamblea General",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF374151)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "📅 ${r.fecha} a las ${r.hora} • 📍 ${r.lugar}",
+                    text = "📅 ${r.fecha ?: "--"} a las ${r.hora ?: "--"} • 📍 ${r.lugar ?: "Lugar no indicado"}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -536,15 +561,15 @@ fun SigiScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Asistirán", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                    Text("${r.asistiran} ($pctSi%)", fontWeight = FontWeight.Bold, color = Color(0xFF1B8A44))
+                    Text("Asistirán", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                    Text("${r.asistiran} ($pctSi%)", fontWeight = FontWeight.Bold, color = VerdeOnline)
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 LinearProgressIndicator(
                     progress = { r.asistiran / total },
                     modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
-                    color = Color(0xFF1B8A44),
-                    trackColor = Color(0xFFE5E7EB)
+                    color = VerdeOnline,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -553,7 +578,7 @@ fun SigiScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("En duda", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Text("En duda", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                     Text("${r.enDuda} ($pctDuda%)", fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
                 }
                 Spacer(modifier = Modifier.height(6.dp))
@@ -561,7 +586,7 @@ fun SigiScreen(
                     progress = { r.enDuda / total },
                     modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
                     color = Color(0xFFF59E0B),
-                    trackColor = Color(0xFFE5E7EB)
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -570,7 +595,7 @@ fun SigiScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("No asistirán", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Text("No asistirán", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                     Text("${r.noAsistiran} ($pctNo%)", fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
                 }
                 Spacer(modifier = Modifier.height(6.dp))
@@ -578,14 +603,15 @@ fun SigiScreen(
                     progress = { r.noAsistiran / total },
                     modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
                     color = Color(0xFFEF4444),
-                    trackColor = Color(0xFFE5E7EB)
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
-                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -593,16 +619,16 @@ fun SigiScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         val (icono, estadoTexto, colorTexto) = when (r.miVoto) {
-                            "asistira" -> Triple("✅", "Confirmaste tu asistencia", Color(0xFF1B8A44))
+                            "asistira" -> Triple("✅", "Confirmaste tu asistencia", VerdeOnline)
                             "no_asistira" -> Triple("❌", "Indicaste que no asistirás", Color(0xFFDC2626))
                             "en_duda" -> Triple("❓", "Marcaste que estás en duda", Color(0xFFD97706))
-                            else -> Triple("⏳", "Aún no has registrado tu respuesta", Color.Gray)
+                            else -> Triple("⏳", "Aún no has registrado tu respuesta", MaterialTheme.colorScheme.onSurfaceVariant)
                         }
 
                         Text(text = icono, fontSize = 20.sp)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text("Tu participación", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text("Tu participación", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(estadoTexto, fontWeight = FontWeight.SemiBold, color = colorTexto)
                         }
                     }
@@ -614,7 +640,7 @@ fun SigiScreen(
 
 /*
 |--------------------------------------------------------------------------
-| SUGERENCIAS DESLIZABLES TIPO CHIPS HORIZONTALES
+| SUGERENCIAS DESLIZABLES
 |--------------------------------------------------------------------------
 */
 
@@ -624,6 +650,8 @@ private fun SugerenciasChipsBar(
     onAsambleaClick: () -> Unit,
     onPregunta: (String) -> Unit
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
@@ -632,7 +660,6 @@ private fun SugerenciasChipsBar(
         contentPadding = PaddingValues(horizontal = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // 📢 Chip Dinámico unificado con el mismo diseño exacto
         if (reporteAsamblea?.tieneAsamblea == true) {
             item {
                 Surface(
@@ -640,23 +667,20 @@ private fun SugerenciasChipsBar(
                         .clip(RoundedCornerShape(20.dp))
                         .clickable(onClick = onAsambleaClick),
                     shape = RoundedCornerShape(20.dp),
-                    color = Color(0xFFDCFCE7), // Fondo verde claro suave
-                    border = BorderStroke(1.dp, Color(0xFF86EFAC)) // Borde verde fino
+                    color = primaryColor.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "📢",
-                            fontSize = 13.sp
-                        )
+                        Text(text = "📢", fontSize = 13.sp)
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Asamblea (${reporteAsamblea.asistiran} confirmados)",
-                            color = Color(0xFF15803D), // Verde oscuro profesional
+                            color = primaryColor,
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -693,15 +717,15 @@ private fun SugerenciaChip(
     texto: String,
     onClick: () -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Surface(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -710,7 +734,7 @@ private fun SugerenciaChip(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = colorPrincipal,
+                tint = primaryColor,
                 modifier = Modifier.size(15.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
@@ -726,7 +750,7 @@ private fun SugerenciaChip(
 
 /*
 |--------------------------------------------------------------------------
-| RESTO DE COMPONENTES DE LA PANTALLA
+| PANEL DE HISTORIAL
 |--------------------------------------------------------------------------
 */
 
@@ -737,7 +761,7 @@ private fun ContenidoPanelHistorial(
     onNuevaConversacion: () -> Unit,
     onCerrar: () -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Column(
         modifier = Modifier
@@ -755,7 +779,7 @@ private fun ContenidoPanelHistorial(
                 Icon(
                     imageVector = Icons.Outlined.History,
                     contentDescription = null,
-                    tint = colorPrincipal,
+                    tint = primaryColor,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -783,9 +807,9 @@ private fun ContenidoPanelHistorial(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
                 .clickable(onClick = onNuevaConversacion),
-            color = colorPrincipal.copy(alpha = 0.12f),
+            color = primaryColor.copy(alpha = 0.12f),
             shape = RoundedCornerShape(14.dp),
-            border = BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.3f))
+            border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
         ) {
             Row(
                 modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp),
@@ -795,13 +819,13 @@ private fun ContenidoPanelHistorial(
                 Icon(
                     imageVector = Icons.Outlined.SmartToy,
                     contentDescription = null,
-                    tint = colorPrincipal,
+                    tint = primaryColor,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "+ Nueva Conversación",
-                    color = colorPrincipal,
+                    color = primaryColor,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
@@ -809,7 +833,7 @@ private fun ContenidoPanelHistorial(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
         Spacer(modifier = Modifier.height(8.dp))
 
         if (listaConversaciones.isEmpty()) {
@@ -841,12 +865,15 @@ private fun ContenidoPanelHistorial(
                             text = nombreGrupo,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colorPrincipal,
+                            color = primaryColor,
                             modifier = Modifier.padding(vertical = 10.dp, horizontal = 12.dp)
                         )
                     }
 
-                    items(itemsDelGrupo, key = { it.id }) { chat ->
+                    items(
+                        items = itemsDelGrupo,
+                        key = { it.id }
+                    ) { chat ->
                         ItemConversacionHistorial(
                             titulo = chat.titulo,
                             onClick = { onConversacionClick(chat.id) }
@@ -889,17 +916,18 @@ private fun ItemConversacionHistorial(
     }
 }
 
+/*
+|--------------------------------------------------------------------------
+| BURBUJA DE CHAT
+|--------------------------------------------------------------------------
+*/
+
 @Composable
 private fun BurbujaChat(
     mensaje: ZoeMensaje,
     onConfirmarAsistencia: (Long, String) -> Unit = { _, _ -> }
 ) {
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
-    val temaOscuro = MaterialTheme.colorScheme.background.luminance() < 0.5f
-
-    val colorBurbujaUsuario = if (temaOscuro) Color(0xFF075E3B) else Color(0xFFDCF8C6)
-    val colorTextoUsuario = if (temaOscuro) Color.White else Color(0xFF14532D)
-    val colorHoraUsuario = if (temaOscuro) Color.White.copy(alpha = 0.70f) else Color(0xFF45634D)
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     if (mensaje.esUsuario) {
         Row(
@@ -907,12 +935,13 @@ private fun BurbujaChat(
             horizontalArrangement = Arrangement.End
         ) {
             Card(
-                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 3.dp),
-                colors = CardDefaults.cardColors(containerColor = colorBurbujaUsuario),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                modifier = Modifier.widthIn(min = 50.dp, max = 290.dp)
+                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp),
+                colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.14f)),
+                border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                modifier = Modifier.widthIn(min = 60.dp, max = 290.dp)
             ) {
-                Column(modifier = Modifier.padding(all = 8.dp)) {
+                Column(modifier = Modifier.padding(all = 10.dp)) {
                     mensaje.imagenUri?.let { uri ->
                         AsyncImage(
                             model = uri,
@@ -921,19 +950,19 @@ private fun BurbujaChat(
                                 .fillMaxWidth()
                                 .height(160.dp)
                                 .clip(RoundedCornerShape(10.dp)),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            contentScale = ContentScale.Crop
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                     }
 
                     Row(
-                        modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 2.dp),
+                        modifier = Modifier.padding(start = 2.dp, end = 2.dp, bottom = 2.dp),
                         verticalAlignment = Alignment.Bottom
                     ) {
                         if (mensaje.texto.isNotBlank()) {
                             Text(
                                 text = mensaje.texto,
-                                color = colorTextoUsuario,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 14.5.sp,
                                 lineHeight = 19.sp,
                                 modifier = Modifier.weight(1f, fill = false)
@@ -941,11 +970,15 @@ private fun BurbujaChat(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = mensaje.hora, color = colorHoraUsuario, fontSize = 10.sp)
+                            Text(
+                                text = mensaje.hora,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                fontSize = 10.sp
+                            )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
                                 text = "✓✓",
-                                color = if (temaOscuro) Color(0xFF86EFAC) else AzulCheck,
+                                color = primaryColor,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -960,28 +993,29 @@ private fun BurbujaChat(
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.Top
         ) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .background(VerdeSuaveAvatar, CircleShape),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.size(30.dp),
+                shape = CircleShape,
+                color = primaryColor.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.SmartToy,
-                    contentDescription = "ZOE",
-                    tint = colorPrincipal,
-                    modifier = Modifier.size(16.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Outlined.SmartToy,
+                        contentDescription = "ZOE",
+                        tint = primaryColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-            // 💬 NUEVA BURBUJA PROFESIONAL PARA ZOE
             Surface(
                 shape = RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp),
-                color = if (temaOscuro) Color(0xFF1F2937) else Color(0xFFF3F4F6), // Color de fondo sutil adaptado al tema
-                tonalElevation = 1.dp,
-                shadowElevation = 1.dp,
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                shadowElevation = 0.5.dp,
                 modifier = Modifier.widthIn(max = 310.dp)
             ) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
@@ -991,8 +1025,8 @@ private fun BurbujaChat(
                             texto = mensaje.texto,
                             yaRespondido = mensaje.asambleaEstadisticas != null,
                             estadisticas = mensaje.asambleaEstadisticas,
-                            colorPrincipal = colorPrincipal,
-                            temaOscuro = temaOscuro,
+                            colorPrincipal = primaryColor,
+                            temaOscuro = false,
                             onConfirmar = { opcion -> onConfirmarAsistencia(mensaje.asambleaId, opcion) },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -1025,8 +1059,8 @@ private fun BurbujaChat(
                                 listaEmprendimientos.forEach { emprendimiento ->
                                     TarjetaEmprendimientoItem(
                                         emprendimiento = emprendimiento,
-                                        colorPrincipal = colorPrincipal,
-                                        temaOscuro = temaOscuro
+                                        colorPrincipal = primaryColor,
+                                        temaOscuro = false
                                     )
                                 }
                             }
@@ -1051,10 +1085,8 @@ private fun ZoeRespuestaFormateada(
     tipoMovimiento: String? = null,
     modifier: Modifier = Modifier
 ) {
-    val temaOscuro = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
+    val primaryColor = MaterialTheme.colorScheme.primary
 
-    // Detector de movimientos financieros
     val regexMovimientoGuiones = Regex(
         """^(?:•|-|\d+\.)\s*(\d{2}[-/]\d{2}[-/]\d{4})\s*(?:—|-)\s*(.*?)\s*(?:—|-)\s*(.*?)\s*(?:—|-)\s*S?/?\s*([\d,]+(?:\.\d{1,2})?)$""",
         RegexOption.IGNORE_CASE
@@ -1118,12 +1150,11 @@ private fun ZoeRespuestaFormateada(
         TarjetaReporteFinanciero(
             titulo = titulo,
             movimientos = movimientosEncontrados,
-            colorPrincipal = colorPrincipal,
-            temaOscuro = temaOscuro,
+            colorPrincipal = primaryColor,
+            temaOscuro = false,
             modifier = modifier
         )
     } else {
-        // Divide el texto en bloques de párrafos reales mediante doble salto de línea
         val parrafos = remember(texto) {
             texto.split(Regex("""\r?\n\s*\r?\n"""))
                 .map { it.trim() }
@@ -1132,16 +1163,16 @@ private fun ZoeRespuestaFormateada(
 
         Column(
             modifier = modifier,
-            verticalArrangement = Arrangement.spacedBy(10.dp) // Separación visual aireada entre párrafos
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             parrafos.forEach { parrafo ->
                 LinkableText(
                     text = parrafo,
                     modifier = Modifier.fillMaxWidth(),
                     textColor = MaterialTheme.colorScheme.onSurface,
-                    linkColor = Color(0xFF4FC3F7),
+                    linkColor = primaryColor,
                     fontSize = 14.5.sp,
-                    lineHeight = 21.sp // Mayor holgura de interlineado para lectura cómoda
+                    lineHeight = 21.sp
                 )
             }
         }
@@ -1152,7 +1183,6 @@ private fun ZoeRespuestaFormateada(
 private fun BouncingDotsLoader() {
     val dotColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
 
-    // Creamos 3 animaciones independientes para un rebote escalonado perfecto
     val animations = listOf(
         remember { Animatable(0f) },
         remember { Animatable(0f) },
@@ -1161,10 +1191,9 @@ private fun BouncingDotsLoader() {
 
     animations.forEachIndexed { index, animatable ->
         LaunchedEffect(animatable) {
-            // Retraso escalonado (150ms) para crear el efecto de onda real en los 3 puntos
             delay(index * 150L)
             animatable.animateTo(
-                targetValue = -5f, // Altura del rebote
+                targetValue = -5f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(durationMillis = 300, easing = FastOutSlowInEasing),
                     repeatMode = RepeatMode.Reverse
@@ -1181,48 +1210,51 @@ private fun BouncingDotsLoader() {
         animations.forEach { animatable ->
             Box(
                 modifier = Modifier
-                    .size(5.dp) // Puntos más pequeños, finos y estéticos
+                    .size(5.dp)
                     .offset(y = animatable.value.dp)
                     .background(dotColor, shape = CircleShape)
             )
         }
     }
 }
+
 @Composable
 private fun IndicadorCargaMensaje() {
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Row(
         modifier = Modifier.padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(28.dp)
-                .background(VerdeSuaveAvatar, CircleShape),
-            contentAlignment = Alignment.Center
+        Surface(
+            modifier = Modifier.size(28.dp),
+            shape = CircleShape,
+            color = primaryColor.copy(alpha = 0.12f),
+            border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
         ) {
-            Icon(
-                imageVector = Icons.Outlined.SmartToy,
-                contentDescription = "ZOE",
-                tint = colorPrincipal,
-                modifier = Modifier.size(16.dp)
-            )
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Outlined.SmartToy,
+                    contentDescription = "ZOE",
+                    tint = primaryColor,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
         Spacer(modifier = Modifier.width(8.dp))
         Card(
             shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            // Reemplazamos el texto y el círculo de carga por los 3 puntos rebotando
             BouncingDotsLoader()
         }
     }
 }
 
 private fun iniciarGrabacionVoz(
-    context: android.content.Context,
+    context: Context,
     onGrabando: (Boolean) -> Unit,
     onGrabadora: (GrabadorWav?) -> Unit,
     onArchivo: (File?) -> Unit
@@ -1343,6 +1375,12 @@ private class GrabadorWav(private val archivo: File) {
     }
 }
 
+/*
+|--------------------------------------------------------------------------
+| BARRA DE ENTRADA MODERNA
+|--------------------------------------------------------------------------
+*/
+
 @Composable
 private fun BarraEntradaModerna(
     consulta: String,
@@ -1361,7 +1399,7 @@ private fun BarraEntradaModerna(
     archivoAdjuntoUri: Uri?,
     onEliminarAdjunto: () -> Unit
 ) {
-    val colorPrincipal = SeasonalColors.primary(SeasonalTheme.getSeason())
+    val primaryColor = MaterialTheme.colorScheme.primary
     val hayTexto = consulta.trim().isNotEmpty() || archivoAdjuntoUri != null
 
     Surface(
@@ -1370,7 +1408,8 @@ private fun BarraEntradaModerna(
             .navigationBarsPadding()
             .imePadding(),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 8.dp
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        shadowElevation = 4.dp
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             if (archivoAdjuntoUri != null) {
@@ -1407,12 +1446,12 @@ private fun BarraEntradaModerna(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom
             ) {
                 if (grabandoVoz) {
                     BarraGrabandoVoz(
                         segundos = segundosGrabacion,
-                        colorPrincipal = colorPrincipal,
+                        colorPrincipal = primaryColor,
                         modifier = Modifier
                             .weight(1f)
                             .height(50.dp)
@@ -1423,9 +1462,11 @@ private fun BarraEntradaModerna(
                         onValueChange = onConsultaChange,
                         modifier = Modifier
                             .weight(1f)
-                            .height(50.dp),
-                        enabled = !cargando,
-                        singleLine = true,
+                            .heightIn(min = 48.dp, max = 120.dp),
+                        enabled = true,
+                        singleLine = false,
+                        maxLines = 5,
+                        shape = RoundedCornerShape(14.dp),
                         placeholder = {
                             Text(
                                 text = if (archivoAdjuntoUri != null) "Añade un comentario (opcional)..." else "Escribe un mensaje...",
@@ -1433,23 +1474,18 @@ private fun BarraEntradaModerna(
                                 fontSize = 14.sp
                             )
                         },
-                        maxLines = 1,
-                        shape = RoundedCornerShape(24.dp),
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Sentences,
-                            imeAction = ImeAction.Send
+                            imeAction = ImeAction.Default
                         ),
-                        keyboardActions = KeyboardActions(onSend = { if (hayTexto) onEnviar() }),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                             focusedTextColor = MaterialTheme.colorScheme.onSurface,
                             unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            cursorColor = colorPrincipal
+                            cursorColor = primaryColor
                         )
                     )
                 }
@@ -1484,7 +1520,7 @@ private fun BarraEntradaModerna(
                                 Icon(
                                     imageVector = Icons.Outlined.CameraAlt,
                                     contentDescription = null,
-                                    tint = colorPrincipal
+                                    tint = primaryColor
                                 )
                             }
                         )
@@ -1498,7 +1534,7 @@ private fun BarraEntradaModerna(
                                 Icon(
                                     imageVector = Icons.Outlined.Image,
                                     contentDescription = null,
-                                    tint = colorPrincipal
+                                    tint = primaryColor
                                 )
                             }
                         )
@@ -1527,7 +1563,10 @@ private fun BarraEntradaModerna(
                         enabled = !cargando,
                         modifier = Modifier
                             .size(44.dp)
-                            .background(color = colorPrincipal, shape = CircleShape)
+                            .background(
+                                color = if (cargando) primaryColor.copy(alpha = 0.5f) else primaryColor,
+                                shape = CircleShape
+                            )
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,

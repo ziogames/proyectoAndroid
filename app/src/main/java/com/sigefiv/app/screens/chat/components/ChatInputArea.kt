@@ -28,6 +28,7 @@ import com.sigefiv.app.data.model.ChatMessage
 import com.sigefiv.app.data.model.ChatTypingUser
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
+import androidx.compose.foundation.BorderStroke
 
 @Composable
 fun ChatInputArea(
@@ -51,7 +52,7 @@ fun ChatInputArea(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colorPrincipal)
+            .background(MaterialTheme.colorScheme.surface) // CORREGIDO: Usa el color de superficie del tema en lugar de un verde sólido
             .navigationBarsPadding()
             .imePadding()
             .padding(horizontal = 8.dp, vertical = 5.dp)
@@ -64,7 +65,7 @@ fun ChatInputArea(
             }
             Text(
                 text = "$nombres escribiendo...",
-                color = Color.White.copy(alpha = 0.9f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(start = 12.dp, bottom = 6.dp)
@@ -122,7 +123,7 @@ fun ChatInputArea(
                         .fillMaxWidth()
                         .padding(bottom = 6.dp),
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surface
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                 ) {
                     Row(
                         modifier = Modifier.padding(
@@ -171,7 +172,8 @@ fun ChatInputArea(
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Close,
-                                contentDescription = "Cancelar respuesta"
+                                contentDescription = "Cancelar respuesta",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -189,7 +191,8 @@ fun ChatInputArea(
                     .weight(1f)
                     .padding(end = 6.dp),
                 shape = RoundedCornerShape(24.dp),
-                color = Color.White
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             ) {
                 Row(
                     modifier = Modifier
@@ -205,7 +208,7 @@ fun ChatInputArea(
                         Icon(
                             Icons.Outlined.AttachFile,
                             contentDescription = "Adjuntar",
-                            tint = if (estaGrabandoAudio) Color.LightGray else Color(0xFF54656F)
+                            tint = if (estaGrabandoAudio) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
@@ -215,13 +218,17 @@ fun ChatInputArea(
                         enabled = !esBloqueoPermanente && !estaGrabandoAudio,
                         modifier = Modifier
                             .weight(1f)
-                            .padding(horizontal = 4.dp, vertical = 9.dp),
+                            .padding(horizontal = 4.dp, vertical =.9.dp),
                         maxLines = 4,
+                        textStyle = LocalTextStyle.current.copy(
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 14.sp
+                        ),
                         decorationBox = { innerTextField ->
                             if (estaGrabandoAudio) {
                                 Text(
                                     text = "🔴 Grabando nota de voz...",
-                                    color = Color(0xFFDC2626),
+                                    color = MaterialTheme.colorScheme.error,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -232,7 +239,7 @@ fun ChatInputArea(
                                     } else {
                                         "Escribe un mensaje..."
                                     },
-                                    color = Color.Gray,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                     fontSize = 14.sp
                                 )
                             }
@@ -248,7 +255,7 @@ fun ChatInputArea(
                 shape = CircleShape,
                 color = when {
                     esBloqueoPermanente -> colorPrincipal.copy(alpha = 0.4f)
-                    estaGrabandoAudio -> Color(0xFFDC2626) // Rojo mientras graba
+                    estaGrabandoAudio -> MaterialTheme.colorScheme.error
                     else -> colorPrincipal
                 }
             ) {
@@ -265,7 +272,7 @@ fun ChatInputArea(
                     if (enviando) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             strokeWidth = 2.dp
                         )
                     } else {
@@ -276,7 +283,7 @@ fun ChatInputArea(
                                 else -> Icons.Outlined.Mic
                             },
                             contentDescription = if (tieneTextoParaEnviar) "Enviar" else "Grabar voz",
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(22.dp)
                         )
                     }
