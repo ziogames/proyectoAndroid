@@ -1,6 +1,7 @@
 package com.sigefiv.app
 
 import android.Manifest
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -10,20 +11,13 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-
-import android.app.Activity
 import android.widget.Toast
-import androidx.compose.runtime.DisposableEffect
-import com.facebook.CallbackManager
-import com.facebook.FacebookCallback
-import com.facebook.FacebookException
-import com.facebook.login.LoginManager
-import com.facebook.login.LoginResult
-
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.SystemBarStyle
+import androidx.compose.runtime.SideEffect
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -41,7 +35,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -49,12 +42,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.outlined.AccountBalance
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MailOutline
-import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -73,6 +62,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -99,9 +89,13 @@ import androidx.compose.ui.unit.sp
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.facebook.CallbackManager
+import com.facebook.FacebookCallback
+import com.facebook.FacebookException
+import com.facebook.login.LoginManager
+import com.facebook.login.LoginResult
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
@@ -112,7 +106,6 @@ import com.sigefiv.app.notifications.NotificacionEventBus
 import com.sigefiv.app.screens.bienvenida.BienvenidaScreen
 import com.sigefiv.app.ui.theme.AppSeason
 import com.sigefiv.app.ui.theme.SIGEFIVTheme
-import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 import com.sigefiv.app.viewmodel.DashboardViewModel
 import com.sigefiv.app.viewmodel.DashboardViewModelFactory
@@ -124,6 +117,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import coil.Coil
+import coil.ImageLoader
+import com.sigefiv.app.data.api.ApiClient
 
 /*
 |--------------------------------------------------------------------------
@@ -159,6 +155,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Reutiliza el OkHttpClient único (con prioridad IPv4 y ConnectionPool) para todas las imágenes
+        val imageLoader = ImageLoader.Builder(applicationContext)
+            .okHttpClient { ApiClient.getHttpClient(applicationContext) }
+            .crossfade(true)
+            .build()
+        Coil.setImageLoader(imageLoader)
 
         if (intent?.action == Intent.ACTION_SEND && intent.type?.startsWith("image/") == true) {
             comprobanteCompartido.value = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -197,6 +199,29 @@ class MainActivity : ComponentActivity() {
             var darkTheme by rememberSaveable {
                 mutableStateOf(preferenciasTema.getBoolean("tema_oscuro", false))
             }
+
+            // 👇 AGREGAR ESTO JUSTO DEBAJO DE LA DECLARACIÓN DE darkTheme:
+            SideEffect {
+                enableEdgeToEdge(
+                    statusBarStyle = if (darkTheme) {
+                        SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                    } else {
+                        SystemBarStyle.light(
+                            android.graphics.Color.TRANSPARENT,
+                            android.graphics.Color.TRANSPARENT
+                        )
+                    },
+                    navigationBarStyle = if (darkTheme) {
+                        SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                    } else {
+                        SystemBarStyle.light(
+                            android.graphics.Color.TRANSPARENT,
+                            android.graphics.Color.TRANSPARENT
+                        )
+                    }
+                )
+            }
+
 
             SIGEFIVTheme(darkTheme = darkTheme) {
                 Surface(
@@ -520,6 +545,12 @@ fun AppSIGEFIV(
                     onIniciarSesionFacebook = { accessToken ->
                         loginViewModel.iniciarSesionConFacebook(accessToken)
                     },
+                    onSolicitarCodigoRecuperacion = { email, onResult ->
+                        loginViewModel.solicitarCodigoRecuperacion(email, onResult)
+                    },
+                    onRestablecerContrasena = { email, code, pass, confirm, onResult ->
+                        loginViewModel.restablecerContrasenaConCodigo(email, code, pass, confirm, onResult)
+                    },
                     onLimpiarMensaje = { loginViewModel.limpiarMensaje() }
                 )
             }
@@ -743,7 +774,6 @@ fun PantallaSplash() {
         ) {
             Spacer(modifier = Modifier.weight(1f))
 
-            // Logo central con anillo suave de elevación
             Surface(
                 modifier = Modifier.size(140.dp),
                 shape = CircleShape,
@@ -782,7 +812,6 @@ fun PantallaSplash() {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Indicador sutil de carga
             CircularProgressIndicator(
                 modifier = Modifier.size(24.dp),
                 color = primaryColor,
@@ -870,11 +899,14 @@ fun PantallaLogin(
     onIniciarSesion: (String, String) -> Unit,
     onIniciarSesionGoogle: (String) -> Unit,
     onIniciarSesionFacebook: (String) -> Unit,
+    onSolicitarCodigoRecuperacion: (String, (Boolean, String) -> Unit) -> Unit,
+    onRestablecerContrasena: (String, String, String, String, (Boolean, String) -> Unit) -> Unit,
     onLimpiarMensaje: () -> Unit
 ) {
     var usuario by remember { mutableStateOf("admin@sigefiv.com") }
     var password by remember { mutableStateOf("12345678") }
     var mostrarPassword by remember { mutableStateOf(false) }
+    var mostrarDialogoRecuperar by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -1031,7 +1063,13 @@ fun PantallaLogin(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        TextButton(onClick = {}, enabled = !cargando) {
+                        TextButton(
+                            onClick = {
+                                onLimpiarMensaje()
+                                mostrarDialogoRecuperar = true
+                            },
+                            enabled = !cargando
+                        ) {
                             Text(
                                 text = "¿Olvidaste tu contraseña?",
                                 color = primaryColor,
@@ -1197,6 +1235,274 @@ fun PantallaLogin(
             )
         }
     }
+
+    if (mostrarDialogoRecuperar) {
+        DialogoRecuperarContrasena(
+            correoInicial = if (usuario.contains("@")) usuario.trim() else "",
+            onDismiss = { mostrarDialogoRecuperar = false },
+            onSolicitarCodigo = onSolicitarCodigoRecuperacion,
+            onRestablecer = { email, code, nuevaPass, confirmarPass, onResult ->
+                onRestablecerContrasena(email, code, nuevaPass, confirmarPass) { exito, msg ->
+                    if (exito) {
+                        usuario = email
+                        password = nuevaPass
+                    }
+                    onResult(exito, msg)
+                }
+            }
+        )
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| DIÁLOGO RECUPERAR CONTRASEÑA (2 PASOS CON CÓDIGO OTP)
+|--------------------------------------------------------------------------
+*/
+
+@Composable
+private fun DialogoRecuperarContrasena(
+    correoInicial: String,
+    onDismiss: () -> Unit,
+    onSolicitarCodigo: (String, (Boolean, String) -> Unit) -> Unit,
+    onRestablecer: (String, String, String, String, (Boolean, String) -> Unit) -> Unit
+) {
+    var paso by remember { mutableIntStateOf(1) }
+    var email by remember { mutableStateOf(correoInicial) }
+    var codigo by remember { mutableStateOf("") }
+    var nuevaPassword by remember { mutableStateOf("") }
+    var confirmarPassword by remember { mutableStateOf("") }
+    var mostrarNueva by remember { mutableStateOf(false) }
+
+    var procesando by remember { mutableStateOf(false) }
+    var mensajeEstado by remember { mutableStateOf<String?>(null) }
+    var esError by remember { mutableStateOf(false) }
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val context = LocalContext.current
+
+    AlertDialog(
+        onDismissRequest = { if (!procesando) onDismiss() },
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(20.dp),
+        title = {
+            Text(
+                text = if (paso == 1) "Recuperar contraseña" else "Verificar código",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (paso == 1) {
+                    Text(
+                        text = "Ingresa el correo electrónico registrado en SIGEFIV. Te enviaremos un código de 6 dígitos.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = {
+                            email = it
+                            mensajeEstado = null
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !procesando,
+                        label = { Text("Correo electrónico") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.MailOutline,
+                                contentDescription = "Correo",
+                                tint = primaryColor
+                            )
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = coloresCampoLogin()
+                    )
+                } else {
+                    Text(
+                        text = "Ingresa el código de 6 dígitos enviado a $email y define tu nueva contraseña.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = codigo,
+                        onValueChange = {
+                            if (it.length <= 6 && it.all { ch -> ch.isDigit() }) {
+                                codigo = it
+                                mensajeEstado = null
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !procesando,
+                        label = { Text("Código de 6 dígitos") },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = coloresCampoLogin()
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = nuevaPassword,
+                        onValueChange = {
+                            nuevaPassword = it
+                            mensajeEstado = null
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !procesando,
+                        label = { Text("Nueva contraseña (mín. 8)") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.Lock,
+                                contentDescription = "Nueva contraseña",
+                                tint = primaryColor
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { mostrarNueva = !mostrarNueva }) {
+                                Icon(
+                                    imageVector = if (mostrarNueva) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                    contentDescription = "Mostrar",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        },
+                        visualTransformation = if (mostrarNueva) VisualTransformation.None else PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = coloresCampoLogin()
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = confirmarPassword,
+                        onValueChange = {
+                            confirmarPassword = it
+                            mensajeEstado = null
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !procesando,
+                        label = { Text("Confirmar contraseña") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.Lock,
+                                contentDescription = "Confirmar contraseña",
+                                tint = primaryColor
+                            )
+                        },
+                        visualTransformation = if (mostrarNueva) VisualTransformation.None else PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = coloresCampoLogin()
+                    )
+                }
+
+                if (!mensajeEstado.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = mensajeEstado!!,
+                        color = if (esError) MaterialTheme.colorScheme.error else primaryColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = !procesando,
+                onClick = {
+                    if (paso == 1) {
+                        val correoLimpio = email.trim()
+                        if (correoLimpio.isBlank() || !correoLimpio.contains("@")) {
+                            esError = true
+                            mensajeEstado = "Ingresa un correo electrónico válido."
+                            return@Button
+                        }
+                        procesando = true
+                        mensajeEstado = null
+                        onSolicitarCodigo(correoLimpio) { exito, msg ->
+                            procesando = false
+                            if (exito) {
+                                esError = false
+                                mensajeEstado = msg
+                                paso = 2
+                            } else {
+                                esError = true
+                                mensajeEstado = msg
+                            }
+                        }
+                    } else {
+                        if (codigo.length != 6) {
+                            esError = true
+                            mensajeEstado = "El código debe tener 6 dígitos."
+                            return@Button
+                        }
+                        if (nuevaPassword.length < 8) {
+                            esError = true
+                            mensajeEstado = "La contraseña debe tener al menos 8 caracteres."
+                            return@Button
+                        }
+                        if (nuevaPassword != confirmarPassword) {
+                            esError = true
+                            mensajeEstado = "Las contraseñas no coinciden."
+                            return@Button
+                        }
+                        procesando = true
+                        mensajeEstado = null
+                        onRestablecer(email.trim(), codigo, nuevaPassword, confirmarPassword) { exito, msg ->
+                            procesando = false
+                            if (exito) {
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                onDismiss()
+                            } else {
+                                esError = true
+                                mensajeEstado = msg
+                            }
+                        }
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryColor,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                if (procesando) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = if (paso == 1) "Enviar código" else "Cambiar contraseña",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                enabled = !procesando,
+                onClick = {
+                    if (paso == 2) {
+                        paso = 1
+                        mensajeEstado = null
+                    } else {
+                        onDismiss()
+                    }
+                }
+            ) {
+                Text(
+                    text = if (paso == 2) "Cambiar correo" else "Cancelar",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    )
 }
 
 /*

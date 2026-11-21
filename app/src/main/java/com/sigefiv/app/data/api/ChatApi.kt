@@ -20,6 +20,8 @@ import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Url
+import com.sigefiv.app.ServidorConfig
 
 interface ChatApi {
 
@@ -66,9 +68,13 @@ interface ChatApi {
     /**
      * 🤖 Invocar directamente al Webhook de ZOE en n8n
      */
-    @POST("http://10.0.2.2:5678/webhook/zoe-sigefiv-v2")
+    /**
+     * 🤖 Invocar directamente al Webhook de ZOE en n8n
+     */
+    @POST
     suspend fun invocarWebhookZoe(
-        @Body request: Map<String, Any>
+        @Body request: Map<String, Any>,
+        @Url url: String = ServidorConfig.ZOE_WEBHOOK_URL
     ): Response<Any>
 
     @POST("chat/presencia")

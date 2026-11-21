@@ -4,9 +4,10 @@ import android.content.Context
 import android.util.Log
 import com.sigefiv.app.data.SessionManager
 import com.sigefiv.app.data.api.ApiClient
+import com.sigefiv.app.data.api.CalificarMensajeRequest
 import com.sigefiv.app.data.api.ConfirmarAsistenciaRequest
 import com.sigefiv.app.data.api.ConfirmarAsistenciaResponse
-import com.sigefiv.app.data.api.EstadisticasAsambleaActivaDto // 👈 Importación agregada
+import com.sigefiv.app.data.api.EstadisticasAsambleaActivaDto
 import com.sigefiv.app.data.api.SimpleSuccessResponse
 import com.sigefiv.app.data.model.DetalleConversacionResponse
 import com.sigefiv.app.data.model.HistorialResponse
@@ -76,6 +77,32 @@ class ZoeRepository(
 
     /*
     |--------------------------------------------------------------------------
+    | CALIFICACIÓN DE RESPUESTAS DE ZOE (FEEDBACK)
+    |--------------------------------------------------------------------------
+    */
+    suspend fun calificarMensaje(
+        mensajeTexto: String,
+        voto: String
+    ): Response<SimpleSuccessResponse>? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val usuarioId = sessionManager.userId.first() ?: return@withContext null
+                zoeApi.calificarMensaje(
+                    CalificarMensajeRequest(
+                        usuario_id = usuarioId.toLong(), // 👈 Convertir Int a Long
+                        mensaje_texto = mensajeTexto,
+                        voto = voto
+                    )
+                )
+            } catch (e: Exception) {
+                Log.e("ZOE_REPO", "Error al calificar mensaje: ${e.message}", e)
+                null
+            }
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | ASAMBLEAS VECINALES (NOTIFICACIONES Y RESPUESTAS)
     |--------------------------------------------------------------------------
     */
@@ -98,7 +125,7 @@ class ZoeRepository(
 
     suspend fun obtenerEstadisticasAsambleaActiva(): Response<EstadisticasAsambleaActivaDto> {
         return withContext(Dispatchers.IO) {
-            zoeApi.obtenerEstadisticasAsambleaActiva() // 👈 Usa zoeApi con Dispatchers.IO
+            zoeApi.obtenerEstadisticasAsambleaActiva()
         }
     }
 }

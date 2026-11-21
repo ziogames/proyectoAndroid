@@ -27,6 +27,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -54,7 +55,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlin.math.roundToInt
-import androidx.compose.ui.draw.clip
 
 private val ColorIngreso = Color(0xFF16A34A)
 private val ColorEgreso = Color(0xFFDC2626)
@@ -134,6 +134,8 @@ fun MovimientosScreen(
         .filter { it.tipo.equals("Egreso", ignoreCase = true) }
         .sumOf { it.monto }
 
+    val saldoInicial = periodo?.saldo_inicial ?: 0.0
+
     val movimientosPorFecha = movimientosFiltrados
         .groupBy { it.fecha ?: "Sin fecha" }
         .toSortedMap(compareByDescending { if (it == "Sin fecha") "" else it })
@@ -210,6 +212,7 @@ fun MovimientosScreen(
         ) {
             SeccionBalanceGeneral(
                 periodoNombre = periodo?.let { "${it.nombre} ${it.anio}" },
+                saldoInicial = saldoInicial,
                 totalIngresos = totalIngresos,
                 totalEgresos = totalEgresos,
                 primaryColor = primaryColor
@@ -495,6 +498,9 @@ fun MovimientosScreen(
 
     if (mostrarDialogoCerrarPeriodo && periodo != null) {
         val p = periodo!!
+        val saldoDisponible = p.saldo_inicial + totalIngresos
+        val saldoFinal = saldoDisponible - totalEgresos
+
         AlertDialog(
             onDismissRequest = { mostrarDialogoCerrarPeriodo = false },
             containerColor = MaterialTheme.colorScheme.surface,
@@ -505,11 +511,12 @@ fun MovimientosScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("¿Deseas cerrar el período ${p.nombre_completo}?", color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("Saldo anterior: S/ %.2f".format(p.saldo_inicial), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
-                    Text("Ingresos: S/ %.2f".format(totalIngresos), color = ColorIngreso, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Egresos: S/ %.2f".format(totalEgresos), color = ColorEgreso, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Saldo anterior: S/ %,.2f".format(p.saldo_inicial), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                    Text("Ingresos: S/ %,.2f".format(totalIngresos), color = ColorIngreso, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Saldo disponible: S/ %,.2f".format(saldoDisponible), color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Text("Egresos: S/ %,.2f".format(totalEgresos), color = ColorEgreso, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Text(
-                        "Saldo final: S/ %.2f".format(p.saldo_inicial + totalIngresos - totalEgresos),
+                        "Saldo final: S/ %.2f".format(saldoFinal),
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
@@ -543,12 +550,14 @@ fun MovimientosScreen(
 @Composable
 private fun SeccionBalanceGeneral(
     periodoNombre: String?,
+    saldoInicial: Double,
     totalIngresos: Double,
     totalEgresos: Double,
     primaryColor: Color
 ) {
-    val balanceNeto = totalIngresos - totalEgresos
-    val colorBalance = if (balanceNeto >= 0) ColorIngreso else ColorEgreso
+    val saldoDisponible = saldoInicial + totalIngresos
+    val saldoFinal = saldoDisponible - totalEgresos
+    val colorBalance = if (saldoFinal >= 0) ColorIngreso else ColorEgreso
 
     Surface(
         modifier = Modifier
@@ -592,13 +601,33 @@ private fun SeccionBalanceGeneral(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "S/ %.2f".format(balanceNeto),
+                text = "S/ %,.2f".format(saldoFinal),
                 color = colorBalance,
-                fontSize = 24.sp,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.ExtraBold
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Saldo anterior: S/ %.2f".format(saldoInicial),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp
+                )
+                Text(
+                    text = "Disponible: S/ %.2f".format(saldoDisponible),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
 
@@ -615,12 +644,26 @@ private fun SeccionBalanceGeneral(
                             .background(ColorIngreso.copy(alpha = 0.12f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Outlined.ArrowUpward, contentDescription = null, tint = ColorIngreso, modifier = Modifier.size(15.dp))
+                        Icon(
+                            Icons.Outlined.ArrowUpward,
+                            contentDescription = null,
+                            tint = ColorIngreso,
+                            modifier = Modifier.size(15.dp)
+                        )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text(text = "Ingresos", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                        Text(text = "S/ %.2f".format(totalIngresos), color = ColorIngreso, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Ingresos",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = "S/ %,.2f".format(totalIngresos),
+                            color = ColorIngreso,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 
@@ -631,12 +674,26 @@ private fun SeccionBalanceGeneral(
                             .background(ColorEgreso.copy(alpha = 0.12f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Outlined.ArrowDownward, contentDescription = null, tint = ColorEgreso, modifier = Modifier.size(15.dp))
+                        Icon(
+                            Icons.Outlined.ArrowDownward,
+                            contentDescription = null,
+                            tint = ColorEgreso,
+                            modifier = Modifier.size(15.dp)
+                        )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text(text = "Egresos", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                        Text(text = "S/ %.2f".format(totalEgresos), color = ColorEgreso, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Egresos",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = "S/ %,.2f".format(totalEgresos),
+                            color = ColorEgreso,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
@@ -932,7 +989,6 @@ private fun NuevoMovimientoDialog(
     val periodoInicio = remember(periodo?.id) { periodo?.let { LocalDate.of(it.anio, it.mes, 1) } }
     val periodoFin = remember(periodo?.id) { periodoInicio?.withDayOfMonth(periodoInicio.lengthOfMonth()) }
 
-    // Color semántico según sea ingreso o egreso
     val esEgreso = movimientoEditar?.tipo?.equals("Egreso", ignoreCase = true) == true
     val colorMonto = if (esEgreso) ColorEgreso else ColorIngreso
 
@@ -1031,10 +1087,6 @@ private fun NuevoMovimientoDialog(
                             .padding(horizontal = 20.dp, vertical = 14.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-
-                        // =======================================================
-                        // TARJETA DE MONTO PROFESIONAL DESTACADA
-                        // =======================================================
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
@@ -1092,7 +1144,6 @@ private fun NuevoMovimientoDialog(
                             }
                         }
 
-                        // Fecha
                         OutlinedTextField(
                             value = fecha,
                             onValueChange = {},
@@ -1107,7 +1158,6 @@ private fun NuevoMovimientoDialog(
                             colors = coloresCampo()
                         )
 
-                        // Categoría
                         Box(modifier = Modifier.fillMaxWidth()) {
                             OutlinedTextField(
                                 value = categoriaSeleccionada?.nombre ?: "",
@@ -1141,13 +1191,10 @@ private fun NuevoMovimientoDialog(
                             }
                         }
 
-                        // Concepto
                         CampoMovimiento(valor = concepto, onValueChange = { concepto = it }, etiqueta = "Concepto", placeholder = "Descripción")
 
-                        // Persona
                         CampoMovimiento(valor = persona, onValueChange = { persona = it }, etiqueta = "Persona", placeholder = "Opcional", requerido = false)
 
-                        // Forma de pago
                         Box(modifier = Modifier.fillMaxWidth()) {
                             OutlinedTextField(
                                 value = formaPago,
@@ -1180,10 +1227,8 @@ private fun NuevoMovimientoDialog(
                             }
                         }
 
-                        // Referencia
                         CampoMovimiento(valor = referencia, onValueChange = { referencia = it }, etiqueta = "Referencia", placeholder = "Opcional", requerido = false)
 
-                        // Observaciones
                         CampoMovimiento(valor = observaciones, onValueChange = { observaciones = it }, etiqueta = "Observaciones", placeholder = "Opcional", requerido = false, singleLine = false, minLines = 2)
                     }
 

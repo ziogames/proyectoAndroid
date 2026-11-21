@@ -57,5 +57,21 @@ class AuthRepository(
     suspend fun loginConFacebook(idToken: String): LoginResponse {
         return authApi.loginConFacebook(mapOf("id_token" to idToken))
     }
+    suspend fun enviarCodigoRecuperacion(email: String) =
+        authApi.enviarCodigoRecuperacion(com.sigefiv.app.data.model.ForgotPasswordRequest(email))
+
+    suspend fun restablecerContrasena(
+        email: String,
+        code: String,
+        password: String,
+        passwordConfirmation: String
+    ) = authApi.restablecerContrasena(
+        com.sigefiv.app.data.model.ResetPasswordRequest(
+            email = email,
+            code = code,
+            password = password,
+            password_confirmation = passwordConfirmation
+        )
+    )
 
 }

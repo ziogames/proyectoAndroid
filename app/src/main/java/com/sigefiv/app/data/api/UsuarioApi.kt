@@ -1,6 +1,7 @@
 package com.sigefiv.app.data.api
 
 import com.sigefiv.app.data.model.CambiarEstadoResponse
+import com.sigefiv.app.data.model.CrearUsuarioRequest
 import com.sigefiv.app.data.model.UsuariosResponse
 import retrofit2.Response
 import retrofit2.http.Body
@@ -8,9 +9,10 @@ import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
-import retrofit2.http.PUT
+import okhttp3.ResponseBody
 
 interface UsuarioApi {
 
@@ -18,6 +20,11 @@ interface UsuarioApi {
     suspend fun obtenerUsuarios(
         @Query("buscar") buscar: String? = null
     ): Response<UsuariosResponse>
+
+    @POST("usuarios")
+    suspend fun crearUsuario(
+        @Body datos: CrearUsuarioRequest
+    ): Response<CambiarEstadoResponse>
 
     @PATCH("usuarios/{usuario}/estado")
     suspend fun cambiarEstado(
@@ -37,10 +44,10 @@ interface UsuarioApi {
     ): Response<Unit>
 
     @POST("usuario/marcar-bienvenida")
-    suspend fun marcarBienvenidaVista(): Response<Map<String, Any>>
+    suspend fun marcarBienvenidaVista(): Response<ResponseBody>
 
     @PUT("mi-cuenta/password")
     suspend fun actualizarPassword(
         @Body datos: Map<String, String>
-    ): Response<Map<String, Any>>
+    ): Response<ResponseBody>
 }

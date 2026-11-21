@@ -16,16 +16,19 @@ class AuthInterceptor(
     ): Response {
 
         val originalRequest = chain.request()
+        val path = originalRequest.url.encodedPath
 
         /*
-        | El login con Google obtiene una nueva sesión.
-        | No enviamos un Bearer anterior en esta petición.
+        | Las rutas de inicio de sesión (correo, Google o Facebook) obtienen una sesión nueva.
+        | No enviamos un Bearer anterior en estas peticiones.
         */
-        val esLoginGoogle =
-            originalRequest.url.encodedPath.endsWith("/auth/google")
+        val esRutaAutenticacion =
+            path.endsWith("/login") ||
+                    path.endsWith("/auth/google") ||
+                    path.endsWith("/auth/facebook")
 
         val token =
-            if (esLoginGoogle) {
+            if (esRutaAutenticacion) {
                 null
             } else {
                 runBlocking {
@@ -47,31 +50,17 @@ class AuthInterceptor(
             originalRequest
                 .newBuilder()
                 .apply {
-
-                    if (!token.isNullOrBlank() && !esLoginGoogle) {
-
+                    if (!token.isNullOrBlank() && !esRutaAutenticacion) {
                         addHeader(
                             "Authorization",
                             "Bearer $token"
                         )
-
-                        println(
-                            "SIGEFIV AUTH: Bearer enviado"
-                        )
-
+                        println("SIGEFIV AUTH: Bearer enviado")
                     } else {
-
-                        if (esLoginGoogle) {
-
-                            println(
-                                "SIGEFIV AUTH: Login Google - NO SE ENVIO TOKEN"
-                            )
-
+                        if (esRutaAutenticacion) {
+                            println("SIGEFIV AUTH: Ruta de autenticación ($path) - NO SE ENVIO TOKEN")
                         } else {
-
-                            println(
-                                "SIGEFIV AUTH: NO SE ENVIO TOKEN"
-                            )
+                            println("SIGEFIV AUTH: NO SE ENVIO TOKEN")
                         }
                     }
 
@@ -82,9 +71,7 @@ class AuthInterceptor(
                 }
                 .build()
 
-        println(
-            "SIGEFIV URL: ${request.url}"
-        )
+        println("SIGEFIV URL: ${request.url}")
 
         /*
         | Enviar la petición al servidor.
@@ -92,54 +79,39 @@ class AuthInterceptor(
         val response: Response
 
         try {
-
-            response =
-                chain.proceed(request)
-
+            response = chain.proceed(request)
         } catch (e: IOException) {
-
             println(
                 "SIGEFIV ERROR DE CONEXION: " +
                         "${request.method} ${request.url} → ${e.message}"
             )
-
             throw e
         }
 
         /*
         | DIAGNÓSTICO
         */
-        println(
-            "SIGEFIV HTTP CODE: ${response.code}"
-        )
-
-        println(
-            "SIGEFIV HTTP MESSAGE: ${response.message}"
-        )
-
-        println(
-            "SIGEFIV RESPONSE URL: ${response.request.url}"
-        )
+        println("SIGEFIV HTTP CODE: ${response.code}")
+        println("SIGEFIV HTTP MESSAGE: ${response.message}")
+        println("SIGEFIV RESPONSE URL: ${response.request.url}")
 
         /*
         | Manejo de errores HTTP del servidor.
         */
         when (response.code) {
-
-            // 🔥 Si Laravel responde 401 (token revocado por el admin por baneo o cambio de rol)
+            // Si Laravel responde 401 (token revocado o sesión expirada)
             401 -> {
-                println(
-                    "SIGEFIV SESIÓN EXPIRADA O REVOCADA (401): Limpiando sesión con cerrarSesion()..."
-                )
-
-                // Usamos el método real definido en tu SessionManager.kt
-                runBlocking {
-                    sessionManager.cerrarSesion()
+                if (!esRutaAutenticacion) {
+                    println(
+                        "SIGEFIV SESIÓN EXPIRADA O REVOCADA (401): Limpiando sesión con cerrarSesion()..."
+                    )
+                    runBlocking {
+                        sessionManager.cerrarSesion()
+                    }
                 }
             }
 
             500, 502, 503, 504 -> {
-
                 println(
                     "SIGEFIV ERROR DEL SERVIDOR: " +
                             "${response.code} ${request.url}"
@@ -150,23 +122,12 @@ class AuthInterceptor(
         /*
         | Leer el cuerpo únicamente para diagnóstico.
         */
-        if (esLoginGoogle || response.code >= 400) {
-
+        if (esRutaAutenticacion || response.code >= 400) {
             try {
-
-                val responseBody =
-                    response.peekBody(1024 * 1024)
-
-                println(
-                    "SIGEFIV RESPONSE BODY: " +
-                            responseBody.string()
-                )
-
+                val responseBody = response.peekBody(1024 * 1024)
+                println("SIGEFIV RESPONSE BODY: ${responseBody.string()}")
             } catch (e: Exception) {
-
-                println(
-                    "SIGEFIV RESPONSE BODY ERROR: ${e.message}"
-                )
+                println("SIGEFIV RESPONSE BODY ERROR: ${e.message}")
             }
         }
 

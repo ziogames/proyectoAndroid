@@ -5,8 +5,8 @@ import android.os.Build
 object ServidorConfig {
 
     // Cambia a 'true' solo si necesitas probar offline con IP local
-    private const val MODO_LOCAL = false
-    //private val MODO_LOCAL: Boolean = BuildConfig.DEBUG
+   //private const val MODO_LOCAL = false
+    private val MODO_LOCAL: Boolean = BuildConfig.DEBUG
     private const val IP_PC = "192.168.1.49"
     private const val DOMINIO_PROD = "api.sigefiv.win"
 
@@ -42,6 +42,13 @@ object ServidorConfig {
             "ws://$hostLocal:8001/ws/zoe"
         } else {
             "wss://$DOMINIO_PROD/ws/zoe"
+        }
+    // Webhook de ZOE en n8n
+    val ZOE_WEBHOOK_URL: String
+        get() = if (MODO_LOCAL) {
+            "http://$hostLocal:5678/webhook/zoe-sigefiv-v2"
+        } else {
+            "https://$DOMINIO_PROD/webhook/zoe-sigefiv-v2"
         }
 
     /**

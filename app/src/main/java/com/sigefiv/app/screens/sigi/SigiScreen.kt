@@ -11,6 +11,7 @@ import android.media.AudioRecord.ERROR_INVALID_OPERATION
 import android.media.MediaRecorder
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
@@ -55,6 +56,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.ThumbDown
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -66,6 +69,8 @@ import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material.icons.outlined.ThumbDown
+import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
@@ -105,11 +110,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -122,6 +130,7 @@ import com.sigefiv.app.screens.ui.components.TarjetaConvocatoriaAsambleaItem
 import com.sigefiv.app.ui.components.MovimientoItemModel
 import com.sigefiv.app.ui.components.TarjetaEmprendimientoItem
 import com.sigefiv.app.ui.components.TarjetaReporteFinanciero
+import com.sigefiv.app.ui.components.TarjetaReporteVecinalItem
 import com.sigefiv.app.ui.components.ZoeEstadisticaChart
 import com.sigefiv.app.viewmodel.AsambleaActivaReporte
 import com.sigefiv.app.viewmodel.ZoeMensaje
@@ -136,6 +145,8 @@ private val VerdeOnline = Color(0xFF16A34A)
 
 @Composable
 fun SigiScreen(
+    nombreUsuario: String? = null,
+    fotoUsuario: String? = null,
     onInicioClick: () -> Unit = {},
     onMovimientosClick: () -> Unit = {},
     onAsambleasClick: () -> Unit = {},
@@ -146,6 +157,10 @@ fun SigiScreen(
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val context = LocalContext.current
+    val esTemaOscuro = remember {
+        context.getSharedPreferences("sigefiv_config", Context.MODE_PRIVATE)
+            .getBoolean("tema_oscuro", false)
+    }
     val viewModel = remember(context) { ZoeViewModel(context.applicationContext) }
 
     val mensajes by viewModel.mensajes.collectAsState()
@@ -275,7 +290,6 @@ fun SigiScreen(
 
     val sheetShape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
 
-    // Contenedor raíz que desplaza TODA la ventana de ZOE (incluyendo el Drawer y la barra inferior)
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -350,7 +364,6 @@ fun SigiScreen(
                             ),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Indicador superior de arrastre (Drag Handle)
                         Box(
                             modifier = Modifier
                                 .padding(top = 10.dp, bottom = 2.dp)
@@ -441,7 +454,6 @@ fun SigiScreen(
                         .fillMaxSize()
                         .padding(paddingValues)
                 ) {
-                    // 1. BARRA DE SUGERENCIAS Y EVENTOS
                     SugerenciasChipsBar(
                         reporteAsamblea = reporteAsamblea,
                         onAsambleaClick = { mostrarBottomSheetAsamblea = true },
@@ -455,27 +467,35 @@ fun SigiScreen(
                         thickness = 0.8.dp
                     )
 
-                    // 2. HISTORIAL DE MENSAJES
                     LazyColumn(
                         state = listaEstado,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                            .padding(horizontal = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(vertical = 12.dp)
                     ) {
                         items(
-                            count = mensajes.size,
-                            key = { index ->
-                                val mensaje = mensajes[index]
-                                "$index-${mensaje.esUsuario}-${mensaje.texto.hashCode()}"
-                            }
-                        ) { index ->
+                            items = mensajes,
+                            key = { mensaje -> mensaje.id }
+                        ) { mensaje ->
                             BurbujaChat(
-                                mensaje = mensajes[index],
+                                mensaje = mensaje,
+                                nombreUsuario = nombreUsuario,
+                                fotoUsuario = fotoUsuario,
+                                temaOscuro = esTemaOscuro,
                                 onConfirmarAsistencia = { asambleaId, opcion ->
                                     viewModel.confirmarAsistenciaAsamblea(asambleaId, opcion)
+                                },
+                                onCalificarMensaje = { mensajeId, esPositivo ->
+                                    viewModel.calificarMensaje(mensajeId, esPositivo)
+                                    val textoToast = when (esPositivo) {
+                                        true -> "Gracias por tu comentario positivo"
+                                        false -> "Gracias, tomaremos en cuenta tu reporte"
+                                        null -> "Calificación retirada"
+                                    }
+                                    Toast.makeText(context, textoToast, Toast.LENGTH_SHORT).show()
                                 }
                             )
                         }
@@ -485,7 +505,6 @@ fun SigiScreen(
                         }
                     }
 
-                    // 3. BARRA DE ENTRADA
                     BarraEntradaModerna(
                         consulta = consulta,
                         onConsultaChange = { consulta = it },
@@ -517,7 +536,6 @@ fun SigiScreen(
         }
     }
 
-    // 4. VENTANA EMERGENTE DE ASAMBLEA
     if (mostrarBottomSheetAsamblea && reporteAsamblea != null) {
         val r = reporteAsamblea!!
         val total = if (r.total > 0) r.total.toFloat() else 1f
@@ -550,7 +568,7 @@ fun SigiScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "📅 ${r.fecha ?: "--"} a las ${r.hora ?: "--"} • 📍 ${r.lugar ?: "Lugar no indicado"}",
+                    text = "📅 ${r.fecha ?: "--"} a las ${r.hora ?: "--"}\n📍 ${r.lugar ?: "Lugar no indicado"}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
                 )
@@ -918,58 +936,142 @@ private fun ItemConversacionHistorial(
 
 /*
 |--------------------------------------------------------------------------
-| BURBUJA DE CHAT
+| BURBUJA DE CHAT + AVATAR DEL USUARIO (ESTILO WHATSAPP / TELEGRAM)
 |--------------------------------------------------------------------------
 */
 
 @Composable
+private fun AvatarUsuarioChat(
+    nombreUsuario: String?,
+    fotoUsuario: String?
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val inicial = nombreUsuario?.trim()?.firstOrNull()?.uppercase() ?: "U"
+
+    Surface(
+        modifier = Modifier.size(30.dp),
+        shape = CircleShape,
+        color = primaryColor.copy(alpha = 0.16f),
+        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.35f))
+    ) {
+        if (!fotoUsuario.isNullOrBlank()) {
+            AsyncImage(
+                model = fotoUsuario,
+                contentDescription = "Avatar de ${nombreUsuario ?: "usuario"}",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = inicial,
+                    color = primaryColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun BurbujaChat(
     mensaje: ZoeMensaje,
-    onConfirmarAsistencia: (Long, String) -> Unit = { _, _ -> }
+    nombreUsuario: String? = null,
+    fotoUsuario: String? = null,
+    temaOscuro: Boolean = false,
+    onConfirmarAsistencia: (Long, String) -> Unit = { _, _ -> },
+    onCalificarMensaje: (String, Boolean?) -> Unit = { _, _ -> }
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
 
     if (mensaje.esUsuario) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.Top
         ) {
             Card(
-                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp),
+                shape = RoundedCornerShape(
+                    topStart = 16.dp,
+                    topEnd = 4.dp,
+                    bottomStart = 16.dp,
+                    bottomEnd = 16.dp
+                ),
                 colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.14f)),
                 border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                modifier = Modifier.widthIn(min = 60.dp, max = 290.dp)
+                modifier = Modifier.widthIn(min = 64.dp, max = 285.dp)
             ) {
-                Column(modifier = Modifier.padding(all = 10.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)) {
                     mensaje.imagenUri?.let { uri ->
                         AsyncImage(
                             model = uri,
                             contentDescription = "Imagen adjunta del reporte",
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(160.dp)
+                                .height(150.dp)
                                 .clip(RoundedCornerShape(10.dp)),
                             contentScale = ContentScale.Crop
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        if (mensaje.texto.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
                     }
 
-                    Row(
-                        modifier = Modifier.padding(start = 2.dp, end = 2.dp, bottom = 2.dp),
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        if (mensaje.texto.isNotBlank()) {
+                    if (mensaje.texto.isNotBlank()) {
+                        Box {
+                            val textoConEspacioHora = remember(mensaje.texto, mensaje.hora) {
+                                buildAnnotatedString {
+                                    append(mensaje.texto)
+                                    withStyle(
+                                        SpanStyle(
+                                            color = Color.Transparent, // 👈 Invisible para reservar el hueco sin encimarse
+                                            fontSize = 10.sp
+                                        )
+                                    ) {
+                                        val horaIrrompible = mensaje.hora.replace(" ", "\u00A0")
+                                        append("\u00A0\u00A0$horaIrrompible\u00A0✓✓\u00A0")
+                                    }
+                                }
+                            }
+
                             Text(
-                                text = mensaje.texto,
+                                text = textoConEspacioHora,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 14.5.sp,
-                                lineHeight = 19.sp,
-                                modifier = Modifier.weight(1f, fill = false)
+                                lineHeight = 19.sp
                             )
+
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(bottom = 1.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = mensaje.hora,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                    fontSize = 10.sp
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "✓✓",
+                                    color = primaryColor,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    }else {
+                        // Solo imagen sin texto
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.align(Alignment.End),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
                                 text = mensaje.hora,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
@@ -986,6 +1088,13 @@ private fun BurbujaChat(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            AvatarUsuarioChat(
+                nombreUsuario = nombreUsuario,
+                fotoUsuario = fotoUsuario
+            )
         }
     } else {
         Row(
@@ -1011,68 +1120,146 @@ private fun BurbujaChat(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            Surface(
-                shape = RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                shadowElevation = 0.5.dp,
-                modifier = Modifier.widthIn(max = 310.dp)
-            ) {
-                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                    if (mensaje.tipo == "encuesta_asamblea" && mensaje.asambleaId != null) {
-                        TarjetaConvocatoriaAsambleaItem(
-                            asambleaId = mensaje.asambleaId,
-                            texto = mensaje.texto,
-                            yaRespondido = mensaje.asambleaEstadisticas != null,
-                            estadisticas = mensaje.asambleaEstadisticas,
-                            colorPrincipal = primaryColor,
-                            temaOscuro = false,
-                            onConfirmar = { opcion -> onConfirmarAsistencia(mensaje.asambleaId, opcion) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    } else {
-                        ZoeRespuestaFormateada(
-                            texto = mensaje.texto,
-                            tipoMovimiento = mensaje.tipoMovimiento,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+            val tieneContenidoAncho = mensaje.tipo == "encuesta_asamblea" ||
+                    mensaje.estadistica != null ||
+                    mensaje.texto.length > 90
 
-                    mensaje.estadistica?.let { estadistica ->
-                        Spacer(modifier = Modifier.height(6.dp))
-                        ZoeEstadisticaChart(
-                            estadistica = estadistica,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+            val tieneComponentesExtra = mensaje.tipo == "encuesta_asamblea" ||
+                    mensaje.estadistica != null
 
-                    mensaje.estadistica
-                        ?.takeIf { it.tipo == "emprendimientos" }
-                        ?.emprendimientos
-                        ?.takeIf { it.isNotEmpty() }
-                        ?.let { listaEmprendimientos ->
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                listaEmprendimientos.forEach { emprendimiento ->
-                                    TarjetaEmprendimientoItem(
-                                        emprendimiento = emprendimiento,
-                                        colorPrincipal = primaryColor,
-                                        temaOscuro = false
-                                    )
-                                }
-                            }
+            Column(modifier = Modifier.widthIn(max = 285.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(
+                        topStart = 4.dp,
+                        topEnd = 16.dp,
+                        bottomStart = 16.dp,
+                        bottomEnd = 16.dp
+                    ),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    shadowElevation = 0.5.dp
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp)) {
+                        if (mensaje.tipo == "encuesta_asamblea" && mensaje.asambleaId != null) {
+                            TarjetaConvocatoriaAsambleaItem(
+                                asambleaId = mensaje.asambleaId,
+                                texto = mensaje.texto,
+                                yaRespondido = mensaje.asambleaEstadisticas != null,
+                                estadisticas = mensaje.asambleaEstadisticas,
+                                colorPrincipal = primaryColor,
+                                temaOscuro = temaOscuro,
+                                onConfirmar = { opcion -> onConfirmarAsistencia(mensaje.asambleaId, opcion) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        } else {
+                            // Si no hay gráficos ni tarjetas debajo, pasamos la hora para que vaya inline
+                            ZoeRespuestaFormateada(
+                                texto = mensaje.texto,
+                                horaInline = if (!tieneComponentesExtra) mensaje.hora else null,
+                                tipoMovimiento = mensaje.tipoMovimiento,
+                                estirarAncho = tieneContenidoAncho,
+                                temaOscuro = temaOscuro
+                            )
                         }
 
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = mensaje.hora,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        fontSize = 10.sp,
-                        modifier = Modifier.align(Alignment.End)
-                    )
+                        mensaje.estadistica?.let { estadistica ->
+                            Spacer(modifier = Modifier.height(6.dp))
+                            ZoeEstadisticaChart(
+                                estadistica = estadistica,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        mensaje.estadistica
+                            ?.takeIf { it.tipo == "emprendimientos" }
+                            ?.emprendimientos
+                            ?.takeIf { it.isNotEmpty() }
+                            ?.let { listaEmprendimientos ->
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    listaEmprendimientos.forEach { emprendimiento ->
+                                        TarjetaEmprendimientoItem(
+                                            emprendimiento = emprendimiento,
+                                            colorPrincipal = primaryColor,
+                                            temaOscuro = temaOscuro
+                                        )
+                                    }
+                                }
+                            }
+
+                        mensaje.estadistica
+                            ?.takeIf { it.tipo == "reportes" }
+                            ?.reportes
+                            ?.takeIf { it.isNotEmpty() }
+                            ?.let { listaReportes ->
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    listaReportes.forEach { reporte ->
+                                        TarjetaReporteVecinalItem(
+                                            reporte = reporte,
+                                            colorPrincipal = primaryColor
+                                        )
+                                    }
+                                }
+                            }
+
+                        // Si hubo tarjetas/gráficos extra, mostramos la hora abajo a la derecha
+                        if (tieneComponentesExtra) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = mensaje.hora,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                fontSize = 10.sp,
+                                modifier = Modifier.align(Alignment.End)
+                            )
+                        }
+                    }
+                }
+
+                // Botones interactivos vinculados al ViewModel
+                Row(
+                    modifier = Modifier.padding(top = 2.dp, start = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val esLike = mensaje.calificacion == true
+                    val esDislike = mensaje.calificacion == false
+
+                    IconButton(
+                        onClick = {
+                            val nuevoVoto = if (esLike) null else true
+                            onCalificarMensaje(mensaje.id, nuevoVoto)
+                        },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (esLike) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
+                            contentDescription = "Respuesta útil",
+                            tint = if (esLike) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            val nuevoVoto = if (esDislike) null else false
+                            onCalificarMensaje(mensaje.id, nuevoVoto)
+                        },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (esDislike) Icons.Filled.ThumbDown else Icons.Outlined.ThumbDown,
+                            contentDescription = "Respuesta incorrecta",
+                            tint = if (esDislike) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
                 }
             }
         }
@@ -1082,7 +1269,10 @@ private fun BurbujaChat(
 @Composable
 private fun ZoeRespuestaFormateada(
     texto: String,
+    horaInline: String? = null,
     tipoMovimiento: String? = null,
+    estirarAncho: Boolean = false,
+    temaOscuro: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -1147,13 +1337,24 @@ private fun ZoeRespuestaFormateada(
                     it.contains("movimiento", ignoreCase = true)
         }?.replace("🤖", "")?.replace("📋", "")?.trim() ?: "Resumen de operaciones"
 
-        TarjetaReporteFinanciero(
-            titulo = titulo,
-            movimientos = movimientosEncontrados,
-            colorPrincipal = primaryColor,
-            temaOscuro = false,
-            modifier = modifier
-        )
+        Column(modifier = modifier.fillMaxWidth()) {
+            TarjetaReporteFinanciero(
+                titulo = titulo,
+                movimientos = movimientosEncontrados,
+                colorPrincipal = primaryColor,
+                temaOscuro = temaOscuro,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (horaInline != null) {
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    text = horaInline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontSize = 10.sp,
+                    modifier = Modifier.align(Alignment.End)
+                )
+            }
+        }
     } else {
         val parrafos = remember(texto) {
             texto.split(Regex("""\r?\n\s*\r?\n"""))
@@ -1162,18 +1363,47 @@ private fun ZoeRespuestaFormateada(
         }
 
         Column(
-            modifier = modifier,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = if (estirarAncho) modifier.fillMaxWidth() else modifier,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            parrafos.forEach { parrafo ->
-                LinkableText(
-                    text = parrafo,
-                    modifier = Modifier.fillMaxWidth(),
-                    textColor = MaterialTheme.colorScheme.onSurface,
-                    linkColor = primaryColor,
-                    fontSize = 14.5.sp,
-                    lineHeight = 21.sp
-                )
+            parrafos.forEachIndexed { index, parrafo ->
+                val esUltimoParrafo = index == parrafos.lastIndex
+
+                if (esUltimoParrafo && horaInline != null) {
+                    // Último párrafo con la hora incrustada en la misma línea (estilo WhatsApp / Telegram)
+                    Box(modifier = if (estirarAncho) Modifier.fillMaxWidth() else Modifier) {
+                        val espacioHora = remember(horaInline) {
+                            "\u00A0".repeat((horaInline.length + 2).coerceAtLeast(8))
+                        }
+
+                        LinkableText(
+                            text = parrafo + espacioHora,
+                            modifier = if (estirarAncho) Modifier.fillMaxWidth() else Modifier,
+                            textColor = MaterialTheme.colorScheme.onSurface,
+                            linkColor = primaryColor,
+                            fontSize = 14.5.sp,
+                            lineHeight = 20.sp
+                        )
+
+                        Text(
+                            text = horaInline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            fontSize = 10.sp,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(bottom = 1.dp)
+                        )
+                    }
+                } else {
+                    LinkableText(
+                        text = parrafo,
+                        modifier = if (estirarAncho) Modifier.fillMaxWidth() else Modifier,
+                        textColor = MaterialTheme.colorScheme.onSurface,
+                        linkColor = primaryColor,
+                        fontSize = 14.5.sp,
+                        lineHeight = 20.sp
+                    )
+                }
             }
         }
     }
@@ -1242,14 +1472,7 @@ private fun IndicadorCargaMensaje() {
             }
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Card(
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-        ) {
-            BouncingDotsLoader()
-        }
+        BouncingDotsLoader()
     }
 }
 
@@ -1402,193 +1625,207 @@ private fun BarraEntradaModerna(
     val primaryColor = MaterialTheme.colorScheme.primary
     val hayTexto = consulta.trim().isNotEmpty() || archivoAdjuntoUri != null
 
-    Surface(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .imePadding(),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        shadowElevation = 4.dp
+            .imePadding()
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            if (archivoAdjuntoUri != null) {
-                Box(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .size(72.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    AsyncImage(
-                        model = archivoAdjuntoUri,
-                        contentDescription = "Vista previa de imagen adjunta",
-                        modifier = Modifier.fillMaxSize()
-                    )
+        Text(
+            text = "Zoe es una IA y puede cometer errores",
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+            fontSize = 11.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp, horizontal = 16.dp)
+        )
 
-                    Surface(
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+            shadowElevation = 4.dp
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (archivoAdjuntoUri != null) {
+                    Box(
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(4.dp)
-                            .size(22.dp)
-                            .clickable { onEliminarAdjunto() },
-                        shape = CircleShape,
-                        color = Color.Black.copy(alpha = 0.6f)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .size(72.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(text = "✕", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        AsyncImage(
+                            model = archivoAdjuntoUri,
+                            contentDescription = "Vista previa de imagen adjunta",
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(4.dp)
+                                .size(22.dp)
+                                .clickable { onEliminarAdjunto() },
+                            shape = CircleShape,
+                            color = Color.Black.copy(alpha = 0.6f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(text = "✕", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
-            }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                if (grabandoVoz) {
-                    BarraGrabandoVoz(
-                        segundos = segundosGrabacion,
-                        colorPrincipal = primaryColor,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp)
-                    )
-                } else {
-                    OutlinedTextField(
-                        value = consulta,
-                        onValueChange = onConsultaChange,
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = 48.dp, max = 120.dp),
-                        enabled = true,
-                        singleLine = false,
-                        maxLines = 5,
-                        shape = RoundedCornerShape(14.dp),
-                        placeholder = {
-                            Text(
-                                text = if (archivoAdjuntoUri != null) "Añade un comentario (opcional)..." else "Escribe un mensaje...",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 14.sp
-                            )
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Sentences,
-                            imeAction = ImeAction.Default
-                        ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = primaryColor,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            cursorColor = primaryColor
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    if (grabandoVoz) {
+                        BarraGrabandoVoz(
+                            segundos = segundosGrabacion,
+                            colorPrincipal = primaryColor,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
                         )
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(6.dp))
-
-                Box {
-                    IconButton(
-                        onClick = { onToggleMenuAdjuntar(true) },
-                        enabled = !grabandoVoz,
-                        modifier = Modifier.size(42.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AttachFile,
-                            contentDescription = "Adjuntar archivo o foto",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(23.dp)
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = mostrarMenuAdjuntar,
-                        onDismissRequest = { onToggleMenuAdjuntar(false) }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Tomar foto") },
-                            onClick = {
-                                onToggleMenuAdjuntar(false)
-                                onCamaraClick()
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Outlined.CameraAlt,
-                                    contentDescription = null,
-                                    tint = primaryColor
+                    } else {
+                        OutlinedTextField(
+                            value = consulta,
+                            onValueChange = onConsultaChange,
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 48.dp, max = 120.dp),
+                            enabled = true,
+                            singleLine = false,
+                            maxLines = 5,
+                            shape = RoundedCornerShape(14.dp),
+                            placeholder = {
+                                Text(
+                                    text = if (archivoAdjuntoUri != null) "Añade un comentario (opcional)..." else "Escribe un mensaje...",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 14.sp
                                 )
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Elegir de galería / archivos") },
-                            onClick = {
-                                onToggleMenuAdjuntar(false)
-                                onGaleriaClick()
                             },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Outlined.Image,
-                                    contentDescription = null,
-                                    tint = primaryColor
-                                )
-                            }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(4.dp))
-
-                if (hablando) {
-                    IconButton(
-                        onClick = onDetenerVoz,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(color = Color(0xFFEF4444), shape = CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Stop,
-                            contentDescription = "Detener voz de ZOE",
-                            tint = Color.White,
-                            modifier = Modifier.size(21.dp)
-                        )
-                    }
-                } else if (hayTexto && !grabandoVoz) {
-                    IconButton(
-                        onClick = onEnviar,
-                        enabled = !cargando,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(
-                                color = if (cargando) primaryColor.copy(alpha = 0.5f) else primaryColor,
-                                shape = CircleShape
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = KeyboardCapitalization.Sentences,
+                                imeAction = ImeAction.Default
+                            ),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = primaryColor,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                cursorColor = primaryColor
                             )
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Enviar mensaje",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(19.dp)
                         )
                     }
-                } else {
-                    IconButton(
-                        onClick = { onMicrofono() },
-                        enabled = !cargando,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(color = MaterialTheme.colorScheme.surfaceVariant, shape = CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Mic,
-                            contentDescription = "Hablar con ZOE",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(23.dp)
-                        )
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    Box {
+                        IconButton(
+                            onClick = { onToggleMenuAdjuntar(true) },
+                            enabled = !grabandoVoz,
+                            modifier = Modifier.size(42.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.AttachFile,
+                                contentDescription = "Adjuntar archivo o foto",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(23.dp)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = mostrarMenuAdjuntar,
+                            onDismissRequest = { onToggleMenuAdjuntar(false) }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Tomar foto") },
+                                onClick = {
+                                    onToggleMenuAdjuntar(false)
+                                    onCamaraClick()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CameraAlt,
+                                        contentDescription = null,
+                                        tint = primaryColor
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Elegir de galería / archivos") },
+                                onClick = {
+                                    onToggleMenuAdjuntar(false)
+                                    onGaleriaClick()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Image,
+                                        contentDescription = null,
+                                        tint = primaryColor
+                                    )
+                                }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    if (hablando) {
+                        IconButton(
+                            onClick = onDetenerVoz,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(color = Color(0xFFEF4444), shape = CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Stop,
+                                contentDescription = "Detener voz de ZOE",
+                                tint = Color.White,
+                                modifier = Modifier.size(21.dp)
+                            )
+                        }
+                    } else if (hayTexto && !grabandoVoz) {
+                        IconButton(
+                            onClick = onEnviar,
+                            enabled = !cargando,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(
+                                    color = if (cargando) primaryColor.copy(alpha = 0.5f) else primaryColor,
+                                    shape = CircleShape
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "Enviar mensaje",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
+                    } else {
+                        IconButton(
+                            onClick = { onMicrofono() },
+                            enabled = !cargando,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(color = MaterialTheme.colorScheme.surfaceVariant, shape = CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Mic,
+                                contentDescription = "Hablar con ZOE",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(23.dp)
+                            )
+                        }
                     }
                 }
             }

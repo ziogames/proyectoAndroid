@@ -5,7 +5,14 @@ import com.google.gson.annotations.SerializedName
 data class UsuariosResponse(
     @SerializedName("success") val success: Boolean = true,
     @SerializedName("message") val message: String? = null,
-    @SerializedName("usuarios") val usuarios: List<UsuarioListado> = emptyList()
+    @SerializedName("usuarios") val usuarios: List<UsuarioListado> = emptyList(),
+    @SerializedName("roles") val roles: List<UsuarioRol> = emptyList(),
+    @SerializedName("cargos") val cargos: List<CargoItem> = emptyList()
+)
+
+data class CargoItem(
+    @SerializedName("id") val id: Int,
+    @SerializedName("nombre") val nombre: String = ""
 )
 
 data class UsuarioListado(
@@ -13,6 +20,8 @@ data class UsuarioListado(
     @SerializedName("name") val name: String = "",
     @SerializedName("email") val email: String = "",
     @SerializedName("estado") val estado: String? = null,
+    @SerializedName("cargo_id") val cargoId: Int? = null,
+    @SerializedName("cargo") val cargo: CargoItem? = null,
     @SerializedName("recibir_notificaciones") val recibirNotificaciones: Boolean = false,
     @SerializedName("telefono") val telefono: String? = null,
     @SerializedName("dni") val dni: String? = null,
@@ -27,6 +36,9 @@ data class UsuarioListado(
 ) {
     val rolPrincipal: String
         get() = roles.firstOrNull()?.name ?: "Sin Rol"
+
+    val cargoNombre: String
+        get() = cargo?.nombre?.takeIf { it.isNotBlank() } ?: "Vecino"
 
     val estaActivo: Boolean
         get() = estado?.equals("activo", ignoreCase = true) == true
@@ -47,6 +59,15 @@ data class CambiarEstadoResponse(
     @SerializedName("success") val success: Boolean = true,
     @SerializedName("message") val message: String? = null,
     @SerializedName("usuario") val usuario: UsuarioListado? = null
+)
+
+data class CrearUsuarioRequest(
+    @SerializedName("name") val name: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("role") val role: String,
+    @SerializedName("cargo_id") val cargoId: Int?,
+    @SerializedName("password") val password: String,
+    @SerializedName("password_confirmation") val passwordConfirmation: String
 )
 
 data class CambiarRolRequest(

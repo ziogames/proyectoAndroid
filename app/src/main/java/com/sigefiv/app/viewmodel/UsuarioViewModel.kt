@@ -2,25 +2,28 @@ package com.sigefiv.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sigefiv.app.data.model.CargoItem
+import com.sigefiv.app.data.model.RolDetalle
 import com.sigefiv.app.data.model.UsuarioListado
+import com.sigefiv.app.data.repository.RolRepository
 import com.sigefiv.app.data.repository.UsuarioRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import com.sigefiv.app.data.model.RolDetalle
-import com.sigefiv.app.data.repository.RolRepository
 
 data class UsuariosUiState(
     val cargando: Boolean = false,
+    val creandoUsuario: Boolean = false,
     val cambiandoEstado: Boolean = false,
     val cambiandoRol: Boolean = false,
     val eliminandoUsuario: Boolean = false,
-    val cambiandoPassword: Boolean = false, // 👈 NUEVO ESTADO
+    val cambiandoPassword: Boolean = false,
     val usuarios: List<UsuarioListado> = emptyList(),
     val error: String? = null,
     val mensaje: String? = null,
     val roles: List<RolDetalle> = emptyList(),
+    val cargos: List<CargoItem> = emptyList()
 )
 
 class UsuarioViewModel(
@@ -28,63 +31,106 @@ class UsuarioViewModel(
     private val rolRepository: RolRepository
 ) : ViewModel() {
 
-    private val _uiState =
-        MutableStateFlow(
-            UsuariosUiState()
-        )
-
-    val uiState: StateFlow<UsuariosUiState> =
-        _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(UsuariosUiState())
+    val uiState: StateFlow<UsuariosUiState> = _uiState.asStateFlow()
 
     fun cargarUsuarios(
         buscar: String? = null
     ) {
         viewModelScope.launch {
-
-            _uiState.value =
-                _uiState.value.copy(
-                    cargando = true,
-                    error = null,
-                    mensaje = null
-                )
-
-            repository.obtenerUsuarios(
-                buscar = buscar
+            _uiState.value = _uiState.value.copy(
+                cargando = true,
+                error = null,
+                mensaje = null
             )
+
+            repository.obtenerUsuarios(buscar = buscar)
                 .onSuccess { respuesta ->
-
                     if (respuesta.success) {
+                        val rolesDesdeUsuarios = respuesta.roles.mapNotNull { r ->
+                            r.name?.let { nombre ->
+                                RolDetalle(id = r.id, name = nombre)
+                            }
+                        }
 
-                        _uiState.value =
-                            _uiState.value.copy(
-                                cargando = false,
-                                usuarios = respuesta.usuarios,
-                                error = null,
-                                mensaje = respuesta.message
-                            )
-
+                        _uiState.value = _uiState.value.copy(
+                            cargando = false,
+                            usuarios = respuesta.usuarios,
+                            cargos = respuesta.cargos,
+                            roles = if (_uiState.value.roles.isEmpty()) rolesDesdeUsuarios else _uiState.value.roles,
+                            error = null,
+                            mensaje = respuesta.message
+                        )
                     } else {
-
-                        _uiState.value =
-                            _uiState.value.copy(
-                                cargando = false,
-                                error =
-                                    respuesta.message
-                                        ?: "No se pudieron obtener los usuarios.",
-                                mensaje = null
-                            )
+                        _uiState.value = _uiState.value.copy(
+                            cargando = false,
+                            error = respuesta.message ?: "No se pudieron obtener los usuarios.",
+                            mensaje = null
+                        )
                     }
                 }
                 .onFailure { excepcion ->
+                    _uiState.value = _uiState.value.copy(
+                        cargando = false,
+                        error = excepcion.message ?: "No se pudieron obtener los usuarios.",
+                        mensaje = null
+                    )
+                }
+        }
+    }
 
-                    _uiState.value =
-                        _uiState.value.copy(
-                            cargando = false,
-                            error =
-                                excepcion.message
-                                    ?: "No se pudieron obtener los usuarios.",
-                            mensaje = null
+    fun crearUsuario(
+        name: String,
+        email: String,
+        role: String,
+        cargoId: Int?,
+        password: String,
+        passwordConfirmation: String,
+        onExito: () -> Unit
+    ) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                creandoUsuario = true,
+                error = null,
+                mensaje = null
+            )
+
+            repository.crearUsuario(
+                name = name,
+                email = email,
+                role = role,
+                cargoId = cargoId,
+                password = password,
+                passwordConfirmation = passwordConfirmation
+            )
+                .onSuccess { respuesta ->
+                    if (respuesta.success) {
+                        val nuevoUsuario = respuesta.usuario
+                        val listaActualizada = if (nuevoUsuario != null) {
+                            (_uiState.value.usuarios + nuevoUsuario).sortedBy { it.name.lowercase() }
+                        } else {
+                            _uiState.value.usuarios
+                        }
+
+                        _uiState.value = _uiState.value.copy(
+                            creandoUsuario = false,
+                            usuarios = listaActualizada,
+                            error = null,
+                            mensaje = respuesta.message ?: "Usuario creado correctamente."
                         )
+                        onExito()
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            creandoUsuario = false,
+                            error = respuesta.message ?: "No se pudo crear el usuario."
+                        )
+                    }
+                }
+                .onFailure { excepcion ->
+                    _uiState.value = _uiState.value.copy(
+                        creandoUsuario = false,
+                        error = excepcion.message ?: "No se pudo crear el usuario."
+                    )
                 }
         }
     }
@@ -94,149 +140,101 @@ class UsuarioViewModel(
         estado: String
     ) {
         viewModelScope.launch {
-
-            _uiState.value =
-                _uiState.value.copy(
-                    cambiandoEstado = true,
-                    error = null,
-                    mensaje = null
-                )
+            _uiState.value = _uiState.value.copy(
+                cambiandoEstado = true,
+                error = null,
+                mensaje = null
+            )
 
             repository.cambiarEstado(
                 usuarioId = usuarioId,
                 estado = estado
             )
                 .onSuccess { respuesta ->
-
                     if (respuesta.success) {
+                        val usuarioActualizado = respuesta.usuarios.firstOrNull()
 
-                        val usuarioActualizado =
-                            respuesta.usuarios.firstOrNull()
-
-                        val usuariosActualizados =
-                            if (usuarioActualizado != null) {
-
-                                _uiState.value.usuarios.map { usuario ->
-
-                                    if (usuario.id == usuarioActualizado.id) {
-                                        usuarioActualizado
-                                    } else {
-                                        usuario
-                                    }
-                                }
-
-                            } else {
-
-                                _uiState.value.usuarios
-
+                        val usuariosActualizados = if (usuarioActualizado != null) {
+                            _uiState.value.usuarios.map { usuario ->
+                                if (usuario.id == usuarioActualizado.id) usuarioActualizado else usuario
                             }
+                        } else {
+                            _uiState.value.usuarios
+                        }
 
-                        _uiState.value =
-                            _uiState.value.copy(
-                                cambiandoEstado = false,
-                                usuarios = usuariosActualizados,
-                                error = null,
-                                mensaje = respuesta.message
-                            )
-
+                        _uiState.value = _uiState.value.copy(
+                            cambiandoEstado = false,
+                            usuarios = usuariosActualizados,
+                            error = null,
+                            mensaje = respuesta.message
+                        )
                     } else {
-
-                        _uiState.value =
-                            _uiState.value.copy(
-                                cambiandoEstado = false,
-                                error =
-                                    respuesta.message
-                                        ?: "No se pudo cambiar el estado del usuario.",
-                                mensaje = null
-                            )
+                        _uiState.value = _uiState.value.copy(
+                            cambiandoEstado = false,
+                            error = respuesta.message ?: "No se pudo cambiar el estado del usuario.",
+                            mensaje = null
+                        )
                     }
                 }
                 .onFailure { excepcion ->
-
-                    _uiState.value =
-                        _uiState.value.copy(
-                            cambiandoEstado = false,
-                            error =
-                                excepcion.message
-                                    ?: "No se pudo cambiar el estado del usuario.",
-                            mensaje = null
-                        )
+                    _uiState.value = _uiState.value.copy(
+                        cambiandoEstado = false,
+                        error = excepcion.message ?: "No se pudo cambiar el estado del usuario.",
+                        mensaje = null
+                    )
                 }
         }
     }
 
     fun cambiarRol(
         usuarioId: Int,
-        rol: String
+        rol: String,
+        cargoId: Int? = null
     ) {
         viewModelScope.launch {
-
-            _uiState.value =
-                _uiState.value.copy(
-                    cambiandoRol = true,
-                    error = null,
-                    mensaje = null
-                )
+            _uiState.value = _uiState.value.copy(
+                cambiandoRol = true,
+                error = null,
+                mensaje = null
+            )
 
             repository.cambiarRol(
                 usuarioId = usuarioId,
-                rol = rol
+                rol = rol,
+                cargoId = cargoId
             )
                 .onSuccess { respuesta ->
-
                     if (respuesta.success) {
+                        val usuarioActualizado = respuesta.usuarios.firstOrNull()
 
-                        val usuarioActualizado =
-                            respuesta.usuarios.firstOrNull()
-
-                        val usuariosActualizados =
-                            if (usuarioActualizado != null) {
-
-                                _uiState.value.usuarios.map { usuario ->
-
-                                    if (usuario.id == usuarioActualizado.id) {
-                                        usuarioActualizado
-                                    } else {
-                                        usuario
-                                    }
-                                }
-
-                            } else {
-
-                                _uiState.value.usuarios
-
+                        val usuariosActualizados = if (usuarioActualizado != null) {
+                            _uiState.value.usuarios.map { usuario ->
+                                if (usuario.id == usuarioActualizado.id) usuarioActualizado else usuario
                             }
+                        } else {
+                            _uiState.value.usuarios
+                        }
 
-                        _uiState.value =
-                            _uiState.value.copy(
-                                cambiandoRol = false,
-                                usuarios = usuariosActualizados,
-                                error = null,
-                                mensaje = respuesta.message
-                            )
-
+                        _uiState.value = _uiState.value.copy(
+                            cambiandoRol = false,
+                            usuarios = usuariosActualizados,
+                            error = null,
+                            mensaje = respuesta.message
+                        )
                     } else {
-
-                        _uiState.value =
-                            _uiState.value.copy(
-                                cambiandoRol = false,
-                                error =
-                                    respuesta.message
-                                        ?: "No se pudo cambiar el rol del usuario.",
-                                mensaje = null
-                            )
+                        _uiState.value = _uiState.value.copy(
+                            cambiandoRol = false,
+                            error = respuesta.message ?: "No se pudo cambiar el rol del usuario.",
+                            mensaje = null
+                        )
                     }
                 }
                 .onFailure { excepcion ->
-
-                    _uiState.value =
-                        _uiState.value.copy(
-                            cambiandoRol = false,
-                            error =
-                                excepcion.message
-                                    ?: "No se pudo cambiar el rol del usuario.",
-                            mensaje = null
-                        )
+                    _uiState.value = _uiState.value.copy(
+                        cambiandoRol = false,
+                        error = excepcion.message ?: "No se pudo cambiar el rol del usuario.",
+                        mensaje = null
+                    )
                 }
         }
     }
@@ -245,42 +243,31 @@ class UsuarioViewModel(
         usuarioId: Int
     ) {
         viewModelScope.launch {
-
-            _uiState.value =
-                _uiState.value.copy(
-                    eliminandoUsuario = true,
-                    error = null,
-                    mensaje = null
-                )
-
-            repository.eliminarUsuario(
-                usuarioId = usuarioId
+            _uiState.value = _uiState.value.copy(
+                eliminandoUsuario = true,
+                error = null,
+                mensaje = null
             )
+
+            repository.eliminarUsuario(usuarioId = usuarioId)
                 .onSuccess {
+                    val usuariosActualizados = _uiState.value.usuarios.filter { usuario ->
+                        usuario.id != usuarioId
+                    }
 
-                    val usuariosActualizados =
-                        _uiState.value.usuarios.filter { usuario ->
-                            usuario.id != usuarioId
-                        }
-
-                    _uiState.value =
-                        _uiState.value.copy(
-                            eliminandoUsuario = false,
-                            usuarios = usuariosActualizados,
-                            error = null,
-                            mensaje = "Usuario eliminado correctamente."
-                        )
+                    _uiState.value = _uiState.value.copy(
+                        eliminandoUsuario = false,
+                        usuarios = usuariosActualizados,
+                        error = null,
+                        mensaje = "Usuario eliminado correctamente."
+                    )
                 }
                 .onFailure { excepcion ->
-
-                    _uiState.value =
-                        _uiState.value.copy(
-                            eliminandoUsuario = false,
-                            error =
-                                excepcion.message
-                                    ?: "No se pudo eliminar el usuario.",
-                            mensaje = null
-                        )
+                    _uiState.value = _uiState.value.copy(
+                        eliminandoUsuario = false,
+                        error = excepcion.message ?: "No se pudo eliminar el usuario.",
+                        mensaje = null
+                    )
                 }
         }
     }
@@ -296,20 +283,13 @@ class UsuarioViewModel(
     }
 
     fun limpiarMensaje() {
-
-        _uiState.value =
-            _uiState.value.copy(
-                mensaje = null
-            )
+        _uiState.value = _uiState.value.copy(mensaje = null)
     }
 
     fun limpiarError() {
-
-        _uiState.value =
-            _uiState.value.copy(
-                error = null
-            )
+        _uiState.value = _uiState.value.copy(error = null)
     }
+
     fun cargarRoles() {
         viewModelScope.launch {
             rolRepository.obtenerRoles()
@@ -320,6 +300,7 @@ class UsuarioViewModel(
                 }
         }
     }
+
     fun actualizarPassword(
         currentPassword: String,
         newPassword: String,
@@ -338,26 +319,21 @@ class UsuarioViewModel(
                 newPassword = newPassword,
                 newPasswordConfirmation = newPasswordConfirmation
             )
-                .onSuccess { respuesta ->
-                    val mensajeServidor = respuesta["message"] as? String
-                        ?: "Contraseña actualizada correctamente."
-
+                .onSuccess { mensajeServidor ->
                     _uiState.value = _uiState.value.copy(
-                        cambiandoPassword = false, // 👈 APAGA LA CARGA
+                        cambiandoPassword = false,
                         mensaje = mensajeServidor,
                         error = null
                     )
                     onExito()
                 }
                 .onFailure { excepcion ->
-                    // ⚠️ AQUÍ ESTABA EL DETALLE: Si fallaba, el botón se quedaba bloqueado
                     _uiState.value = _uiState.value.copy(
-                        cambiandoPassword = false, // 👈 ¡CLAVE! Apaga la carga también en el error
+                        cambiandoPassword = false,
                         error = excepcion.message ?: "No se pudo actualizar la contraseña.",
                         mensaje = null
                     )
                 }
         }
     }
-
 }

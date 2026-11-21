@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// Lista fija de los 12 meses para garantizar opciones inmediatas en la UI
 val MESES_POR_DEFECTO = listOf(
     MesDto(1, "Enero"),
     MesDto(2, "Febrero"),
@@ -37,9 +36,9 @@ data class ReportesUiState(
     val descargandoPdf: Boolean = false,
     val descargandoExcel: Boolean = false,
     val aniosDisponibles: List<Int> = listOf(2026, 2025, 2024),
-    val mesesDisponibles: List<MesDto> = MESES_POR_DEFECTO, // Precargados por defecto
+    val mesesDisponibles: List<MesDto> = MESES_POR_DEFECTO,
     val anioSeleccionado: Int = 2026,
-    val mesSeleccionado: Int? = null, // null representa "Todo el año"
+    val mesSeleccionado: Int? = null,
     val resumen: ResumenDataDto? = null,
     val error: String? = null
 )
@@ -50,10 +49,6 @@ class ReportesViewModel(
 
     private val _uiState = MutableStateFlow(ReportesUiState())
     val uiState: StateFlow<ReportesUiState> = _uiState.asStateFlow()
-
-    init {
-        cargarFiltrosIniciales()
-    }
 
     fun cargarFiltrosIniciales() {
         viewModelScope.launch {
@@ -75,6 +70,7 @@ class ReportesViewModel(
                             mesSeleccionado = null
                         )
                     }
+                    cargarResumen()
                 } else {
                     Log.e("REPORTES", "Error filtros: ${res.code()} - ${res.errorBody()?.string()}")
                     _uiState.update {
@@ -92,8 +88,6 @@ class ReportesViewModel(
                         error = e.localizedMessage
                     )
                 }
-            } finally {
-                cargarResumen()
             }
         }
     }

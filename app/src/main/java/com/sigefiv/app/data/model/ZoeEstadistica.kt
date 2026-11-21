@@ -19,6 +19,15 @@ data class ZoeFoto(
     val url: String? = null,
     val path: String? = null
 )
+data class ZoeReporteVecinal(
+    val id: Long = 0L,
+    val reporte: String = "",
+    val estado: String = "Pendiente",
+    @com.google.gson.annotations.SerializedName("fecha_envio")
+    val fechaEnvio: String = "",
+    @com.google.gson.annotations.SerializedName("imagen_url")
+    val imagenUrl: String? = null
+)
 
 data class ZoeEmprendimiento(
     val id: Int? = null,
@@ -59,5 +68,6 @@ data class ZoeEstadistica(
 
     // Emprendimientos publicados encontrados por ZOE
     val total: Int? = null,
-    val emprendimientos: List<ZoeEmprendimiento> = emptyList()
+    val emprendimientos: List<ZoeEmprendimiento> = emptyList(),
+    val reportes: List<ZoeReporteVecinal>? = null
 )

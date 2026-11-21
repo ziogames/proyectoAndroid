@@ -174,7 +174,7 @@ fun AppDrawer(
 
                         Surface(
                             color = if (darkTheme) {
-                                Color.White.copy(alpha = 0.2f)
+                                Color(0xFF065F46) // Mismo verde esmeralda oscuro que "Panel principal"
                             } else {
                                 Color(0xFF15803D)
                             },
@@ -182,7 +182,11 @@ fun AppDrawer(
                         ) {
                             Text(
                                 text = rol,
-                                color = Color.White,
+                                color = if (darkTheme) {
+                                    Color(0xFFA7F3D0) // Mismo verde menta claro del ítem activo
+                                } else {
+                                    Color.White
+                                },
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
                                 modifier = Modifier.padding(

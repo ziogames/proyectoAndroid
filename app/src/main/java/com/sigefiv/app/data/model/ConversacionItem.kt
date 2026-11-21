@@ -23,5 +23,6 @@ typealias ZoeMensajeDto = ZoeMensajeBackendDto
 data class ZoeMensajeBackendDto(
     val texto: String,
     val esUsuario: Boolean,
-    val hora: String
+    val hora: String,
+    val calificacion: Boolean? = null
 )

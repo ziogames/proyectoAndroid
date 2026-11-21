@@ -8,7 +8,9 @@ import com.sigefiv.app.data.model.FcmPreferenciaRequest
 import com.sigefiv.app.data.model.FcmPreferenciaResponse
 import com.sigefiv.app.data.model.FcmTokenRequest
 import com.sigefiv.app.data.model.FcmTokenResponse
+import com.sigefiv.app.data.model.ForgotPasswordRequest
 import com.sigefiv.app.data.model.GoogleLoginRequest
+import com.sigefiv.app.data.model.HistorialResponse
 import com.sigefiv.app.data.model.LoginRequest
 import com.sigefiv.app.data.model.LoginResponse
 import com.sigefiv.app.data.model.MovimientoRequest
@@ -21,11 +23,14 @@ import com.sigefiv.app.data.model.PeriodoDetalleResponse
 import com.sigefiv.app.data.model.PeriodoMovimientosResponse
 import com.sigefiv.app.data.model.PeriodoResponse
 import com.sigefiv.app.data.model.PeriodosResponse
+import com.sigefiv.app.data.model.ResetPasswordRequest
+import com.sigefiv.app.data.model.SimpleApiResponse
 import com.sigefiv.app.data.model.ZoeAIConsultaRequest
 import com.sigefiv.app.data.model.ZoeConsultaRequest
 import com.sigefiv.app.data.model.ZoeConsultaResponse
 import com.sigefiv.app.data.model.ZoeVozResponse
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -36,10 +41,6 @@ import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
-
-import okhttp3.RequestBody
-import com.sigefiv.app.data.model.HistorialResponse
-
 
 interface AuthApi {
 
@@ -59,8 +60,18 @@ interface AuthApi {
 
     @POST("auth/facebook")
     suspend fun loginConFacebook(
-        @Body request: Map<String, String> // O el mismo DTO que uses para loginConGoogle
+        @Body request: Map<String, String>
     ): LoginResponse
+
+    @POST("forgot-password")
+    suspend fun enviarCodigoRecuperacion(
+        @Body request: ForgotPasswordRequest
+    ): Response<SimpleApiResponse>
+
+    @POST("reset-password")
+    suspend fun restablecerContrasena(
+        @Body request: ResetPasswordRequest
+    ): Response<SimpleApiResponse>
 
     @GET("user")
     suspend fun user(): LoginResponse
@@ -117,14 +128,14 @@ interface AuthApi {
     @Multipart
     @POST("movimientos")
     suspend fun crearMovimiento(
-        @Part("fecha") fecha: okhttp3.RequestBody,
-        @Part("categoria_id") categoriaId: okhttp3.RequestBody,
-        @Part("concepto") concepto: okhttp3.RequestBody,
-        @Part("persona") persona: okhttp3.RequestBody?,
-        @Part("forma_pago") formaPago: okhttp3.RequestBody,
-        @Part("monto") monto: okhttp3.RequestBody,
-        @Part("referencia") referencia: okhttp3.RequestBody?,
-        @Part("observaciones") observaciones: okhttp3.RequestBody?,
+        @Part("fecha") fecha: RequestBody,
+        @Part("categoria_id") categoriaId: RequestBody,
+        @Part("concepto") concepto: RequestBody,
+        @Part("persona") persona: RequestBody?,
+        @Part("forma_pago") formaPago: RequestBody,
+        @Part("monto") monto: RequestBody,
+        @Part("referencia") referencia: RequestBody?,
+        @Part("observaciones") observaciones: RequestBody?,
         @Part comprobante: MultipartBody.Part?
     ): MovimientoResponse
 
@@ -201,15 +212,7 @@ interface AuthApi {
 
     /**
      * Nuevo cerebro de ZOE:
-     *
-     * Android
-     *    ↓
-     * Laravel
-     *    ↓
-     * Python + FastAPI
-     *    ↓
-     * Qwen
-     *
+     * Android -> Laravel -> Python + FastAPI -> Qwen
      * Este endpoint es independiente del ZOE actual.
      */
     @POST("zoe-ai/chat")
@@ -278,8 +281,7 @@ interface AuthApi {
     suspend fun marcarTodasNotificacionesLeidas(): Response<Unit>
 
     /**
-     * Envía una notificación a todos los vecinos
-     * o a un usuario específico.
+     * Envía una notificación a todos los vecinos o a un usuario específico.
      */
     @POST("notificaciones/enviar")
     suspend fun enviarNotificacion(

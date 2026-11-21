@@ -1,160 +1,120 @@
 package com.sigefiv.app.data.api
 
 import android.content.Context
+import com.sigefiv.app.ServidorConfig
 import com.sigefiv.app.data.SessionManager
+import okhttp3.ConnectionPool
+import okhttp3.Dns
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.net.Inet4Address
+import java.net.InetAddress
 import java.util.concurrent.TimeUnit
-import com.sigefiv.app.ServidorConfig
 
 object ApiClient {
-
-    // private const val BASE_URL =
-    //  "http://10.0.2.2:8080/api/"
 
     private val BASE_URL: String
         get() = ServidorConfig.API_BASE_URL
 
-    private fun createRetrofit(
-        context: Context
-    ): Retrofit {
+    @Volatile
+    private var sharedHttpClient: OkHttpClient? = null
 
-        val sessionManager =
-            SessionManager(context)
+    @Volatile
+    private var retrofitInstance: Retrofit? = null
 
-        val httpClient =
-            OkHttpClient.Builder()
-                .addInterceptor(
-                    AuthInterceptor(
-                        sessionManager // 🔥 Solucionado: solo pasamos el sessionManager como corresponde
-                    )
-                )
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(15, TimeUnit.SECONDS)
-                .writeTimeout(15, TimeUnit.SECONDS)
+    @Volatile
+    private var lastBaseUrl: String? = null
+
+    // Prioriza IPv4 para evitar bloqueos en celulares físicos con Wi-Fi / IPv6 parcial
+    private val ipv4FirstDns = object : Dns {
+        override fun lookup(hostname: String): List<InetAddress> {
+            val addresses = Dns.SYSTEM.lookup(hostname)
+            val ipv4 = addresses.filterIsInstance<Inet4Address>()
+            return ipv4.ifEmpty { addresses }
+        }
+    }
+
+    /**
+     * Instancia única de OkHttpClient compartida por toda la aplicación.
+     * Reutiliza el mismo túnel TLS/HTTPS aunque cambie el usuario autenticado.
+     */
+    fun getHttpClient(context: Context): OkHttpClient {
+        return sharedHttpClient ?: synchronized(this) {
+            sharedHttpClient ?: OkHttpClient.Builder()
+                .dns(ipv4FirstDns)
+                .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
+                .addInterceptor(AuthInterceptor(SessionManager(context.applicationContext)))
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
                 .build()
-
-        return Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(httpClient)
-            .addConverterFactory(
-                GsonConverterFactory.create()
-            )
-            .build()
+                .also { sharedHttpClient = it }
+        }
     }
 
-    /**
-    - Cliente utilizado actualmente para autenticación.
-    - Se mantiene para no romper el login existente.
-     */
-    fun create(
-        context: Context
-    ): AuthApi {
+    private fun getRetrofit(context: Context): Retrofit {
+        val currentUrl = BASE_URL
+        val cached = retrofitInstance
+        if (cached != null && lastBaseUrl == currentUrl) {
+            return cached
+        }
 
-        return createRetrofit(context)
-            .create(AuthApi::class.java)
+        return synchronized(this) {
+            val recheck = retrofitInstance
+            if (recheck != null && lastBaseUrl == currentUrl) {
+                recheck
+            } else {
+                Retrofit.Builder()
+                    .baseUrl(currentUrl)
+                    .client(getHttpClient(context))
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build()
+                    .also {
+                        retrofitInstance = it
+                        lastBaseUrl = currentUrl
+                    }
+            }
+        }
     }
 
-    /**
-    - Cliente para la API de Asambleas.
-     */
-    fun asambleaApi(
-        context: Context
-    ): AsambleaApi {
+    fun create(context: Context): AuthApi =
+        getRetrofit(context).create(AuthApi::class.java)
 
-        return createRetrofit(context)
-            .create(AsambleaApi::class.java)
-    }
+    fun asambleaApi(context: Context): AsambleaApi =
+        getRetrofit(context).create(AsambleaApi::class.java)
 
-    /**
-    - Cliente para la API del Chat Vecinal.
-     */
-    fun chatApi(
-        context: Context
-    ): ChatApi {
+    fun chatApi(context: Context): ChatApi =
+        getRetrofit(context).create(ChatApi::class.java)
 
-        return createRetrofit(context)
-            .create(ChatApi::class.java)
-    }
+    fun usuarioApi(context: Context): UsuarioApi =
+        getRetrofit(context).create(UsuarioApi::class.java)
 
-    /**
-    - Cliente para la API de Usuarios.
-     */
-    fun usuarioApi(
-        context: Context
-    ): UsuarioApi {
+    fun cajaApi(context: Context): CajaApi =
+        getRetrofit(context).create(CajaApi::class.java)
 
-        return createRetrofit(context)
-            .create(UsuarioApi::class.java)
-    }
+    fun rolApi(context: Context): RolApi =
+        getRetrofit(context).create(RolApi::class.java)
 
-    /**
-    - Cliente para la API de Caja.
-     */
-    fun cajaApi(
-        context: Context
-    ): CajaApi {
+    fun actividadApi(context: Context): ActividadApi =
+        getRetrofit(context).create(ActividadApi::class.java)
 
-        return createRetrofit(context)
-            .create(CajaApi::class.java)
-    }
+    fun emprendimientoApi(context: Context): EmprendimientoApi =
+        getRetrofit(context).create(EmprendimientoApi::class.java)
 
-    /**
-    - Cliente para la API de Roles.
-     */
-    fun rolApi(
-        context: Context
-    ): RolApi {
+    fun zoeApi(context: Context): ZoeApi =
+        getRetrofit(context).create(ZoeApi::class.java)
 
-        return createRetrofit(context)
-            .create(RolApi::class.java)
-    }
+    fun bitacoraApi(context: Context): ApiService =
+        getRetrofit(context).create(ApiService::class.java)
 
-    /**
-    - Cliente para la API de Actividad de Usuarios.
-     */
-    fun actividadApi(
-        context: Context
-    ): ActividadApi {
-        return createRetrofit(context)
-            .create(ActividadApi::class.java)
-    }
+    fun incidenciaApi(context: Context): IncidenciaApiService =
+        getRetrofit(context).create(IncidenciaApiService::class.java)
 
-    /**
-    - Cliente para la API de Emprendimientos.
-     */
-    fun emprendimientoApi(context: Context): EmprendimientoApi {
-        return createRetrofit(context).create(EmprendimientoApi::class.java)
-    }
+    fun configuracionApi(context: Context): ConfiguracionApi =
+        getRetrofit(context).create(ConfiguracionApi::class.java)
 
-    /**
-    - Cliente para la API de ZOE (Asistente e Historial).
-     */
-    fun zoeApi(context: Context): ZoeApi {
-        return createRetrofit(context).create(ZoeApi::class.java)
-    }
-    /**
-     * Cliente para la API de Bitácora del Sistema.
-     */
-    fun bitacoraApi(context: Context): ApiService {
-        return createRetrofit(context).create(ApiService::class.java)
-    }
-    /**
-     * Cliente para la API de Incidencias.
-     */
-    fun incidenciaApi(context: Context): IncidenciaApiService {
-        return createRetrofit(context).create(IncidenciaApiService::class.java)
-    }
-    fun configuracionApi(context: Context): ConfiguracionApi {
-        return createRetrofit(context).create(ConfiguracionApi::class.java)
-    }
-    /**
-     * Cliente para la API de Reportes y Balances (JSON, PDF y Excel).
-     */
-    fun reportesApi(context: Context): ReportesApiService {
-        return createRetrofit(context)
-            .create(ReportesApiService::class.java)
-    }
-
+    fun reportesApi(context: Context): ReportesApiService =
+        getRetrofit(context).create(ReportesApiService::class.java)
 }

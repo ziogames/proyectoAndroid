@@ -247,7 +247,10 @@ fun AppNavigation(
     val configuracionViewModel = remember { ConfiguracionViewModel(configuracionRepository) }
     val configUiState by configuracionViewModel.uiState.collectAsState()
 
+    val esAdmin = usuarioPerfil?.rol?.trim()?.equals("Administrador", ignoreCase = true) == true
+
     fun puede(permiso: String): Boolean {
+        if (esAdmin) return true
         return permisosUsuario.any { it.trim().equals(permiso, ignoreCase = true) }
     }
 
@@ -552,6 +555,8 @@ fun AppNavigation(
 
                     AppScreen.SIGI -> {
                         SigiScreen(
+                            nombreUsuario = usuarioPerfil?.seudonimo ?: usuarioPerfil?.name,
+                            fotoUsuario = usuarioPerfil?.foto,
                             onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
                             onMovimientosClick = {
                                 if (puedeVerMovimientos) {
@@ -1220,9 +1225,12 @@ fun AppNavigation(
                         val state by emprendimientoFormViewModel.state.collectAsState()
 
                         val imagePickerLauncher = rememberLauncherForActivityResult(
-                            contract = ActivityResultContracts.GetContent()
-                        ) { uri: Uri? ->
-                            uri?.let { selectedUri ->
+                            contract = androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia(
+                                maxItems = 5
+                            )
+                        ) { uris: List<Uri> ->
+                            val cuposDisponibles = (5 - state.fotos.size).coerceAtLeast(0)
+                            uris.take(cuposDisponibles).forEach { selectedUri ->
                                 emprendimientoFormViewModel.onAction(
                                     EmprendimientoFormAction.AddPhoto(selectedUri.toString())
                                 )
@@ -1233,7 +1241,11 @@ fun AppNavigation(
                             state = state,
                             onAction = { action -> emprendimientoFormViewModel.onAction(action) },
                             onPickImageClick = {
-                                imagePickerLauncher.launch("image/*")
+                                imagePickerLauncher.launch(
+                                    androidx.activity.result.PickVisualMediaRequest(
+                                        androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
+                                    )
+                                )
                             },
                             onNavigateBack = { retroceder() }
                         )
@@ -1455,20 +1467,23 @@ fun AppNavigation(
                         )
                     }
                     AppScreen.REPORTES -> {
-                        ReportesScreen(
-                            viewModel = reportesViewModel,
-                            darkTheme = darkTheme,
-                            onOpenDrawer = { scope.launch { drawerState.open() } },
-
-                            onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
-                            onAsambleasClick = { abrirAsamblea() },
-                            onEmprendimientosClick = { navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS) },
-                            onPeriodosClick = { abrirPeriodos() },
-                            onMiCuentaClick = {
-                                perfilViewModel.cargarPerfil()
-                                navegarA(AppScreen.PERFIL)
-                            }
-                        )
+                        if (puede("reportes.index")) {
+                            ReportesScreen(
+                                viewModel = reportesViewModel,
+                                darkTheme = darkTheme,
+                                onOpenDrawer = { scope.launch { drawerState.open() } },
+                                onInicioClick = { navegarA(AppScreen.DASHBOARD, limpiarPila = true) },
+                                onAsambleasClick = { abrirAsamblea() },
+                                onEmprendimientosClick = { navegarA(AppScreen.DIRECTORIO_EMPRENDIMIENTOS) },
+                                onPeriodosClick = { abrirPeriodos() },
+                                onMiCuentaClick = {
+                                    perfilViewModel.cargarPerfil()
+                                    navegarA(AppScreen.PERFIL)
+                                }
+                            )
+                        } else {
+                            LaunchedEffect(Unit) { retroceder() }
+                        }
                     }
                 }
             }
@@ -1555,6 +1570,8 @@ fun AppNavigation(
                         .fillMaxHeight(0.95f)
                 ) {
                     SigiScreen(
+                        nombreUsuario = usuarioPerfil?.seudonimo ?: usuarioPerfil?.name,
+                        fotoUsuario = usuarioPerfil?.foto,
                         onBackClick = { mostrarZoeModal = false },
                         onOpenDrawer = {}
                     )

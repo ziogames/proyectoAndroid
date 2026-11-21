@@ -8,7 +8,6 @@ import android.media.AudioRecord
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
@@ -28,6 +27,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,8 +45,12 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import com.sigefiv.app.data.SessionManager
+import java.util.Calendar
+import kotlinx.coroutines.flow.first
 
 data class ZoeMensaje(
+    val id: String = UUID.randomUUID().toString(),
     val texto: String,
     val esUsuario: Boolean,
     val tipoMovimiento: String? = null,
@@ -55,7 +59,8 @@ data class ZoeMensaje(
     val hora: String = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date()),
     val tipo: String? = null,
     val asambleaId: Long? = null,
-    val asambleaEstadisticas: com.sigefiv.app.screens.chat.model.AsambleaEstadisticasDto? = null
+    val asambleaEstadisticas: com.sigefiv.app.screens.chat.model.AsambleaEstadisticasDto? = null,
+    val calificacion: Boolean? = null // true = pulgar arriba, false = pulgar abajo, null = sin voto
 )
 
 data class AsambleaActivaReporte(
@@ -92,7 +97,7 @@ class ZoeViewModel(
     */
     private val _historialConversaciones = MutableStateFlow<List<ConversacionItem>>(emptyList())
     val historialConversaciones: StateFlow<List<ConversacionItem>> = _historialConversaciones.asStateFlow()
-
+    private val sessionManager = SessionManager(appContext)
     fun cargarHistorial() {
         viewModelScope.launch {
             try {
@@ -209,6 +214,42 @@ class ZoeViewModel(
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+
+    /*
+    |--------------------------------------------------------------------------
+    | CALIFICACIÓN DE RESPUESTAS (PULGAR ARRIBA / ABAJO)
+    |--------------------------------------------------------------------------
+    */
+    fun calificarMensaje(mensajeId: String, esPositivo: Boolean?) {
+        val mensajeObjetivo = _mensajes.value.find { it.id == mensajeId } ?: return
+
+        _mensajes.value = _mensajes.value.map { msg ->
+            if (msg.id == mensajeId) {
+                msg.copy(calificacion = esPositivo)
+            } else {
+                msg
+            }
+        }
+
+        viewModelScope.launch {
+            val votoTexto = when (esPositivo) {
+                true -> "positivo"
+                false -> "negativo"
+                null -> "ninguno"
+            }
+
+            val respuesta = zoeRepository.calificarMensaje(
+                mensajeTexto = mensajeObjetivo.texto,
+                voto = votoTexto
+            )
+
+            if (respuesta?.isSuccessful == true) {
+                Log.d("ZOE_FEEDBACK", "Calificación [$votoTexto] guardada en el servidor")
+            } else {
+                Log.w("ZOE_FEEDBACK", "No se pudo sincronizar la calificación con el servidor")
+            }
+        }
+    }
 
     private fun inicializarVoz() {
         tts = TextToSpeech(appContext) { status ->
@@ -446,72 +487,49 @@ class ZoeViewModel(
     |--------------------------------------------------------------------------
     */
     fun enviarEventoSilencioso(mensaje: String) {
-        val consulta = mensaje.trim()
-        if (consulta.isEmpty() || _cargando.value) return
+        if (mensaje == "evento_inicio_sesion") {
+            mostrarSaludoAleatorioLocal()
+        }
+    }
 
-        _error.value = null
+    fun iniciarNuevaConversacion() {
+        _mensajes.value = emptyList()
+        mostrarSaludoAleatorioLocal()
+    }
 
+    private fun mostrarSaludoAleatorioLocal() {
         viewModelScope.launch {
-            _cargando.value = true
-            MascotaControlador.evento(MascotaEvento.ZOE_PENSANDO)
+            val seudonimo = sessionManager.seudonimo.first()?.trim().orEmpty()
+            val nombreCompleto = sessionManager.nombre.first()?.trim().orEmpty()
+            val primerNombre = nombreCompleto.split(" ").firstOrNull().orEmpty()
 
-            try {
-                val respuesta = zoeRepository.consultar(consulta)
-
-                if (respuesta.success) {
-                    val respuestaTexto = respuesta.respuesta
-                        ?.trim()
-                        ?.replace("**", "")
-                        ?.replace("__", "")
-                        ?.takeIf { it.isNotEmpty() }
-                        ?: "ZOE recibió la consulta, pero no devolvió un mensaje."
-
-                    val estadisticaZoe: ZoeEstadistica? = respuesta.estadistica
-                        ?.takeIf { it.isJsonObject }
-                        ?.let {
-                            try {
-                                com.google.gson.Gson().fromJson(it, ZoeEstadistica::class.java)
-                            } catch (e: Exception) {
-                                null
-                            }
-                        }
-
-                    _mensajes.value = _mensajes.value + ZoeMensaje(
-                        texto = respuestaTexto,
-                        esUsuario = false,
-                        tipoMovimiento = null,
-                        estadistica = estadisticaZoe
-                    )
-
-                    _cargando.value = false
-                    MascotaControlador.evento(MascotaEvento.ZOE_RESPONDIENDO)
-                    delay(1500)
-                    MascotaControlador.normal()
-                    cargarHistorial()
-                } else {
-                    MascotaControlador.evento(MascotaEvento.ERROR)
-                    val mensajeError = respuesta.message?.trim()?.takeIf { it.isNotEmpty() }
-                        ?: respuesta.mensaje?.trim()?.takeIf { it.isNotEmpty() }
-                        ?: "No fue posible procesar el inicio de sesión."
-
-                    _error.value = mensajeError
-                    _mensajes.value = _mensajes.value + ZoeMensaje(texto = mensajeError, esUsuario = false)
-                    delay(1500)
-                    MascotaControlador.normal()
-                }
-            } catch (e: Exception) {
-                Log.e("ZOE_DEBUG", "ERROR EVENTO SILENCIOSO: ${e.message}", e)
-                MascotaControlador.evento(MascotaEvento.ERROR)
-
-                val mensajeError = "No se pudo conectar con ZOE. Verifica que el servidor SIGEFIV esté funcionando."
-                _error.value = mensajeError
-                _mensajes.value = _mensajes.value + ZoeMensaje(texto = mensajeError, esUsuario = false)
-
-                delay(1500)
-                MascotaControlador.normal()
-            } finally {
-                _cargando.value = false
+            val nombreSaludo = when {
+                seudonimo.isNotEmpty() -> ", $seudonimo"
+                primerNombre.isNotEmpty() -> ", $primerNombre"
+                else -> ""
             }
+
+            val horaDelDia = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+            val saludoHorario = when (horaDelDia) {
+                in 5..11 -> "¡Buenos días"
+                in 12..18 -> "¡Buenas tardes"
+                else -> "¡Buenas noches"
+            }
+
+            val saludos = listOf(
+                "$saludoHorario$nombreSaludo! 👋 Soy ZOE, tu asistente vecinal. ¿En qué te ayudo hoy?",
+                "¡Hola$nombreSaludo! 😊 ¿Qué consulta tienes hoy sobre la comunidad o tus finanzas?",
+                "$saludoHorario$nombreSaludo! 🤖 Estoy lista para ayudarte con movimientos, asambleas o reportes. ¿Por dónde empezamos?",
+                "¡Qué gusto saludarte$nombreSaludo! ✨ ¿Necesitas revisar el saldo en caja, el período actual o hacer algún reporte?",
+                "¡Hola$nombreSaludo! 👋 Cuéntame, ¿qué información necesitas revisar en SIGEFIV?"
+            )
+
+            _mensajes.value = listOf(
+                ZoeMensaje(
+                    texto = saludos.random(),
+                    esUsuario = false
+                )
+            )
         }
     }
 
@@ -894,7 +912,8 @@ class ZoeViewModel(
                                 esUsuario = dto.esUsuario,
                                 hora = dto.hora,
                                 tipo = if (esEncuesta) "encuesta_asamblea" else null,
-                                asambleaId = asambleaIdDetectado
+                                asambleaId = asambleaIdDetectado,
+                                calificacion = dto.calificacion // 👈 Mapea el voto guardado
                             )
                         }
                 }
@@ -906,16 +925,14 @@ class ZoeViewModel(
         }
     }
 
-    fun iniciarNuevaConversacion() {
-        _mensajes.value = emptyList()
-        enviarEventoSilencioso("evento_inicio_sesion")
-    }
+
 
     fun enviarMensajeConMultimedia(context: Context, uri: Uri?, textoMensaje: String) {
         val mensajeTextoLimpio = textoMensaje.trim()
         if (mensajeTextoLimpio.isBlank() && uri == null) return
 
         viewModelScope.launch {
+            var archivoTemporal: File? = null
             try {
                 _cargando.value = true
                 MascotaControlador.evento(MascotaEvento.ZOE_PENSANDO)
@@ -930,16 +947,23 @@ class ZoeViewModel(
                 var bodyTexto: RequestBody? = null
 
                 if (uri != null) {
-                    val inputStream = context.contentResolver.openInputStream(uri)
-                    val archivoTemporal = File(context.cacheDir, "zoe_upload_${System.currentTimeMillis()}.tmp")
-
-                    inputStream?.use { input ->
-                        archivoTemporal.outputStream().use { output -> input.copyTo(output) }
+                    val tipoMime = context.contentResolver.getType(uri) ?: "image/jpeg"
+                    val extension = when {
+                        tipoMime.contains("png", ignoreCase = true) -> "png"
+                        tipoMime.contains("webp", ignoreCase = true) -> "webp"
+                        else -> "jpg"
                     }
 
-                    val tipoMime = context.contentResolver.getType(uri) ?: "image/jpeg"
-                    val requestFile = archivoTemporal.asRequestBody(tipoMime.toMediaTypeOrNull())
-                    parteArchivo = MultipartBody.Part.createFormData("archivo", archivoTemporal.name, requestFile)
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    val tempFile = File(context.cacheDir, "zoe_upload_${System.currentTimeMillis()}.$extension")
+                    archivoTemporal = tempFile
+
+                    inputStream?.use { input ->
+                        tempFile.outputStream().use { output -> input.copyTo(output) }
+                    }
+
+                    val requestFile = tempFile.asRequestBody(tipoMime.toMediaTypeOrNull())
+                    parteArchivo = MultipartBody.Part.createFormData("archivo", tempFile.name, requestFile)
                 }
 
                 if (mensajeTextoLimpio.isNotBlank()) {
@@ -993,6 +1017,7 @@ class ZoeViewModel(
                 delay(1500)
                 MascotaControlador.normal()
             } finally {
+                archivoTemporal?.delete()
                 _cargando.value = false
             }
         }
@@ -1059,7 +1084,6 @@ class ZoeViewModel(
                         esUsuario = false
                     )
 
-                    // Sincronizar el BottomSheet superior con el nuevo voto emitido
                     actualizarEstadisticasAsamblea()
 
                     MascotaControlador.evento(MascotaEvento.ZOE_RESPONDIENDO)

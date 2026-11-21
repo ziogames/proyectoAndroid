@@ -43,6 +43,12 @@ data class EstadisticasAsambleaActivaDto(
     val estadisticas: AsambleaEstadisticasDto? = null
 )
 
+data class CalificarMensajeRequest(
+    val usuario_id: Long,
+    val mensaje_texto: String,
+    val voto: String // "positivo", "negativo", "ninguno"
+)
+
 interface ZoeApi {
     @GET("zoe/historial")
     suspend fun obtenerHistorialZoe(): HistorialResponse
@@ -70,4 +76,10 @@ interface ZoeApi {
     // 3. Obtiene el reporte y estadísticas de la asamblea activa para el chip y bottom sheet
     @GET("zoe/asambleas/estadisticas-activa")
     suspend fun obtenerEstadisticasAsambleaActiva(): Response<EstadisticasAsambleaActivaDto>
+
+    // 4. Registra la calificación del usuario (pulgar arriba / abajo) sobre una respuesta de ZOE
+    @POST("zoe/calificar")
+    suspend fun calificarMensaje(
+        @Body request: CalificarMensajeRequest
+    ): Response<SimpleSuccessResponse>
 }

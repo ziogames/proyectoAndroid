@@ -50,8 +50,8 @@ fun EmprendimientoFormScreen(
             onAction(EmprendimientoFormAction.ClearMessages)
         }
         state.successMessage?.let {
-            snackbarHostState.showSnackbar(it)
             onAction(EmprendimientoFormAction.ClearMessages)
+            onNavigateBack()
         }
     }
 

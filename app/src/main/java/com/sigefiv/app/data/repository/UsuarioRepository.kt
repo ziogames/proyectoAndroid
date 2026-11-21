@@ -1,7 +1,10 @@
 package com.sigefiv.app.data.repository
 
 import com.sigefiv.app.data.api.UsuarioApi
+import com.sigefiv.app.data.model.CambiarEstadoResponse
+import com.sigefiv.app.data.model.CrearUsuarioRequest
 import com.sigefiv.app.data.model.UsuariosResponse
+import org.json.JSONObject
 import retrofit2.Response
 
 class UsuarioRepository(
@@ -13,6 +16,28 @@ class UsuarioRepository(
     ): Result<UsuariosResponse> {
         return ejecutar {
             api.obtenerUsuarios(buscar)
+        }
+    }
+
+    suspend fun crearUsuario(
+        name: String,
+        email: String,
+        role: String,
+        cargoId: Int?,
+        password: String,
+        passwordConfirmation: String
+    ): Result<CambiarEstadoResponse> {
+        return ejecutar {
+            api.crearUsuario(
+                CrearUsuarioRequest(
+                    name = name,
+                    email = email,
+                    role = role,
+                    cargoId = cargoId,
+                    password = password,
+                    passwordConfirmation = passwordConfirmation
+                )
+            )
         }
     }
 
@@ -42,14 +67,20 @@ class UsuarioRepository(
 
     suspend fun cambiarRol(
         usuarioId: Int,
-        rol: String
+        rol: String,
+        cargoId: Int? = null
     ): Result<UsuariosResponse> {
+        val datos = buildMap<String, String> {
+            put("rol", rol)
+            if (cargoId != null) {
+                put("cargo_id", cargoId.toString())
+            }
+        }
+
         val resultado = ejecutar {
             api.cambiarRol(
                 usuarioId = usuarioId,
-                datos = mapOf(
-                    "rol" to rol
-                )
+                datos = datos
             )
         }
 
@@ -72,16 +103,17 @@ class UsuarioRepository(
         }
     }
 
-    suspend fun marcarBienvenidaVista(): Result<Map<String, Any>> {
+    suspend fun marcarBienvenidaVista(): Result<Unit> {
         return ejecutar {
             api.marcarBienvenidaVista()
-        }
+        }.map { }
     }
+
     suspend fun actualizarPassword(
         currentPassword: String,
         newPassword: String,
         newPasswordConfirmation: String
-    ): Result<Map<String, Any>> {
+    ): Result<String> {
         val parametros = mapOf(
             "current_password" to currentPassword,
             "new_password" to newPassword,
@@ -89,8 +121,15 @@ class UsuarioRepository(
         )
         return ejecutar {
             api.actualizarPassword(parametros)
+        }.map { body ->
+            try {
+                JSONObject(body.string()).optString("message", "Contraseña actualizada correctamente.")
+            } catch (_: Exception) {
+                "Contraseña actualizada correctamente."
+            }
         }
     }
+
     private suspend fun <T> ejecutar(
         llamada: suspend () -> Response<T>
     ): Result<T> {
@@ -108,6 +147,9 @@ class UsuarioRepository(
                     )
                 }
             } else {
+                val errorBody = response.errorBody()?.string()
+                val mensajeServidor = extraerMensajeError(errorBody)
+
                 when (response.code()) {
                     401 -> Result.failure(
                         Exception("La sesión ha expirado.")
@@ -115,25 +157,25 @@ class UsuarioRepository(
 
                     403 -> Result.failure(
                         Exception(
-                            "No tienes permiso para realizar esta acción."
+                            mensajeServidor ?: "No tienes permiso para realizar esta acción."
                         )
                     )
 
                     404 -> Result.failure(
                         Exception(
-                            "No se encontró el usuario solicitado."
+                            mensajeServidor ?: "No se encontró el usuario solicitado."
                         )
                     )
 
                     422 -> Result.failure(
                         Exception(
-                            "No se pudo realizar la acción sobre el usuario."
+                            mensajeServidor ?: "Verifica los datos ingresados e inténtalo nuevamente."
                         )
                     )
 
                     else -> Result.failure(
                         Exception(
-                            "Error del servidor: ${response.code()}"
+                            mensajeServidor ?: "Error del servidor: ${response.code()}"
                         )
                     )
                 }
@@ -141,11 +183,27 @@ class UsuarioRepository(
         } catch (e: Exception) {
             Result.failure(
                 Exception(
-                    e.message
-                        ?: "No se pudo conectar con el servidor."
+                    e.message ?: "No se pudo conectar con el servidor."
                 )
             )
         }
     }
 
+    private fun extraerMensajeError(errorBody: String?): String? {
+        if (errorBody.isNullOrBlank()) return null
+        return try {
+            val json = JSONObject(errorBody)
+            if (json.has("errors")) {
+                val errors = json.getJSONObject("errors")
+                val firstKey = errors.keys().asSequence().firstOrNull()
+                if (firstKey != null) {
+                    val mensajes = errors.getJSONArray(firstKey)
+                    if (mensajes.length() > 0) return mensajes.getString(0)
+                }
+            }
+            json.optString("message").takeIf { it.isNotBlank() }
+        } catch (_: Exception) {
+            null
+        }
+    }
 }

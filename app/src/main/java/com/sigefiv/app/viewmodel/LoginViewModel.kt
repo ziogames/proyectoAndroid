@@ -595,8 +595,76 @@ class LoginViewModel(
             }
         }
     }
+    /*
+        |--------------------------------------------------------------------------
+        | RECUPERACIÓN DE CONTRASEÑA (CÓDIGO OTP POR CORREO)
+        |--------------------------------------------------------------------------
+        */
+    fun solicitarCodigoRecuperacion(
+        email: String,
+        onResult: (exito: Boolean, mensaje: String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val response = authRepository.enviarCodigoRecuperacion(email.trim())
+                if (response.isSuccessful) {
+                    val msg = response.body()?.message ?: "Hemos enviado un código de 6 dígitos a tu correo."
+                    onResult(true, msg)
+                } else {
+                    val errorJson = response.errorBody()?.string()
+                    val msg = try {
+                        org.json.JSONObject(errorJson ?: "")
+                            .optString("message", "No se pudo enviar el código de recuperación.")
+                    } catch (_: Exception) {
+                        "No se pudo enviar el código de recuperación."
+                    }
+                    onResult(false, msg)
+                }
+            } catch (e: IOException) {
+                onResult(false, "Sin conexión con el servidor. Revisa tu internet.")
+            } catch (e: Exception) {
+                onResult(false, "Error al solicitar el código: ${e.localizedMessage ?: "Intenta nuevamente"}")
+            }
+        }
+    }
 
+    fun restablecerContrasenaConCodigo(
+        email: String,
+        code: String,
+        password: String,
+        passwordConfirmation: String,
+        onResult: (exito: Boolean, mensaje: String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val response = authRepository.restablecerContrasena(
+                    email = email.trim(),
+                    code = code.trim(),
+                    password = password,
+                    passwordConfirmation = passwordConfirmation
+                )
+                if (response.isSuccessful) {
+                    val msg = response.body()?.message ?: "Contraseña actualizada correctamente."
+                    onResult(true, msg)
+                } else {
+                    val errorJson = response.errorBody()?.string()
+                    val msg = try {
+                        org.json.JSONObject(errorJson ?: "")
+                            .optString("message", "Código inválido o datos incorrectos.")
+                    } catch (_: Exception) {
+                        "Código inválido o datos incorrectos."
+                    }
+                    onResult(false, msg)
+                }
+            } catch (e: IOException) {
+                onResult(false, "Sin conexión con el servidor. Revisa tu internet.")
+            } catch (e: Exception) {
+                onResult(false, "Error al restablecer contraseña: ${e.localizedMessage ?: "Intenta nuevamente"}")
+            }
+        }
+    }
     fun limpiarMensaje() {
         _mensaje.value = null
     }
+
 }
