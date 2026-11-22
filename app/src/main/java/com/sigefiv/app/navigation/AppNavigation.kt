@@ -391,6 +391,7 @@ fun AppNavigation(
     }
 
     var comprobanteParaFormulario by remember { mutableStateOf<ComprobanteInterpretado?>(null) }
+    var uriParaFormulario by remember { mutableStateOf<Uri?>(null) }
 
     LaunchedEffect(asambleaIdNotificacion) {
         asambleaIdNotificacion?.let { id ->
@@ -430,6 +431,7 @@ fun AppNavigation(
     LaunchedEffect(comprobanteConfirmado) {
         comprobanteConfirmado?.let { resultado ->
             comprobanteParaFormulario = resultado
+            uriParaFormulario = comprobanteUri
             when (resultado.tipo) {
                 TipoMovimientoDetectado.INGRESO -> navegarA(AppScreen.NUEVO_INGRESO)
                 TipoMovimientoDetectado.EGRESO -> navegarA(AppScreen.NUEVO_EGRESO)
@@ -665,8 +667,12 @@ fun AppNavigation(
                             formaPagoInicial = comprobanteParaFormulario?.medioPago,
                             montoInicial = comprobanteParaFormulario?.monto,
                             referenciaInicial = comprobanteParaFormulario?.numeroOperacion,
-                            comprobanteUri = comprobanteUri,
-                            onCerrarClick = { retroceder() },
+                            comprobanteUri = uriParaFormulario,
+                            onCerrarClick = {
+                                comprobanteParaFormulario = null
+                                uriParaFormulario = null
+                                retroceder()
+                            },
                             onGuardar = { fecha, categoriaId, concepto, persona, formaPago, monto, referencia, observaciones, comprobanteUriParam ->
                                 movimientosViewModel.crearMovimiento(
                                     fecha = fecha,
@@ -680,6 +686,8 @@ fun AppNavigation(
                                     comprobanteUri = comprobanteUriParam
                                 ) { exito ->
                                     if (exito) {
+                                        comprobanteParaFormulario = null
+                                        uriParaFormulario = null
                                         dashboardViewModel.cargarDashboard()
                                         movimientosViewModel.cargarMovimientos()
                                         retroceder()
@@ -703,8 +711,12 @@ fun AppNavigation(
                             formaPagoInicial = comprobanteParaFormulario?.medioPago,
                             montoInicial = comprobanteParaFormulario?.monto,
                             referenciaInicial = comprobanteParaFormulario?.numeroOperacion,
-                            comprobanteUri = comprobanteUri,
-                            onCerrarClick = { retroceder() },
+                            comprobanteUri = uriParaFormulario,
+                            onCerrarClick = {
+                                comprobanteParaFormulario = null
+                                uriParaFormulario = null
+                                retroceder()
+                            },
                             onGuardar = { fecha, categoriaId, concepto, persona, formaPago, monto, referencia, observaciones, comprobanteUriParam ->
                                 movimientosViewModel.crearMovimiento(
                                     fecha = fecha,
@@ -718,6 +730,8 @@ fun AppNavigation(
                                     comprobanteUri = comprobanteUriParam
                                 ) { exito ->
                                     if (exito) {
+                                        comprobanteParaFormulario = null
+                                        uriParaFormulario = null
                                         dashboardViewModel.cargarDashboard()
                                         movimientosViewModel.cargarMovimientos()
                                         retroceder()

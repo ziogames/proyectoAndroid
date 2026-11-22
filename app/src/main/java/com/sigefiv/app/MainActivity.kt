@@ -577,11 +577,13 @@ fun AppSIGEFIV(
                     notificacionIdNotificacion = notificacionIdNotificacion,
                     comprobanteConfirmado = comprobanteConfirmado,
                     comprobanteUri = comprobanteUriConfirmado,
-                    onComprobanteProcesado = { comprobanteConfirmado = null },
+                    onComprobanteProcesado = {
+                        comprobanteConfirmado = null
+                        comprobanteUriConfirmado = null
+                    },
                     darkTheme = darkTheme,
                     onThemeToggle = onThemeToggle
                 )
-
                 AnimatedVisibility(
                     visible = mostrarBanner,
                     enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(animationSpec = tween(300)),

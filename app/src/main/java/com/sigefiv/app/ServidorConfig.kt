@@ -5,8 +5,8 @@ import android.os.Build
 object ServidorConfig {
 
     // Cambia a 'true' solo si necesitas probar offline con IP local
-   //private const val MODO_LOCAL = false
-    private val MODO_LOCAL: Boolean = BuildConfig.DEBUG
+   private const val MODO_LOCAL = false
+    //private val MODO_LOCAL: Boolean = BuildConfig.DEBUG
     private const val IP_PC = "192.168.1.49"
     private const val DOMINIO_PROD = "api.sigefiv.win"
 
