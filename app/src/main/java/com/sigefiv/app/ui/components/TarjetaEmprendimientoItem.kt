@@ -44,7 +44,6 @@ fun TarjetaEmprendimientoItem(
 ) {
     val context = LocalContext.current
 
-    // Detectamos el tema real desde MaterialTheme.colorScheme para evitar desajustes con el parámetro temaOscuro
     val esTemaOscuroReal = temaOscuro || MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
     val colorFondoTarjeta = if (esTemaOscuroReal) Color(0xFF1E242B) else Color.White
@@ -53,7 +52,6 @@ fun TarjetaEmprendimientoItem(
     val colorTextoPrincipal = if (esTemaOscuroReal) Color(0xFFF8FAFC) else Color(0xFF0F172A)
     val colorTextoSecundario = if (esTemaOscuroReal) Color(0xFFCBD5E1) else Color(0xFF475569)
 
-    // Lectura flexible según venga de ChatUIComponent.Emprendimiento o del modelo de ZOE
     val nombreNegocio: String
     val descripcionNegocio: String?
     val rubroEtiqueta: String?
@@ -80,7 +78,7 @@ fun TarjetaEmprendimientoItem(
         rubroEtiqueta = leerPropiedadTexto(emprendimiento, "categoria", "modalidad")
         urlOriginal = leerPropiedadTexto(emprendimiento, "imagen", "imagen_url")
             ?: leerPrimeraFotoUrl(emprendimiento, "fotos", "photos")
-        zonaAtencion = leerPropiedadTexto(emprendimiento, "zona_atencion", "attention_zone")
+        zonaAtencion = leerPropiedadTexto(emprendimiento, "zona_atencion", "attention_zone", "ubicacion")
         horarioAtencion = leerPropiedadTexto(emprendimiento, "horario", "schedule")
         telefonoLimpio = leerPropiedadTexto(emprendimiento, "telefono", "phone").orEmpty().trim()
         val flagWhatsapp = leerPropiedadBooleana(emprendimiento, "show_whatsapp", "showWhatsapp") ?: true
@@ -98,12 +96,12 @@ fun TarjetaEmprendimientoItem(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // 1. 📸 FOTO PRINCIPAL DEL NEGOCIO (con respaldo si falla o no hay foto)
+            // 1. FOTO PRINCIPAL DEL NEGOCIO
             if (!fotoUrl.isNullOrBlank() && !falloCargaImagen) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp)
+                        .height(140.dp)
                         .background(colorCajaInfo)
                 ) {
                     AsyncImage(
@@ -130,6 +128,8 @@ fun TarjetaEmprendimientoItem(
                                 color = Color(0xFF4ADE80),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 letterSpacing = 0.5.sp
                             )
@@ -138,7 +138,7 @@ fun TarjetaEmprendimientoItem(
                 }
             }
 
-            // 2. 📝 CUERPO DE DETALLES
+            // 2. CUERPO DE DETALLES
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -152,7 +152,7 @@ fun TarjetaEmprendimientoItem(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(42.dp)
+                                .size(40.dp)
                                 .background(
                                     colorPrincipal.copy(alpha = 0.15f),
                                     RoundedCornerShape(12.dp)
@@ -163,17 +163,17 @@ fun TarjetaEmprendimientoItem(
                                 imageVector = Icons.Outlined.Storefront,
                                 contentDescription = null,
                                 tint = colorPrincipal,
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = nombreNegocio,
                                 color = colorTextoPrincipal,
-                                fontSize = 16.sp,
+                                fontSize = 15.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -186,6 +186,8 @@ fun TarjetaEmprendimientoItem(
                                     color = colorPrincipal,
                                     fontSize = 10.5.sp,
                                     fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                     letterSpacing = 0.5.sp
                                 )
                             }
@@ -195,7 +197,7 @@ fun TarjetaEmprendimientoItem(
                     Text(
                         text = nombreNegocio,
                         color = colorTextoPrincipal,
-                        fontSize = 16.sp,
+                        fontSize = 15.5.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -207,7 +209,9 @@ fun TarjetaEmprendimientoItem(
                         text = descripcionNegocio,
                         color = colorTextoSecundario,
                         fontSize = 13.sp,
-                        lineHeight = 18.sp
+                        lineHeight = 18.sp,
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -237,7 +241,9 @@ fun TarjetaEmprendimientoItem(
                                 Text(
                                     text = "Zona: $zonaAtencion",
                                     color = colorTextoSecundario,
-                                    fontSize = 12.sp
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -254,7 +260,9 @@ fun TarjetaEmprendimientoItem(
                                 Text(
                                     text = "Horario: $horarioAtencion",
                                     color = colorTextoSecundario,
-                                    fontSize = 12.sp
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -279,7 +287,7 @@ fun TarjetaEmprendimientoItem(
                             border = BorderStroke(1.dp, colorPrincipal.copy(alpha = 0.30f))
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
@@ -295,28 +303,31 @@ fun TarjetaEmprendimientoItem(
                                         modifier = Modifier.size(15.dp)
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(10.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Column {
                                     Text(
                                         text = "Contactar al vecino",
                                         color = colorTextoSecundario,
-                                        fontSize = 10.sp
+                                        fontSize = 10.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
                                         text = formatearTelefonoPeru(telefonoLimpio),
                                         color = colorTextoPrincipal,
                                         fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1
                                     )
                                 }
                             }
                         }
 
                         if (mostrarWhatsapp) {
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
 
                             IconButton(
-                                onClick = { abrirWhatsApp(context, telefonoLimpio) },
+                                onClick = { abrirWhatsApp(context, telefonoLimpio, nombreNegocio) },
                                 modifier = Modifier
                                     .size(44.dp)
                                     .background(Color(0xFF25D366), CircleShape)
@@ -449,12 +460,13 @@ private fun llamarVecino(context: Context, telefono: String) {
     } catch (_: Exception) {}
 }
 
-private fun abrirWhatsApp(context: Context, telefono: String) {
+private fun abrirWhatsApp(context: Context, telefono: String, nombreNegocio: String) {
     try {
         val numero = telefono.filter { it.isDigit() }
         if (numero.isBlank()) return
         val numeroPeru = if (numero.startsWith("51")) numero else "51$numero"
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$numeroPeru"))
+        val mensaje = Uri.encode("Hola, vi tu emprendimiento \"$nombreNegocio\" en SIGEFIV y quisiera hacer una consulta.")
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$numeroPeru?text=$mensaje"))
         context.startActivity(intent)
     } catch (_: Exception) {
         llamarVecino(context, telefono)

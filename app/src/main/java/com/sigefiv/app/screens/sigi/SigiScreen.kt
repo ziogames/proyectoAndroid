@@ -4,6 +4,7 @@ package com.sigefiv.app.screens.sigi
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
@@ -471,8 +472,7 @@ fun SigiScreen(
                         state = listaEstado,
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp),
+                            .fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(vertical = 12.dp)
                     ) {
@@ -487,6 +487,9 @@ fun SigiScreen(
                                 temaOscuro = esTemaOscuro,
                                 onConfirmarAsistencia = { asambleaId, opcion ->
                                     viewModel.confirmarAsistenciaAsamblea(asambleaId, opcion)
+                                },
+                                onEnviarRespuestaRapida = { respuestaRapida ->
+                                    if (!cargando) viewModel.enviarConsulta(respuestaRapida)
                                 },
                                 onCalificarMensaje = { mensajeId, esPositivo ->
                                     viewModel.calificarMensaje(mensajeId, esPositivo)
@@ -983,13 +986,16 @@ private fun BurbujaChat(
     fotoUsuario: String? = null,
     temaOscuro: Boolean = false,
     onConfirmarAsistencia: (Long, String) -> Unit = { _, _ -> },
+    onEnviarRespuestaRapida: (String) -> Unit = {},
     onCalificarMensaje: (String, Boolean?) -> Unit = { _, _ -> }
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
 
     if (mensaje.esUsuario) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp),
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.Top
         ) {
@@ -1028,7 +1034,7 @@ private fun BurbujaChat(
                                     append(mensaje.texto)
                                     withStyle(
                                         SpanStyle(
-                                            color = Color.Transparent, // 👈 Invisible para reservar el hueco sin encimarse
+                                            color = Color.Transparent,
                                             fontSize = 10.sp
                                         )
                                     ) {
@@ -1065,8 +1071,7 @@ private fun BurbujaChat(
                                 )
                             }
                         }
-                    }else {
-                        // Solo imagen sin texto
+                    } else {
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(
                             modifier = Modifier.align(Alignment.End),
@@ -1097,171 +1102,206 @@ private fun BurbujaChat(
             )
         }
     } else {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.Top
-        ) {
-            Surface(
-                modifier = Modifier.size(30.dp),
-                shape = CircleShape,
-                color = primaryColor.copy(alpha = 0.12f),
-                border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
+        val emprendimientos = remember(mensaje.estadistica) {
+            mensaje.estadistica
+                ?.takeIf { it.tipo == "emprendimientos" }
+                ?.emprendimientos
+                .orEmpty()
+        }
+
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.Top
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Outlined.SmartToy,
-                        contentDescription = "ZOE",
-                        tint = primaryColor,
-                        modifier = Modifier.size(16.dp)
-                    )
+                Surface(
+                    modifier = Modifier.size(30.dp),
+                    shape = CircleShape,
+                    color = primaryColor.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.SmartToy,
+                            contentDescription = "ZOE",
+                            tint = primaryColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                val tieneEstadisticaVisual = mensaje.estadistica != null &&
+                        mensaje.estadistica.tipo != "emprendimientos"
+
+                val tieneContenidoAncho = mensaje.tipo == "encuesta_asamblea" ||
+                        tieneEstadisticaVisual ||
+                        mensaje.texto.length > 90 ||
+                        mensaje.texto.contains("Ver estatutos completos", ignoreCase = true)
+
+                val tieneComponentesExtra = mensaje.tipo == "encuesta_asamblea" ||
+                        tieneEstadisticaVisual
+
+                Column(modifier = Modifier.widthIn(max = 285.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(
+                            topStart = 4.dp,
+                            topEnd = 16.dp,
+                            bottomStart = 16.dp,
+                            bottomEnd = 16.dp
+                        ),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        shadowElevation = 0.5.dp
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp)) {
+                            if (mensaje.tipo == "encuesta_asamblea" && mensaje.asambleaId != null) {
+                                TarjetaConvocatoriaAsambleaItem(
+                                    asambleaId = mensaje.asambleaId,
+                                    texto = mensaje.texto,
+                                    yaRespondido = mensaje.asambleaEstadisticas != null,
+                                    estadisticas = mensaje.asambleaEstadisticas,
+                                    colorPrincipal = primaryColor,
+                                    temaOscuro = temaOscuro,
+                                    onConfirmar = { opcion -> onConfirmarAsistencia(mensaje.asambleaId, opcion) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            } else {
+                                ZoeRespuestaFormateada(
+                                    texto = mensaje.texto,
+                                    horaInline = if (!tieneComponentesExtra) mensaje.hora else null,
+                                    tipoMovimiento = mensaje.tipoMovimiento,
+                                    estirarAncho = tieneContenidoAncho,
+                                    temaOscuro = temaOscuro,
+                                    onEnviarRespuestaRapida = onEnviarRespuestaRapida
+                                )
+                            }
+
+                            if (tieneEstadisticaVisual) {
+                                mensaje.estadistica?.let { estadistica ->
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    ZoeEstadisticaChart(
+                                        estadistica = estadistica,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+
+                            mensaje.estadistica
+                                ?.takeIf { it.tipo == "reportes" }
+                                ?.reportes
+                                ?.takeIf { it.isNotEmpty() }
+                                ?.let { listaReportes ->
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        listaReportes.forEach { reporte ->
+                                            TarjetaReporteVecinalItem(
+                                                reporte = reporte,
+                                                colorPrincipal = primaryColor
+                                            )
+                                        }
+                                    }
+                                }
+
+                            if (tieneComponentesExtra) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = mensaje.hora,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.align(Alignment.End)
+                                )
+                            }
+                        }
+                    }
+
+                    if (emprendimientos.isEmpty()) {
+                        BotonesCalificacionZoe(
+                            mensaje = mensaje,
+                            primaryColor = primaryColor,
+                            onCalificarMensaje = onCalificarMensaje
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            val tieneContenidoAncho = mensaje.tipo == "encuesta_asamblea" ||
-                    mensaje.estadistica != null ||
-                    mensaje.texto.length > 90
-
-            val tieneComponentesExtra = mensaje.tipo == "encuesta_asamblea" ||
-                    mensaje.estadistica != null
-
-            Column(modifier = Modifier.widthIn(max = 285.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(
-                        topStart = 4.dp,
-                        topEnd = 16.dp,
-                        bottomStart = 16.dp,
-                        bottomEnd = 16.dp
-                    ),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                    shadowElevation = 0.5.dp
+            if (emprendimientos.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(start = 50.dp, end = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp)) {
-                        if (mensaje.tipo == "encuesta_asamblea" && mensaje.asambleaId != null) {
-                            TarjetaConvocatoriaAsambleaItem(
-                                asambleaId = mensaje.asambleaId,
-                                texto = mensaje.texto,
-                                yaRespondido = mensaje.asambleaEstadisticas != null,
-                                estadisticas = mensaje.asambleaEstadisticas,
-                                colorPrincipal = primaryColor,
-                                temaOscuro = temaOscuro,
-                                onConfirmar = { opcion -> onConfirmarAsistencia(mensaje.asambleaId, opcion) },
-                                modifier = Modifier.fillMaxWidth()
+                    items(emprendimientos) { emprendimiento ->
+                        Box(
+                            modifier = Modifier.width(
+                                if (emprendimientos.size == 1) 285.dp else 265.dp
                             )
-                        } else {
-                            // Si no hay gráficos ni tarjetas debajo, pasamos la hora para que vaya inline
-                            ZoeRespuestaFormateada(
-                                texto = mensaje.texto,
-                                horaInline = if (!tieneComponentesExtra) mensaje.hora else null,
-                                tipoMovimiento = mensaje.tipoMovimiento,
-                                estirarAncho = tieneContenidoAncho,
+                        ) {
+                            TarjetaEmprendimientoItem(
+                                emprendimiento = emprendimiento,
+                                colorPrincipal = primaryColor,
                                 temaOscuro = temaOscuro
                             )
                         }
-
-                        mensaje.estadistica?.let { estadistica ->
-                            Spacer(modifier = Modifier.height(6.dp))
-                            ZoeEstadisticaChart(
-                                estadistica = estadistica,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-
-                        mensaje.estadistica
-                            ?.takeIf { it.tipo == "emprendimientos" }
-                            ?.emprendimientos
-                            ?.takeIf { it.isNotEmpty() }
-                            ?.let { listaEmprendimientos ->
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    listaEmprendimientos.forEach { emprendimiento ->
-                                        TarjetaEmprendimientoItem(
-                                            emprendimiento = emprendimiento,
-                                            colorPrincipal = primaryColor,
-                                            temaOscuro = temaOscuro
-                                        )
-                                    }
-                                }
-                            }
-
-                        mensaje.estadistica
-                            ?.takeIf { it.tipo == "reportes" }
-                            ?.reportes
-                            ?.takeIf { it.isNotEmpty() }
-                            ?.let { listaReportes ->
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    listaReportes.forEach { reporte ->
-                                        TarjetaReporteVecinalItem(
-                                            reporte = reporte,
-                                            colorPrincipal = primaryColor
-                                        )
-                                    }
-                                }
-                            }
-
-                        // Si hubo tarjetas/gráficos extra, mostramos la hora abajo a la derecha
-                        if (tieneComponentesExtra) {
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = mensaje.hora,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                fontSize = 10.sp,
-                                modifier = Modifier.align(Alignment.End)
-                            )
-                        }
                     }
                 }
 
-                // Botones interactivos vinculados al ViewModel
-                Row(
-                    modifier = Modifier.padding(top = 2.dp, start = 2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val esLike = mensaje.calificacion == true
-                    val esDislike = mensaje.calificacion == false
-
-                    IconButton(
-                        onClick = {
-                            val nuevoVoto = if (esLike) null else true
-                            onCalificarMensaje(mensaje.id, nuevoVoto)
-                        },
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (esLike) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
-                            contentDescription = "Respuesta útil",
-                            tint = if (esLike) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                            modifier = Modifier.size(15.dp)
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            val nuevoVoto = if (esDislike) null else false
-                            onCalificarMensaje(mensaje.id, nuevoVoto)
-                        },
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (esDislike) Icons.Filled.ThumbDown else Icons.Outlined.ThumbDown,
-                            contentDescription = "Respuesta incorrecta",
-                            tint = if (esDislike) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                            modifier = Modifier.size(15.dp)
-                        )
-                    }
+                Box(modifier = Modifier.padding(start = 50.dp)) {
+                    BotonesCalificacionZoe(
+                        mensaje = mensaje,
+                        primaryColor = primaryColor,
+                        onCalificarMensaje = onCalificarMensaje
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun BotonesCalificacionZoe(
+    mensaje: ZoeMensaje,
+    primaryColor: Color,
+    onCalificarMensaje: (String, Boolean?) -> Unit
+) {
+    Row(
+        modifier = Modifier.padding(top = 2.dp, start = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val esLike = mensaje.calificacion == true
+        val esDislike = mensaje.calificacion == false
+
+        IconButton(
+            onClick = { onCalificarMensaje(mensaje.id, if (esLike) null else true) },
+            modifier = Modifier.size(28.dp)
+        ) {
+            Icon(
+                imageVector = if (esLike) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
+                contentDescription = "Respuesta útil",
+                tint = if (esLike) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                modifier = Modifier.size(15.dp)
+            )
+        }
+
+        IconButton(
+            onClick = { onCalificarMensaje(mensaje.id, if (esDislike) null else false) },
+            modifier = Modifier.size(28.dp)
+        ) {
+            Icon(
+                imageVector = if (esDislike) Icons.Filled.ThumbDown else Icons.Outlined.ThumbDown,
+                contentDescription = "Respuesta incorrecta",
+                tint = if (esDislike) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                modifier = Modifier.size(15.dp)
+            )
         }
     }
 }
@@ -1273,9 +1313,11 @@ private fun ZoeRespuestaFormateada(
     tipoMovimiento: String? = null,
     estirarAncho: Boolean = false,
     temaOscuro: Boolean = false,
+    onEnviarRespuestaRapida: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
+    val context = LocalContext.current
 
     val regexMovimientoGuiones = Regex(
         """^(?:•|-|\d+\.)\s*(\d{2}[-/]\d{2}[-/]\d{4})\s*(?:—|-)\s*(.*?)\s*(?:—|-)\s*(.*?)\s*(?:—|-)\s*S?/?\s*([\d,]+(?:\.\d{1,2})?)$""",
@@ -1356,24 +1398,48 @@ private fun ZoeRespuestaFormateada(
             }
         }
     } else {
-        val parrafos = remember(texto) {
-            texto.split(Regex("""\r?\n\s*\r?\n"""))
+        val preguntaExplicacion = "¿Deseas que te explique este artículo en palabras más sencillas?"
+        val regexPdfEstatutos = Regex(
+            """📄?\s*Ver estatutos completos \(PDF\):?\s*(https?://\S+)""",
+            RegexOption.IGNORE_CASE
+        )
+
+        val matchPdf = remember(texto) { regexPdfEstatutos.find(texto) }
+        val urlPdfEstatutos = matchPdf?.groupValues?.getOrNull(1)?.trim()
+        val tienePreguntaExplicacion = remember(texto) {
+            texto.contains("explique este artículo en palabras más sencillas", ignoreCase = true)
+        }
+
+        val textoPrincipal = remember(texto, urlPdfEstatutos, tienePreguntaExplicacion) {
+            var limpio = texto
+            if (matchPdf != null) {
+                limpio = limpio.replace(matchPdf.value, "")
+            }
+            if (tienePreguntaExplicacion) {
+                limpio = limpio.replace(preguntaExplicacion, "")
+            }
+            limpio.trim()
+        }
+
+        val parrafos = remember(textoPrincipal) {
+            textoPrincipal.split(Regex("""\r?\n\s*\r?\n"""))
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
         }
 
+        val hayElementosInteractivos = urlPdfEstatutos != null || tienePreguntaExplicacion
+
         Column(
-            modifier = if (estirarAncho) modifier.fillMaxWidth() else modifier,
+            modifier = if (estirarAncho || hayElementosInteractivos) modifier.fillMaxWidth() else modifier,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             parrafos.forEachIndexed { index, parrafo ->
-                val esUltimoParrafo = index == parrafos.lastIndex
+                val esUltimoParrafo = index == parrafos.lastIndex && !hayElementosInteractivos
 
                 if (esUltimoParrafo && horaInline != null) {
-                    // Último párrafo con la hora incrustada en la misma línea (estilo WhatsApp / Telegram)
                     Box(modifier = if (estirarAncho) Modifier.fillMaxWidth() else Modifier) {
                         val espacioHora = remember(horaInline) {
-                            "\u00A0".repeat((horaInline.length + 2).coerceAtLeast(8))
+                            "\u00A0".repeat((horaInline.length + 5).coerceAtLeast(12))
                         }
 
                         LinkableText(
@@ -1397,13 +1463,122 @@ private fun ZoeRespuestaFormateada(
                 } else {
                     LinkableText(
                         text = parrafo,
-                        modifier = if (estirarAncho) Modifier.fillMaxWidth() else Modifier,
+                        modifier = if (estirarAncho || hayElementosInteractivos) Modifier.fillMaxWidth() else Modifier,
                         textColor = MaterialTheme.colorScheme.onSurface,
                         linkColor = primaryColor,
                         fontSize = 14.5.sp,
                         lineHeight = 20.sp
                     )
                 }
+            }
+
+            if (urlPdfEstatutos != null) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlPdfEstatutos))
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        },
+                    shape = RoundedCornerShape(12.dp),
+                    color = primaryColor.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.30f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "📄", fontSize = 18.sp)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Estatutos Oficiales (PDF)",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Toca para abrir el documento completo",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp
+                            )
+                        }
+                        Text(
+                            text = "Abrir →",
+                            color = primaryColor,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            if (tienePreguntaExplicacion) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "¿Deseas que te lo explique en palabras más sencillas?",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onEnviarRespuestaRapida("Sí, por favor") },
+                            shape = RoundedCornerShape(10.dp),
+                            color = primaryColor
+                        ) {
+                            Text(
+                                text = "Sí, explícalo",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onEnviarRespuestaRapida("No, gracias") },
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        ) {
+                            Text(
+                                text = "No, gracias",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (hayElementosInteractivos && horaInline != null) {
+                Text(
+                    text = horaInline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontSize = 10.sp,
+                    modifier = Modifier.align(Alignment.End)
+                )
             }
         }
     }
@@ -1453,7 +1628,7 @@ private fun IndicadorCargaMensaje() {
     val primaryColor = MaterialTheme.colorScheme.primary
 
     Row(
-        modifier = Modifier.padding(vertical = 4.dp),
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
