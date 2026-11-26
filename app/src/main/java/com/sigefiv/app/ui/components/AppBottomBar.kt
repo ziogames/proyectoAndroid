@@ -20,12 +20,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sigefiv.app.ui.theme.SeasonalColors
 import com.sigefiv.app.ui.theme.SeasonalTheme
 
-private val ColorInactivo = Color(0xFF64748B)
+private val ColorInactivo = Color(0xFF94A3B8)
 
 @Composable
 fun AppBottomBar(
@@ -37,7 +38,7 @@ fun AppBottomBar(
     onMiCuentaClick: () -> Unit = {}
 ) {
     val primaryColor = SeasonalColors.primary(SeasonalTheme.getSeason())
-    val indicadorColor = primaryColor.copy(alpha = 0.12f)
+    val indicadorColor = primaryColor.copy(alpha = 0.14f)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         HorizontalDivider(
@@ -62,8 +63,11 @@ fun AppBottomBar(
                 label = {
                     Text(
                         text = "Inicio",
-                        fontSize = 11.sp,
-                        fontWeight = if (pantallaActual == "Inicio") FontWeight.Bold else FontWeight.Normal
+                        fontSize = 12.sp,
+                        fontWeight = if (pantallaActual == "Inicio") FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
@@ -91,8 +95,11 @@ fun AppBottomBar(
                 label = {
                     Text(
                         text = "Asamblea",
-                        fontSize = 11.sp,
-                        fontWeight = if (pantallaActual == "Asamblea") FontWeight.Bold else FontWeight.Normal
+                        fontSize = 12.sp,
+                        fontWeight = if (pantallaActual == "Asamblea") FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
@@ -117,8 +124,11 @@ fun AppBottomBar(
                 label = {
                     Text(
                         text = "Negocios",
-                        fontSize = 11.sp,
-                        fontWeight = if (pantallaActual == "Negocios") FontWeight.Bold else FontWeight.Normal
+                        fontSize = 12.sp,
+                        fontWeight = if (pantallaActual == "Negocios") FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
@@ -143,8 +153,11 @@ fun AppBottomBar(
                 label = {
                     Text(
                         text = "Periodos",
-                        fontSize = 11.sp,
-                        fontWeight = if (pantallaActual == "Periodos") FontWeight.Bold else FontWeight.Normal
+                        fontSize = 12.sp,
+                        fontWeight = if (pantallaActual == "Periodos") FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
@@ -169,8 +182,11 @@ fun AppBottomBar(
                 label = {
                     Text(
                         text = "Mi cuenta",
-                        fontSize = 11.sp,
-                        fontWeight = if (pantallaActual == "MiCuenta") FontWeight.Bold else FontWeight.Normal
+                        fontSize = 12.sp,
+                        fontWeight = if (pantallaActual == "MiCuenta") FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(

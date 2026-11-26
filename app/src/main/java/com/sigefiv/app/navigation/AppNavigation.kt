@@ -616,8 +616,22 @@ fun AppNavigation(
 
                     AppScreen.DETALLE_MOVIMIENTO -> {
                         movimientoSeleccionado?.let { mov ->
+                            val movimientosPeriodo by periodosViewModel.movimientos.collectAsState()
+                            val filtroPeriodo by periodosViewModel.filtroMovimientos.collectAsState()
+
+                            // Respetamos el filtro activo (Todos, Ingresos o Egresos) si el movimiento pertenece a esa lista
+                            val listaParaCarrusel = remember(movimientosPeriodo, filtroPeriodo, mov) {
+                                val filtrados = when (filtroPeriodo) {
+                                    "Ingresos" -> movimientosPeriodo.filter { it.tipo.trim().startsWith("ingreso", ignoreCase = true) }
+                                    "Egresos" -> movimientosPeriodo.filter { it.tipo.trim().startsWith("egreso", ignoreCase = true) }
+                                    else -> movimientosPeriodo
+                                }
+                                if (filtrados.any { it.id == mov.id }) filtrados else listOf(mov)
+                            }
+
                             DetalleMovimientoScreen(
                                 movimiento = mov,
+                                movimientosLista = listaParaCarrusel,
                                 periodoNombre = mov.periodo?.nombre_completo
                                     ?: periodoDetalle?.nombre_completo
                                     ?: periodo?.nombre,

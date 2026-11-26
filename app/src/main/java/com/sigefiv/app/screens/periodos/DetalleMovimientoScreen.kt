@@ -1,14 +1,18 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(
+    androidx.compose.material3.ExperimentalMaterial3Api::class,
+    androidx.compose.foundation.ExperimentalFoundationApi::class
+)
 
 package com.sigefiv.app.screens.movimientos
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,17 +25,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.sigefiv.app.ServidorConfig
 import com.sigefiv.app.data.model.Movimiento
 import com.sigefiv.app.ui.components.AppBottomBar
+import kotlinx.coroutines.launch
+import kotlin.math.absoluteValue
 
 private val ColorIngreso = Color(0xFF16A34A)
 private val ColorEgreso = Color(0xFFDC2626)
@@ -39,6 +49,8 @@ private val ColorEgreso = Color(0xFFDC2626)
 @Composable
 fun DetalleMovimientoScreen(
     movimiento: Movimiento,
+    movimientosLista: List<Movimiento> = emptyList(),
+    indiceInicial: Int = 0,
     periodoNombre: String? = null,
     periodoEstado: String? = null,
     ingresosPeriodo: Double? = null,
@@ -53,9 +65,35 @@ fun DetalleMovimientoScreen(
     onMiCuentaClick: () -> Unit = {}
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
-    val esIngreso = movimiento.tipo.equals("Ingreso", ignoreCase = true)
-    val colorMovimiento = if (esIngreso) ColorIngreso else ColorEgreso
+    val haptic = LocalHapticFeedback.current
+    val coroutineScope = rememberCoroutineScope()
 
+    // Si recibimos lista usamos esa; si no, envolvemos el movimiento único para mantener compatibilidad
+    val items = remember(movimientosLista, movimiento) {
+        if (movimientosLista.isNotEmpty()) movimientosLista else listOf(movimiento)
+    }
+
+    val paginaInicio = remember(items, indiceInicial, movimiento) {
+        if (indiceInicial in items.indices) {
+            indiceInicial
+        } else {
+            items.indexOfFirst { it.id == movimiento.id }.coerceAtLeast(0)
+        }
+    }
+
+    val pagerState = rememberPagerState(
+        initialPage = paginaInicio,
+        pageCount = { items.size }
+    )
+
+    // Vibración suave cada vez que cambia de página para confirmar el paso
+    LaunchedEffect(pagerState.settledPage) {
+        if (items.size > 1) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+    }
+
+    val movimientoActual = items.getOrElse(pagerState.currentPage) { movimiento }
     val nombrePeriodo = periodoNombre ?: "Período actual"
     val estadoPeriodo = periodoEstado ?: "Abierto"
 
@@ -69,12 +107,16 @@ fun DetalleMovimientoScreen(
                             text = "Detalle de movimiento",
                             color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
+                            fontSize = 18.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "N.º ${movimiento.numero} · $nombrePeriodo",
+                            text = "N.º ${movimientoActual.numero} · $nombrePeriodo",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 },
@@ -85,6 +127,64 @@ fun DetalleMovimientoScreen(
                             contentDescription = "Regresar",
                             tint = MaterialTheme.colorScheme.onSurface
                         )
+                    }
+                },
+                actions = {
+                    if (items.size > 1) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                            ),
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 2.dp)
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                                        }
+                                    },
+                                    enabled = pagerState.currentPage > 0,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ChevronLeft,
+                                        contentDescription = "Anterior",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                Text(
+                                    text = "${pagerState.currentPage + 1}/${items.size}",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = primaryColor,
+                                    modifier = Modifier.padding(horizontal = 4.dp)
+                                )
+
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                        }
+                                    },
+                                    enabled = pagerState.currentPage < items.lastIndex,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ChevronRight,
+                                        contentDescription = "Siguiente",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -104,64 +204,87 @@ fun DetalleMovimientoScreen(
         }
     ) { innerPadding ->
 
-        LazyColumn(
+        HorizontalPager(
+            state = pagerState,
+            pageSpacing = 12.dp,
+            key = { index -> items[index].id },
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            // Tarjeta Principal Tipo Voucher (Monto + Concepto + Estado)
-            item {
-                HeaderMontoCard(
-                    movimiento = movimiento,
-                    esIngreso = esIngreso,
-                    colorMovimiento = colorMovimiento,
-                    primaryColor = primaryColor
-                )
-            }
+        ) { page ->
+            val movPagina = items[page]
+            val esIngreso = movPagina.tipo.equals("Ingreso", ignoreCase = true)
+            val colorMovimiento = if (esIngreso) ColorIngreso else ColorEgreso
 
-            // Información General detallada
-            item {
-                InformacionGeneralCard(
-                    movimiento = movimiento,
-                    esIngreso = esIngreso,
-                    colorMovimiento = colorMovimiento,
-                    primaryColor = primaryColor
-                )
-            }
+            // Efecto de escala y opacidad al deslizar para notar claramente el cambio de página
+            val pageOffset = (
+                    (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                    ).absoluteValue.coerceIn(0f, 1f)
 
-            // Resumen financiero del período si está disponible
-            if (
-                ingresosPeriodo != null ||
-                egresosPeriodo != null ||
-                saldoDisponiblePeriodo != null ||
-                saldoCajaPeriodo != null
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        val escala = lerp(0.94f, 1f, 1f - pageOffset)
+                        scaleX = escala
+                        scaleY = escala
+                        alpha = lerp(0.60f, 1f, 1f - pageOffset)
+                    }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                // Tarjeta Principal Tipo Voucher (Monto + Concepto + Estado)
                 item {
-                    ResumenPeriodoCard(
-                        periodoNombre = nombrePeriodo,
-                        ingresos = ingresosPeriodo ?: 0.0,
-                        egresos = egresosPeriodo ?: 0.0,
-                        disponible = saldoDisponiblePeriodo
-                            ?: ((ingresosPeriodo ?: 0.0) - (egresosPeriodo ?: 0.0)),
-                        saldoCaja = saldoCajaPeriodo
-                            ?: ((ingresosPeriodo ?: 0.0) - (egresosPeriodo ?: 0.0))
+                    HeaderMontoCard(
+                        movimiento = movPagina,
+                        esIngreso = esIngreso,
+                        colorMovimiento = colorMovimiento,
+                        primaryColor = primaryColor
                     )
                 }
-            }
 
-            // Estado del período contable
-            item {
-                EstadoPeriodoCard(
-                    estado = estadoPeriodo,
-                    abierto = estadoPeriodo.equals("Abierto", ignoreCase = true)
-                )
-            }
+                // Información General detallada
+                item {
+                    InformacionGeneralCard(
+                        movimiento = movPagina,
+                        esIngreso = esIngreso,
+                        colorMovimiento = colorMovimiento,
+                        primaryColor = primaryColor
+                    )
+                }
 
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
+                // Resumen financiero del período si está disponible
+                if (
+                    ingresosPeriodo != null ||
+                    egresosPeriodo != null ||
+                    saldoDisponiblePeriodo != null ||
+                    saldoCajaPeriodo != null
+                ) {
+                    item {
+                        ResumenPeriodoCard(
+                            periodoNombre = nombrePeriodo,
+                            ingresos = ingresosPeriodo ?: 0.0,
+                            egresos = egresosPeriodo ?: 0.0,
+                            disponible = saldoDisponiblePeriodo
+                                ?: ((ingresosPeriodo ?: 0.0) - (egresosPeriodo ?: 0.0)),
+                            saldoCaja = saldoCajaPeriodo
+                                ?: ((ingresosPeriodo ?: 0.0) - (egresosPeriodo ?: 0.0))
+                        )
+                    }
+                }
+
+                // Estado del período contable
+                item {
+                    EstadoPeriodoCard(
+                        estado = estadoPeriodo,
+                        abierto = estadoPeriodo.equals("Abierto", ignoreCase = true)
+                    )
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
     }
@@ -187,7 +310,6 @@ private fun HeaderMontoCard(
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Icono Circular
             Box(
                 modifier = Modifier
                     .size(56.dp)
@@ -204,7 +326,6 @@ private fun HeaderMontoCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Monto Grande
             Text(
                 text = if (esIngreso) "+ S/ %.2f".format(movimiento.monto) else "- S/ %.2f".format(movimiento.monto),
                 color = colorMovimiento,
@@ -214,7 +335,6 @@ private fun HeaderMontoCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Concepto
             Text(
                 text = movimiento.concepto,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -226,7 +346,6 @@ private fun HeaderMontoCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Badges: Categoría y Tipo
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -355,7 +474,6 @@ private fun InformacionGeneralCard(
                 valor = "Movimiento N.º ${movimiento.numero}"
             )
 
-            // Sección de Comprobante
             if (!urlComprobante.isNullOrBlank()) {
                 DetalleDivisor()
                 Spacer(modifier = Modifier.height(4.dp))
@@ -414,7 +532,6 @@ private fun InformacionGeneralCard(
         }
     }
 
-    // Modal para zoom y vista completa del comprobante
     if (mostrarComprobanteModal && !urlComprobante.isNullOrBlank()) {
         Dialog(
             onDismissRequest = { mostrarComprobanteModal = false },
